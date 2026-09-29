@@ -1,0 +1,29 @@
+name: CICD
+
+on:
+    push: 
+        branches:
+            - main
+    pull_request: 
+        branches:
+            - main
+    workflow_dispatch:
+
+env: 
+    EPITECH_REPO: "git@github.com:EpitechPGE3-2026/G-ING-500-PAR-5-1-rtype-12.git"
+
+jobs:
+  push-to-mirror:
+    if: github.repository == 'aludnier/R-Type_Mirror'
+    runs-on: ubuntu-latest
+    steps:
+        - name: Checkout Code
+          uses: "actions/checkout@v4"
+          with:
+            fetch-depth: 0
+        - name: Push to Epitech Repository
+          uses: pixta-dev/repository-mirroring-action@v1
+          with:
+            target_repo_url: ${{ env.EPITECH_REPO }}
+            ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+
