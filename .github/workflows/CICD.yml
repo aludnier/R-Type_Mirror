@@ -13,6 +13,32 @@ env:
     EPITECH_REPO: "git@github.com:EpitechPGE3-2026/G-ING-500-PAR-5-1-rtype-12.git"
 
 jobs:
+  build-project-Linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: "actions/checkout@v4"
+
+      - name: Install dependencies
+        run: |
+            sudo apt-get update 
+      - name: Configure and build
+        run: | 
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+          cmake --build build
+
+  build-project-Window:
+    runs-on: windows-latest
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Setup Windows tools
+        run: |
+          echo "Using Visual Studio and CMake preinstalled on windows-latest"
+      - name: Configure and build
+        shell: powershell
+        run: |
+          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --config Release -- /m
+
   push-to-mirror:
     if: github.repository == 'aludnier/R-Type_Mirror'
     runs-on: ubuntu-latest
