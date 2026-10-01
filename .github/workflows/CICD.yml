@@ -40,6 +40,7 @@ jobs:
           cmake --build build --config Release -- /m
 
   push-to-mirror:
+    needs: [build-project-Linux , build-project-Window]
     if: github.repository == 'aludnier/R-Type_Mirror'
     runs-on: ubuntu-latest
     steps:
