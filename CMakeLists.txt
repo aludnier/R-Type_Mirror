@@ -1,13 +1,15 @@
 cmake_minimum_required(VERSION 3.10.0)
-project(R-Type_Mirror VERSION 0.1.0 LANGUAGES C CXX)
+project(R-Type VERSION 0.1.0 LANGUAGES C CXX)
 
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(r-type main.cpp)
+add_subdirectory(game_engine)
+add_subdirectory(game)
 
-# include_directories("./include")
+option(BUILD_TESTS "Build the tests" ON)
 
-include(CTest)
-
-
-enable_testing()
-
+if (BUILD_TESTS)
+    include(CTest)
+    enable_testing()
+endif ()
