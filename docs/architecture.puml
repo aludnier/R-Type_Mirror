@@ -1,0 +1,572 @@
+@startuml ecs_network_architecture
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+' ===============================================================
+' ECS
+' ===============================================================
+package "ECS" {
+    class entity {
+        - size_t _id
+        - explicit entity(size_t id)
+        + operator size_t() const
+        friend class registry
+    }
+
+    note right of entity
+      Aliased as entity_t in the registry API.
+    end note
+
+    class "sparse_array<Component>" as sparse_array {
+        - std::vector<std::optional<Component>> _data
+        + operator[](size_t idx)
+        + insert_at(size_type pos, Component)
+        + emplace_at<Params...>(size_type pos, Params &&...)
+        + erase(size_type pos)
+        + get_index(value_type const &) const
+        + begin() / end() / size()
+    }
+
+    class registry {
+        + register_component<Component>() : sparse_array<Component> &
+        + get_components<Component>() : sparse_array<Component> &
+        --
+        + spawn_entity() : entity_t
+        + entity_from_index(std::size_t idx) : entity_t
+        + kill_entity(entity_t const &e) : void
+        --
+        + add_component<Component>(entity_t const &to, Component &&c)
+        + emplace_component<Component, Params...>(entity_t const &to, Params &&...p)
+        + remove_component<Component>(entity_t const &from) : void
+        --
+        + add_system<Components..., Function>(Function &&f) : void
+        + run_systems() : void
+        --
+        - _components_arrays : type_index → any
+        - _erase_functions
+        - _systems
+    }
+
+    class "zipper<Containers...>" as zipper
+    class "indexed_zipper<Containers...>" as indexed_zipper
+}
+
+' ===============================================================
+' Shared libraries: components
+' ===============================================================
+package "Shared libraries (components)" {
+    class "game dev components" as dev_components <<new, per game>> {
+        created by the game developer
+        e.g. r-type: enemy_ai, weapon, score, powerup
+        must provide serialize() / deserialize()
+        must be registered in the component_registry
+    }
+
+    class controllable <<component>> {
+        + up : bool
+        + down : bool
+        + left : bool
+        + right : bool
+        + action : action_id (dev-defined, e.g. shoot)
+    }
+
+    class position <<component, provided, filled>> {
+        + x : float
+        + y : float
+    }
+
+    class physics <<component, provided>> {
+        + velocity_x : float
+        + velocity_y : float
+        + hitbox_w : float
+        + hitbox_h : float
+    }
+
+    class animation <<component, provided>> {
+        + sprite_id : string (key of the asset map)
+        + frame_count : uint8
+        + frame_duration_ms : uint16
+        + current_frame : uint8
+    }
+
+    class replicated <<component, provided, filled>> {
+        marks an entity as synchronised
+        over the network
+        + network_id : uint32
+        + owner_client : client_id (0 = server)
+    }
+}
+
+' ===============================================================
+' Network: message type and packets
+' ===============================================================
+' FILLED: the enum was "not really modular". Ids are now split into
+' reserved ranges so the game developer can add packets without
+' touching the engine enum.
+class message_type <<enum>> {
+    0x00-0x7F : engine reserved (connection, spawn, update...)
+    0x80-0xFF : game developer range
+    --
+    one value per packet type
+}
+
+class packet_registry <<filled>> {
+    + register_packet<Packet>(message_type)
+    + register_handler(message_type, handler)
+    + decode(bytes) : optional<packet>
+    --
+    maps message_type → (factory, handler)
+    removes the need for a closed enum switch
+}
+
+note right of message_type
+  Ranges keep the engine modular: the dev
+  registers custom packets in the game range
+  through the packet_registry.
+end note
+
+class packet_header <<filled>> {
+    + magic : uint16
+    + protocol_version : uint8
+    + message_type : uint8
+    + sequence : uint16
+    + payload_size : uint16
+}
+
+class packet {
+    packet_header
+    payload (binary, little-endian, bounds-checked)
+    --
+    + serialize() : bytes
+    + {static} deserialize(bytes) : optional<packet>
+}
+
+package "Packets (server → client)" {
+    class force_disconnect <<packet>> {
+        reason_code : enum { server_full, bad_version,
+                             kicked, timeout, server_shutdown }
+        message : string (optional, length-prefixed)
+    }
+    class player_disconnected <<packet>> {
+        client_id
+        reason_code
+    }
+    class entity_spawn <<packet>> {
+        entity
+        components : list<{component_type_id, data}>
+    }
+    class entity_despawn <<packet>> {
+        entity
+    }
+    class component_packet <<packet>> {
+        tick
+        entity
+        component : {component_type_id, data}
+    }
+    class accept_connect <<packet>> {
+        linked_entity
+        client_id
+        tick_rate
+    }
+    class player_connected <<packet>> {
+        client_id
+        linked_entity
+    }
+    class heartbeat_reply <<packet, filled>> {
+        server_tick
+    }
+}
+
+package "Packets (client → server)" {
+    class ask_disconnect <<packet>> {
+        (empty payload, header only)
+    }
+    class "controllable" as controllable_packet <<packet>> {
+        input_sequence
+        controllable component data
+    }
+    class ask_connect <<packet>> {
+        protocol_version
+        player_name (optional)
+    }
+    class heartbeat <<packet, filled>> {
+        client_tick
+    }
+}
+
+note bottom of entity_spawn
+  Client handler names for the same packets:
+  force_disconnect → disconnected
+  entity_spawn → entity_spawned
+  entity_despawn → entity_despawned
+  component_packet → component_updated
+  accept_connect → connection_accepted
+  heartbeat_reply → heartbeat_replied
+  player_disconnected and player_connected
+  keep their names.
+end note
+
+' ===============================================================
+' Transport (UDP abstraction)  -- FILLED: was missing
+' ===============================================================
+package "Transport (UDP)" <<filled>> {
+    class udp_socket {
+        encapsulates Asio / BSD sockets / Winsock
+        + bind(port)
+        + send_to(endpoint, bytes)
+        + async_receive(callback)
+    }
+
+    class "thread_safe_queue<T>" as thread_safe_queue {
+        + push(T)
+        + try_pop() : optional<T>
+    }
+
+    class reliability_layer <<optional>> {
+        + ack / resend for critical packets
+          (spawn, despawn, connect)
+        + unreliable for component updates
+    }
+}
+
+' ===============================================================
+' Server
+' ===============================================================
+class game_server {
+    ECS
+    network
+    game state
+    --
+    + run() : fixed-timestep loop (tick)
+    + tick() : pop inbound queue, run_systems(), replicate
+    + on_client_connected(client)
+    + on_client_timeout(client)
+}
+
+class client_session <<filled>> {
+    + client_id
+    + endpoint
+    + linked_entity
+    + last_seen : timestamp
+    + last_input_sequence
+}
+
+class server_network {
+    -- send --
+    + send_to_client(client, packet)
+    + send_to_all_clients(packet)
+    + send_to_all_clients_except(client, packet)
+    -- send packets --
+    + force_disconnect(reason?)
+    + player_disconnected(client_id)
+    + entity_spawn(entity, components)
+    + entity_despawn(entity)
+    + send_component_packet(tick, entity, component)
+    + accept_connect(linked_entity)
+    + player_connected(client_id, linked_entity)
+    -- dispatch --
+    + handle_message(message_type, method_ptr)
+    -- receive packets --
+    + ask_disconnect()
+    + controllable(controllable component data)
+    + ask_connect()
+    + heartbeat()
+    -- robustness (filled) --
+    + drop_malformed(bytes) : never crashes
+    + check_timeouts() : crash → player_disconnected
+    - io_thread : receive + queue
+}
+
+class game_state {
+    + load()
+    + save()
+    --
+    + level / wave definitions (spawn timeline)
+    + scores
+    + current wave, tick counter
+}
+
+' ===============================================================
+' Server-side systems  -- FILLED: were missing
+' ===============================================================
+package "Server systems (run by the registry)" <<filled>> {
+    class input_system <<system>> {
+        controllable → physics.velocity
+    }
+    class movement_system <<system>> {
+        position += velocity * dt
+    }
+    class collision_system <<system>> {
+        position + physics → damage, kill, despawn
+    }
+    class spawn_system <<system>> {
+        spawns enemies / missiles from game_state
+    }
+    class replication_system <<system>> {
+        replicated entities → spawn / despawn /
+        component_packet via server_network
+    }
+}
+
+' ===============================================================
+' Client
+' ===============================================================
+class game_client {
+    ECS (only the components needed for rendering)
+    network
+    --
+    + handle_rendering() : from components
+    + handle_inputs() : sends the controllable component to the server
+    --
+    + run() : render loop (timer based, not CPU bound)
+    + on_connection_lost()
+}
+
+class client_network {
+    -- receive packets --
+    + disconnected()
+    + player_disconnected(client_id)
+    + entity_spawned(entity, components)
+    + entity_despawned(entity)
+    + component_updated(tick, entity, component)
+    + connection_accepted(linked_entity)
+    + player_connected(client_id, linked_entity)
+    + heartbeat_replied()
+    -- send packets --
+    + ask_disconnect() : nothing
+    + controllable(controllable component data)
+    + ask_connect() : nothing
+    + heartbeat()
+    -- local entity mapping (filled) --
+    + network_id → local entity
+}
+
+package "Client systems (run by the registry)" <<filled>> {
+    class render_system <<system>> {
+        position + animation → draw (SFML / SDL / Raylib)
+    }
+    class input_capture_system <<system>> {
+        keyboard / mouse → controllable
+        via client_lib action map
+    }
+    class interpolation_system <<system>> {
+        smooths component_updated between ticks
+    }
+    class audio_system <<system>> {
+        events → sounds (asset map)
+    }
+}
+
+' ===============================================================
+' Available to the game developer (lib)
+' ===============================================================
+package "Game developer lib" {
+    class server_lib <<lib>> {
+        + link to ECS system
+        + add_system(...) : registers a dev system on the server
+        + register_component<C>() : also makes it replicable
+        + register_packet<P>(message_type) : game range
+    }
+
+    class client_lib <<lib>> {
+        + link_input_to_action(key press or mouse movement, action)
+        + add_system(...) : registers a dev system on the client
+    }
+
+    class shared_lib <<lib>> {
+        + set_asset_map(str_id : path)
+        + register_component<C>() : shared server / client
+    }
+}
+
+note bottom of client_lib
+  Links a key press or mouse movement
+  to a dev-defined action.
+end note
+
+' ===============================================================
+' Relationships
+' ===============================================================
+registry "1" o-- "*" sparse_array : one per component type
+registry ..> entity : creates / kills
+registry ..> zipper : systems iterate
+registry ..> indexed_zipper : systems iterate
+
+sparse_array ..> controllable : Component
+sparse_array ..> position : Component
+sparse_array ..> physics : Component
+sparse_array ..> animation : Component
+sparse_array ..> replicated : Component
+sparse_array ..> dev_components : Component
+
+force_disconnect --|> packet
+player_disconnected --|> packet
+entity_spawn --|> packet
+entity_despawn --|> packet
+component_packet --|> packet
+accept_connect --|> packet
+player_connected --|> packet
+heartbeat_reply --|> packet
+ask_disconnect --|> packet
+controllable_packet --|> packet
+ask_connect --|> packet
+heartbeat --|> packet
+packet *-- packet_header
+packet_header ..> message_type
+packet_registry ..> message_type : maps ids
+packet_registry ..> packet : decodes
+
+game_server *-- registry : ECS
+game_server *-- server_network : network
+game_server *-- game_state : game state
+game_server "1" o-- "*" client_session : connected clients
+
+game_client *-- registry : ECS (rendering components only)
+game_client *-- client_network : network
+
+server_network ..> packet : sends / receives
+client_network ..> packet : sends / receives
+server_network ..> packet_registry : dispatch
+client_network ..> packet_registry : dispatch
+server_network ..> message_type : handle_message
+server_network ..> entity
+client_network ..> entity
+server_network *-- udp_socket
+client_network *-- udp_socket
+server_network *-- thread_safe_queue : inbound packets
+server_network ..> reliability_layer
+client_network ..> reliability_layer
+server_network ..> client_session : manages
+
+controllable_packet ..> controllable : carries data of
+component_packet ..> replicated : only for replicated entities
+
+input_system ..> controllable
+movement_system ..> position
+movement_system ..> physics
+collision_system ..> physics
+spawn_system ..> game_state
+replication_system ..> server_network
+replication_system ..> replicated
+game_server ..> input_system : registers
+game_server ..> movement_system : registers
+game_server ..> collision_system : registers
+game_server ..> spawn_system : registers
+game_server ..> replication_system : registers
+
+render_system ..> position
+render_system ..> animation
+input_capture_system ..> controllable
+interpolation_system ..> position
+game_client ..> render_system : registers
+game_client ..> input_capture_system : registers
+game_client ..> interpolation_system : registers
+game_client ..> audio_system : registers
+
+server_lib ..> registry : link to ECS system
+client_lib ..> game_client : input to action
+shared_lib ..> game_server
+shared_lib ..> game_client
+server_lib ..> packet_registry : register_packet
+
+dev_components ..> registry : registered in
+physics ..> registry : registered in
+animation ..> registry : registered in
+position ..> registry : registered in
+replicated ..> registry : registered in
+
+note bottom of dev_components
+  The game developer creates new components in
+  shared libraries and also uses the provided ones
+  (position, physics, animation, etc.).
+end note
+
+
+' ===============================================================
+' Modular game engine architecture
+' ===============================================================
+package "Modular Engine" {
+    class Game <<application>> {
+        uses only the subsystem APIs it needs
+        does not depend on concrete implementations
+    }
+
+    package "Engine Core (static)" {
+        class "Engine Core" as engine_core <<static library>> {
+            memory
+            ECS
+            resources
+            jobs
+            logging
+            module management
+            --
+            + discover_modules()
+            + load_module()
+            + initialize_module()
+            + unload_module()
+        }
+    }
+
+    package "Subsystem APIs / Interfaces" {
+        interface "Physics API" as physics_api
+        interface "Renderer API" as renderer_api
+        interface "Animation API" as animation_api
+        interface "Audio API" as audio_api
+    }
+
+    package "Dynamically Loaded Modules" {
+        class "Physics Module" as physics_module <<dynamic library>>
+        class "Renderer Module" as renderer_module <<dynamic library>>
+        class "Animation Module" as animation_module <<dynamic library>>
+        class "Audio Module" as audio_module <<dynamic library>>
+    }
+
+    Game ..> engine_core : uses
+    Game ..> physics_api : uses if needed
+    Game ..> renderer_api : uses if needed
+    Game ..> animation_api : uses if needed
+    Game ..> audio_api : uses if needed
+
+    physics_module ..|> physics_api : implements
+    renderer_module ..|> renderer_api : implements
+    animation_module ..|> animation_api : implements
+    audio_module ..|> audio_api : implements
+
+    engine_core ..> physics_module : discover / load / init / unload
+    engine_core ..> renderer_module : discover / load / init / unload
+    engine_core ..> animation_module : discover / load / init / unload
+    engine_core ..> audio_module : discover / load / init / unload
+}
+
+note bottom of engine_core
+  Static core contains tightly coupled fundamental functionality.
+  Module management owns discovery, dynamic loading,
+  initialization, unloading, and replacement of optional subsystems.
+end note
+
+note bottom of physics_api
+  API contracts are independent of implementation.
+  Dynamic libraries may be replaced or hot-reloaded
+  without changing the game's subsystem-facing code.
+end note
+
+note bottom of Game
+  The game depends on API contracts, not concrete modules.
+  Only the APIs for systems actually used are required.
+end note
+
+' Existing engine systems are supplied by / coordinated through the Core.
+engine_core *-- registry : ECS / core system
+engine_core ..> game_server : hosts / coordinates
+engine_core ..> game_client : hosts / coordinates
+engine_core ..> server_network : core-managed service
+engine_core ..> client_network : core-managed service
+engine_core ..> shared_lib : engine integration
+
+' Existing subsystem-facing systems can consume the corresponding APIs.
+physics_api ..> physics : exposes physics services
+renderer_api ..> render_system : renderer services
+animation_api ..> animation : animation services
+audio_api ..> audio_system : audio services
+@enduml

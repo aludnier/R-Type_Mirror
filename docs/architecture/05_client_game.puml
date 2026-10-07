@@ -1,0 +1,121 @@
+@startuml client_game_architecture
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+' Client
+' ===============================================================
+class game_client {
+    ECS (only the components needed for rendering)
+    network
+    --
+    + handle_rendering() : from components
+    + handle_inputs() : sends the controllable component to the server
+    --
+    + run() : render loop (timer based, not CPU bound)
+    + on_connection_lost()
+}
+
+class client_network {
+    -- receive packets --
+    + disconnected()
+    + player_disconnected(client_id)
+    + entity_spawned(entity, components)
+    + entity_despawned(entity)
+    + component_updated(tick, entity, component)
+    + connection_accepted(linked_entity)
+    + player_connected(client_id, linked_entity)
+    + heartbeat_replied()
+    -- send packets --
+    + ask_disconnect() : nothing
+    + controllable(controllable component data)
+    + ask_connect() : nothing
+    + heartbeat()
+    -- local entity mapping (filled) --
+    + network_id → local entity
+}
+
+package "Client systems (run by the registry)" <<filled>> {
+    class render_system <<system>> {
+        position + animation → draw (SFML / SDL / Raylib)
+    }
+    class input_capture_system <<system>> {
+        keyboard / mouse → controllable
+        via client_lib action map
+    }
+    class interpolation_system <<system>> {
+        smooths component_updated between ticks
+    }
+    class audio_system <<system>> {
+        events → sounds (asset map)
+    }
+}
+
+' ===============================================================
+' Available to the game developer (lib)
+' ===============================================================
+package "Game developer lib" {
+    class server_lib <<lib>> {
+        + link to ECS system
+        + add_system(...) : registers a dev system on the server
+        + register_component<C>() : also makes it replicable
+        + register_packet<P>(message_type) : game range
+    }
+
+    class client_lib <<lib>> {
+        + link_input_to_action(key press or mouse movement, action)
+        + add_system(...) : registers a dev system on the client
+    }
+
+    class shared_lib <<lib>> {
+        + set_asset_map(str_id : path)
+        + register_component<C>() : shared server / client
+    }
+}
+
+note bottom of client_lib
+  Links a key press or mouse movement
+  to a dev-defined action.
+end note
+
+' ===============================================================
+' External references
+class registry <<external>>
+class entity <<external>>
+class client_network <<external>>
+class position <<component, external>>
+class animation <<component, external>>
+class controllable <<component, external>>
+class "Engine Core" as engine_core <<external>>
+class client_lib <<lib, external>>
+class server_lib <<lib, external>>
+class shared_lib <<lib, external>>
+class game_server <<external>>
+class game_client <<external>>
+
+' Cross-view links
+engine_core ..> game_client : hosts / coordinates
+engine_core ..> client_network : core-managed service
+game_client *-- registry : ECS (rendering components only)
+game_client *-- client_network : network
+client_network ..> packet : sends / receives
+client_network ..> packet_registry : dispatch
+client_network ..> entity
+client_network *-- udp_socket
+client_network ..> reliability_layer
+render_system ..> position
+render_system ..> animation
+input_capture_system ..> controllable
+interpolation_system ..> position
+game_client ..> render_system : registers
+game_client ..> input_capture_system : registers
+game_client ..> interpolation_system : registers
+game_client ..> audio_system : registers
+client_lib ..> game_client : input to action
+server_lib ..> registry : shared ECS registration
+client_lib ..> game_client : input / systems
+shared_lib ..> game_client : shared assets/components
+shared_lib ..> game_server : shared assets/components
+
+
+@enduml

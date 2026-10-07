@@ -1,0 +1,138 @@
+@startuml ecs_components
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+' External references
+class "Engine Core" as engine_core <<external>>
+class game_server <<external>>
+class game_client <<external>>
+class server_lib <<external>>
+class client_lib <<external>>
+class shared_lib <<external>>
+' ECS
+' ===============================================================
+package "ECS" {
+    class entity {
+        - size_t _id
+        - explicit entity(size_t id)
+        + operator size_t() const
+        friend class registry
+    }
+
+    note right of entity
+      Aliased as entity_t in the registry API.
+    end note
+
+    class "sparse_array<Component>" as sparse_array {
+        - std::vector<std::optional<Component>> _data
+        + operator[](size_t idx)
+        + insert_at(size_type pos, Component)
+        + emplace_at<Params...>(size_type pos, Params &&...)
+        + erase(size_type pos)
+        + get_index(value_type const &) const
+        + begin() / end() / size()
+    }
+
+    class registry {
+        + register_component<Component>() : sparse_array<Component> &
+        + get_components<Component>() : sparse_array<Component> &
+        --
+        + spawn_entity() : entity_t
+        + entity_from_index(std::size_t idx) : entity_t
+        + kill_entity(entity_t const &e) : void
+        --
+        + add_component<Component>(entity_t const &to, Component &&c)
+        + emplace_component<Component, Params...>(entity_t const &to, Params &&...p)
+        + remove_component<Component>(entity_t const &from) : void
+        --
+        + add_system<Components..., Function>(Function &&f) : void
+        + run_systems() : void
+        --
+        - _components_arrays : type_index → any
+        - _erase_functions
+        - _systems
+    }
+
+    class "zipper<Containers...>" as zipper
+    class "indexed_zipper<Containers...>" as indexed_zipper
+}
+
+' ===============================================================
+' Shared libraries: components
+' ===============================================================
+package "Shared libraries (components)" {
+    class "game dev components" as dev_components <<new, per game>> {
+        created by the game developer
+        e.g. r-type: enemy_ai, weapon, score, powerup
+        must provide serialize() / deserialize()
+        must be registered in the component_registry
+    }
+
+    class controllable <<component>> {
+        + up : bool
+        + down : bool
+        + left : bool
+        + right : bool
+        + action : action_id (dev-defined, e.g. shoot)
+    }
+
+    class position <<component, provided, filled>> {
+        + x : float
+        + y : float
+    }
+
+    class physics <<component, provided>> {
+        + velocity_x : float
+        + velocity_y : float
+        + hitbox_w : float
+        + hitbox_h : float
+    }
+
+    class animation <<component, provided>> {
+        + sprite_id : string (key of the asset map)
+        + frame_count : uint8
+        + frame_duration_ms : uint16
+        + current_frame : uint8
+    }
+
+    class replicated <<component, provided, filled>> {
+        marks an entity as synchronised
+        over the network
+        + network_id : uint32
+        + owner_client : client_id (0 = server)
+    }
+}
+
+' ===============================================================
+' Cross-view links
+engine_core *-- registry : ECS / core system
+server_lib ..> registry : link to ECS system
+client_lib ..> registry : link to ECS system
+shared_lib ..> game_server
+shared_lib ..> game_client
+registry "1" o-- "*" sparse_array : one per component type
+registry ..> entity : creates / kills
+registry ..> zipper : systems iterate
+registry ..> indexed_zipper : systems iterate
+sparse_array ..> controllable : Component
+sparse_array ..> position : Component
+sparse_array ..> physics : Component
+sparse_array ..> animation : Component
+sparse_array ..> replicated : Component
+sparse_array ..> dev_components : Component
+packet_registry ..> message_type : maps ids
+packet_registry ..> packet : decodes
+game_server *-- registry : ECS
+game_client *-- registry : ECS (rendering components only)
+server_network ..> packet_registry : dispatch
+client_network ..> packet_registry : dispatch
+server_lib ..> registry : link to ECS system
+server_lib ..> packet_registry : register_packet
+dev_components ..> registry : registered in
+physics ..> registry : registered in
+animation ..> registry : registered in
+position ..> registry : registered in
+replicated ..> registry : registered in
+
+@enduml
