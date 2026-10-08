@@ -1,0 +1,169 @@
+@startuml network_protocol
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+' Network: message type and packets
+' ===============================================================
+' FILLED: the enum was "not really modular". Ids are now split into
+' reserved ranges so the game developer can add packets without
+' touching the engine enum.
+class message_type <<enum>> {
+    0x00-0x7F : engine reserved (connection, spawn, update...)
+    0x80-0xFF : game developer range
+    --
+    one value per packet type
+}
+
+class packet_registry <<filled>> {
+    + register_packet<Packet>(message_type)
+    + register_handler(message_type, handler)
+    + decode(bytes) : optional<packet>
+    --
+    maps message_type → (factory, handler)
+    removes the need for a closed enum switch
+}
+
+note right of message_type
+  Ranges keep the engine modular: the dev
+  registers custom packets in the game range
+  through the packet_registry.
+end note
+
+class packet_header <<filled>> {
+    + magic : uint16
+    + protocol_version : uint8
+    + message_type : uint8
+    + sequence : uint16
+    + payload_size : uint16
+}
+
+class packet {
+    packet_header
+    payload (binary, little-endian, bounds-checked)
+    --
+    + serialize() : bytes
+    + {static} deserialize(bytes) : optional<packet>
+}
+
+package "Packets (server → client)" {
+    class force_disconnect <<packet>> {
+        reason_code : enum { server_full, bad_version,
+                             kicked, timeout, server_shutdown }
+        message : string (optional, length-prefixed)
+    }
+    class player_disconnected <<packet>> {
+        client_id
+        reason_code
+    }
+    class entity_spawn <<packet>> {
+        entity
+        components : list<{component_type_id, data}>
+    }
+    class entity_despawn <<packet>> {
+        entity
+    }
+    class component_packet <<packet>> {
+        tick
+        entity
+        component : {component_type_id, data}
+    }
+    class accept_connect <<packet>> {
+        linked_entity
+        client_id
+        tick_rate
+    }
+    class player_connected <<packet>> {
+        client_id
+        linked_entity
+    }
+    class heartbeat_reply <<packet, filled>> {
+        server_tick
+    }
+}
+
+package "Packets (client → server)" {
+    class ask_disconnect <<packet>> {
+        (empty payload, header only)
+    }
+    class "controllable" as controllable_packet <<packet>> {
+        input_sequence
+        controllable component data
+    }
+    class ask_connect <<packet>> {
+        protocol_version
+        player_name (optional)
+    }
+    class heartbeat <<packet, filled>> {
+        client_tick
+    }
+}
+
+note bottom of entity_spawn
+  Client handler names for the same packets:
+  force_disconnect → disconnected
+  entity_spawn → entity_spawned
+  entity_despawn → entity_despawned
+  component_packet → component_updated
+  accept_connect → connection_accepted
+  heartbeat_reply → heartbeat_replied
+  player_disconnected and player_connected
+  keep their names.
+end note
+
+' ===============================================================
+' Transport (UDP abstraction)  -- FILLED: was missing
+' ===============================================================
+package "Transport (UDP)" <<filled>> {
+    class udp_socket {
+        encapsulates Asio
+        + bind(port)
+        + send_to(endpoint, bytes)
+        + async_receive(callback)
+    }
+
+    class "thread_safe_queue<T>" as thread_safe_queue {
+        + push(T)
+        + try_pop() : optional<T>
+    }
+
+    class reliability_layer <<optional>> {
+        + ack / resend for critical packets
+          (spawn, despawn, connect)
+        + unreliable for component updates
+    }
+}
+
+' ===============================================================
+' External references
+class entity <<external>>
+class registry <<external>>
+class replicated <<component, external>>
+class controllable <<component, external>>
+class server_network <<external>>
+class client_network <<external>>
+class packet_registry <<external>>
+class client_session <<external>>
+
+note bottom of registry
+  Registry from the ECS
+endnote
+
+' Cross-view links
+packet_header ..> message_type
+packet_registry ..> message_type : maps ids
+packet_registry ..> packet : decodes
+packet *-- packet_header
+server_network ..> packet : sends / receives
+client_network ..> packet : sends / receives
+server_network ..> packet_registry : dispatch
+client_network ..> packet_registry : dispatch
+server_network ..> message_type : handle_message
+server_network ..> entity
+client_network ..> entity
+server_network ..> client_session : manages
+controllable_packet ..> controllable : carries data of
+component_packet ..> replicated : only for replicated entities
+
+
+@enduml

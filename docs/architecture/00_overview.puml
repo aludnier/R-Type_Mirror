@@ -1,0 +1,63 @@
+@startuml modular_game_engine_overview
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title Modular Game Engine — Architecture Overview
+
+package "Application" {
+    [Game]
+}
+package "Static Engine Core" {
+    [Engine Core]
+}
+package "API Contracts" {
+    interface "Physics API" as PhysicsAPI
+    interface "Renderer API" as RendererAPI
+    interface "Animation API" as AnimationAPI
+    interface "Audio API" as AudioAPI
+}
+package "Dynamic Modules" {
+    [Physics Module]
+    [Renderer Module]
+    [Animation Module]
+    [Audio Module]
+}
+package "Engine Subsystems" {
+    [ECS / Components]
+    [Network Protocol / Transport]
+    [Server Runtime]
+    [Client Runtime / Game Lib]
+}
+
+[Game] --> [Engine Core]
+[Game] --> PhysicsAPI
+[Game] --> RendererAPI
+[Game] --> AnimationAPI
+[Game] --> AudioAPI
+
+[Physics Module] ..|> PhysicsAPI
+[Renderer Module] ..|> RendererAPI
+[Animation Module] ..|> AnimationAPI
+[Audio Module] ..|> AudioAPI
+
+[Engine Core] --> [Physics Module] : discover/load/init/unload
+[Engine Core] --> [Renderer Module] : discover/load/init/unload
+[Engine Core] --> [Animation Module] : discover/load/init/unload
+[Engine Core] --> [Audio Module] : discover/load/init/unload
+
+[Engine Core] --> [ECS / Components]
+[Engine Core] --> [Network Protocol / Transport]
+[Engine Core] --> [Server Runtime]
+[Engine Core] --> [Client Runtime / Game Lib]
+
+PhysicsAPI --> [ECS / Components] : physics services
+RendererAPI --> [Client Runtime / Game Lib] : rendering
+AnimationAPI --> [ECS / Components] : animation services
+AudioAPI --> [Client Runtime / Game Lib] : audio services
+
+note bottom
+Detailed views are separate PUML files.
+Each detailed view has external-reference stubs,
+so it can be rendered independently.
+end note
+@enduml

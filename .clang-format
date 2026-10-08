@@ -1,0 +1,85 @@
+---
+Language: Cpp
+BasedOnStyle: LLVM
+AccessModifierOffset: -4
+AlignAfterOpenBracket: false
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: DontAlign
+AlignTrailingComments: false
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: None
+AllowShortLambdasOnASingleLine: Inline
+AlwaysBreakAfterReturnType: None
+AlwaysBreakTemplateDeclarations: Yes
+BinPackArguments: false
+BinPackParameters: BinPack
+BraceWrapping:
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: Never
+  AfterEnum: false
+  AfterFunction: true
+  AfterNamespace: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+BreakBeforeBraces: Custom
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: AfterColon
+ColumnLimit: 80
+CompactNamespaces: false
+ContinuationIndentWidth: 4
+EmptyLineAfterAccessModifier: Never
+EmptyLineBeforeAccessModifier: LogicalBlock
+SeparateDefinitionBlocks: Always
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: '^<.*'
+    Priority: 1
+  - Regex: '^".*'
+    Priority: 2
+  - Regex: '.*'
+    Priority: 3
+IncludeIsMainRegex: '([-_](test|unittest))?$'
+IndentCaseBlocks: false
+IndentCaseLabels: true
+IndentGotoLabels: true
+IndentWidth: 4
+IndentWrappedFunctionNames: false
+InsertNewlineAtEOF: true
+MacroBlockBegin: ''
+MacroBlockEnd: ''
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: All
+PointerAlignment: Right
+SpaceAfterCStyleCast: true
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: false
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceBeforeSquareBrackets: false
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: Never
+SpacesInConditionalStatement: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+TabWidth: 4
+UseTab: Never
+IndentPPDirectives: Leave
+SpaceBeforeCpp11BracedList: true
+PackConstructorInitializers: NextLineOnly
+...

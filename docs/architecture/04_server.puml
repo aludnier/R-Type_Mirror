@@ -1,0 +1,125 @@
+@startuml server_architecture
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+' Server
+' ===============================================================
+class game_server {
+    ECS
+    network
+    game state
+    --
+    + run() : fixed-timestep loop (tick)
+    + tick() : pop inbound queue, run_systems(), replicate
+    + on_client_connected(client)
+    + on_client_timeout(client)
+}
+
+class client_session <<filled>> {
+    + client_id
+    + endpoint
+    + linked_entity
+    + last_seen : timestamp
+    + last_input_sequence
+}
+
+class server_network {
+    -- send --
+    + send_to_client(client, packet)
+    + send_to_all_clients(packet)
+    + send_to_all_clients_except(client, packet)
+    -- send packets --
+    + force_disconnect(reason?)
+    + player_disconnected(client_id)
+    + entity_spawn(entity, components)
+    + entity_despawn(entity)
+    + send_component_packet(tick, entity, component)
+    + accept_connect(linked_entity)
+    + player_connected(client_id, linked_entity)
+    -- dispatch --
+    + handle_message(message_type, method_ptr)
+    -- receive packets --
+    + ask_disconnect()
+    + controllable(controllable component data)
+    + ask_connect()
+    + heartbeat()
+    -- robustness (filled) --
+    + drop_malformed(bytes) : never crashes
+    + check_timeouts() : crash → player_disconnected
+    - io_thread : receive + queue
+}
+
+class game_state {
+    + load()
+    + save()
+    --
+    + level / wave definitions (spawn timeline)
+    + scores
+    + current wave, tick counter
+}
+
+' ===============================================================
+' Server-side systems  -- FILLED: were missing
+' ===============================================================
+package "Server systems (run by the registry)" <<filled>> {
+    class input_system <<system>> {
+        controllable → physics.velocity
+    }
+    class movement_system <<system>> {
+        position += velocity * dt
+    }
+    class collision_system <<system>> {
+        position + physics → damage, kill, despawn
+    }
+    class spawn_system <<system>> {
+        spawns enemies / missiles from game_state
+    }
+    class replication_system <<system>> {
+        replicated entities → spawn / despawn /
+        component_packet via server_network
+    }
+}
+
+' ===============================================================
+' External references
+class registry <<external>>
+class entity <<external>>
+class server_network <<external>>
+class game_state <<external>>
+class client_session <<external>>
+class controllable <<component, external>>
+class position <<component, external>>
+class physics <<component, external>>
+class replicated <<component, external>>
+class "Engine Core" as engine_core <<external>>
+
+' Cross-view links
+engine_core ..> game_server : hosts / coordinates
+engine_core ..> server_network : core-managed service
+game_server *-- registry : ECS
+game_server *-- server_network : network
+game_server *-- game_state : game state
+game_server "1" o-- "*" client_session : connected clients
+server_network ..> packet : sends / receives
+server_network ..> packet_registry : dispatch
+server_network ..> message_type : handle_message
+server_network ..> entity
+server_network *-- udp_socket
+server_network *-- thread_safe_queue : inbound packets
+server_network ..> reliability_layer
+server_network ..> client_session : manages
+input_system ..> controllable
+movement_system ..> position
+movement_system ..> physics
+collision_system ..> physics
+spawn_system ..> game_state
+replication_system ..> server_network
+replication_system ..> replicated
+game_server ..> input_system : registers
+game_server ..> movement_system : registers
+game_server ..> collision_system : registers
+game_server ..> spawn_system : registers
+game_server ..> replication_system : registers
+
+@enduml

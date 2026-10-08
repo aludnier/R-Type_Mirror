@@ -1,0 +1,100 @@
+@startuml engine_core_modules
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+hide empty members
+
+' Modular game engine architecture
+' ===============================================================
+package "Modular Engine" {
+    class Game <<application>> {
+        uses only the subsystem APIs it needs
+        does not depend on concrete implementations
+    }
+
+    package "Engine Core (static)" {
+        class "Engine Core" as engine_core <<static library>> {
+            memory
+            ECS
+            resources
+            jobs
+            logging
+            module management
+            --
+            + discover_modules()
+            + load_module()
+            + initialize_module()
+            + unload_module()
+        }
+    }
+
+    package "Subsystem APIs / Interfaces" {
+        interface "Physics API" as physics_api
+        interface "Renderer API" as renderer_api
+        interface "Animation API" as animation_api
+        interface "Audio API" as audio_api
+    }
+
+    package "Dynamically Loaded Modules" {
+        class "Physics Module" as physics_module <<dynamic library>>
+        class "Renderer Module" as renderer_module <<dynamic library>>
+        class "Animation Module" as animation_module <<dynamic library>>
+        class "Audio Module" as audio_module <<dynamic library>>
+    }
+
+    Game ..> engine_core : uses
+    Game ..> physics_api : uses if needed
+    Game ..> renderer_api : uses if needed
+    Game ..> animation_api : uses if needed
+    Game ..> audio_api : uses if needed
+
+    physics_module ..|> physics_api : implements
+    renderer_module ..|> renderer_api : implements
+    animation_module ..|> animation_api : implements
+    audio_module ..|> audio_api : implements
+
+    engine_core ..> physics_module : discover / load / init / unload
+    engine_core ..> renderer_module : discover / load / init / unload
+    engine_core ..> animation_module : discover / load / init / unload
+    engine_core ..> audio_module : discover / load / init / unload
+}
+
+note bottom of engine_core
+  Static core contains tightly coupled fundamental functionality.
+  Module management owns discovery, dynamic loading,
+  initialization, unloading, and replacement of optional subsystems.
+end note
+
+note bottom of physics_api
+  API contracts are independent of implementation.
+  Dynamic libraries may be replaced or hot-reloaded
+  without changing the game's subsystem-facing code.
+end note
+
+note bottom of Game
+  The game depends on API contracts, not concrete modules.
+  Only the APIs for systems actually used are required.
+end note
+
+' Existing engine systems are supplied by / coordinated through the Core.
+engine_core *-- registry : ECS / core system
+engine_core ..> game_server : hosts / coordinates
+engine_core ..> game_client : hosts / coordinates
+engine_core ..> server_network : core-managed service
+engine_core ..> client_network : core-managed service
+engine_core ..> shared_lib : engine integration
+
+' Existing subsystem-facing systems can consume the corresponding APIs.
+physics_api ..> physics : exposes physics services
+renderer_api ..> render_system : renderer services
+animation_api ..> animation : animation services
+audio_api ..> audio_system : audio services
+' Links to detailed views
+engine_core ..> registry : ECS
+engine_core ..> game_server : server runtime
+engine_core ..> game_client : client runtime
+engine_core ..> server_network : networking
+engine_core ..> client_network : networking
+engine_core ..> shared_lib : game integration
+
+
+@enduml
