@@ -120,7 +120,7 @@ namespace RType {
 
                 // removal / lookup
                 { s.erase(pos) } -> std::same_as<void>;
-                { cs.get_index(opt) } -> std::same_as<typename S::size_type>;
+                { cs.getIndex(opt) } -> std::same_as<typename S::size_type>;
             };
 
     /**

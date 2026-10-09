@@ -27,7 +27,7 @@ namespace RType {
         using base_iterator = ZipperIterator<Containers...>;
 
         using value_type = decltype(std::tuple_cat(
-            std::declval<std::tuple<std::size_t> >(),
+            std::declval<std::tuple<std::size_t>>(),
             std::declval<typename base_iterator::value_type>()));
         using reference = value_type;
         using pointer = void;

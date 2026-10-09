@@ -80,7 +80,7 @@ namespace RType {
 
         template<Component C>
         storage_t<C>::reference_type addComponent(Entity const &to, C &&component) {
-            return this->getComponents<C>().insert(to, std::forward<C>(component));
+            return this->getComponents<C>().insert_at(to, std::forward<C>(component));
         }
 
         template<Component C, typename... Params>

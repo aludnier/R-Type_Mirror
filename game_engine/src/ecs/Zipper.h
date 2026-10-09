@@ -8,7 +8,11 @@
 #ifndef ZIPPER_H
 #define ZIPPER_H
 
-#include "ZipperIterator.h"
+#include <algorithm>
+#include <cstddef>
+#include <tuple>
+#include <utility>
+#include <iterator>
 
 namespace RType {
 
@@ -73,10 +77,11 @@ namespace RType {
             return *this;
         }
 
-        value_type operator*() {
+        value_type operator*() const {
             return this->toValue(_seq);
         }
-        value_type operator->() {
+
+        value_type operator->() const {
             return this->toValue(_seq);
         }
 
@@ -103,12 +108,12 @@ namespace RType {
         }
 
         template <std::size_t... Is>
-        bool allSet(std::index_sequence<Is...>) {
+        bool allSet(std::index_sequence<Is...>) const {
             return (... && (*std::get<Is>(this->_current)).has_value());
         }
 
         template <std::size_t... Is>
-        value_type toValue(std::index_sequence<Is...>) {
+        value_type toValue(std::index_sequence<Is...>) const {
             return value_type((*std::get<Is>(this->_current)).value()...);
         }
 
