@@ -7,7 +7,7 @@
 
 #include "Entity.h"
 
-RType::Entity::operator size_t() const {
+RType::Entity::operator entity_id_type() const {
     return _id;
 }
 
@@ -19,5 +19,5 @@ bool RType::Entity::operator!=(const Entity &other) const {
     return this->_id != other._id;
 }
 
-RType::Entity::Entity(size_t id) : _id(id) {
+RType::Entity::Entity(entity_id_type id) : _id(id) {
 }
