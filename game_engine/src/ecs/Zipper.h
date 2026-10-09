@@ -16,6 +16,29 @@ namespace RType {
     class Zipper;
 
 
+    /**
+     * @brief Input iterator that walks multiple container iterators in lockstep.
+     *
+     * ZipperIterator holds a tuple of iterators (one per Container). Dereferencing
+     * the iterator returns a tuple of references to the contained values
+     * (the contained types are expected to be std::optional<T>; see note).
+     *
+     * The iterator advances all underlying iterators together. Iteration
+     * stops after the minimum container size is reached. When advancing, the
+     * iterator will skip positions where one or more optionals are not set
+     * (i.e. std::optional::has_value() == false) until it finds a position
+     * where all containers have a value, or the maximum iteration index is
+     * reached.
+     *
+     * Preconditions / Notes:
+     * - Dereferencing (operator* / operator->) calls std::optional::value()
+     *   on each underlying optional. If any optional is disengaged, this will
+     *   throw std::bad_optional_access. Callers should expect this behaviour
+     *   or ensure that the iterator points to a position where all optionals
+     *   are set.
+     *
+     * @tparam Containers Types of the container-like objects being zipped.
+     */
     template <class... Containers>
     class ZipperIterator {
         template <class Container>
@@ -96,6 +119,19 @@ namespace RType {
         static constexpr std::index_sequence_for<Containers...> _seq{};
     };
 
+    /**
+     * @brief Utility that zips several containers into a single iterable view.
+     *
+     * Zipper<Containers...> provides an input-range-like object whose
+     * iterators produce tuples containing references to the values held in the
+     * underlying containers. The zipped range length is the minimum of the
+     * sizes of the provided containers.
+     *
+     * Typical usage: iterate two or more component storages in parallel to
+     * access components that belong to the same entity index.
+     *
+     * @tparam Containers Container types (must provide begin(), end(), size()).
+     */
     template <class ...Containers>
     class Zipper {
     public:

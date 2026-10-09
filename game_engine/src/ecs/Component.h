@@ -16,8 +16,52 @@
 
 namespace RType {
     template <class C>
+    /**
+     * @brief Type trait concept identifying a valid component type.
+     *
+     * A Component is a plain object type that can be moved and destroyed.
+     * Components are intended to be small, copyable/movable value-like objects
+     * stored inside component storages (see ComponentStorage).
+     *
+     * Requirements:
+     * - std::is_object_v<C> is true
+     * - C is move-constructible
+     * - C is destructible
+     */
     concept Component = std::is_object_v<C> && std::is_move_constructible_v<C> && std::is_destructible_v<C>;
 
+    /**
+     * @brief Concept describing the interface of a component storage.
+     *
+     * A ComponentStorage is a container-like type used to store optional
+     * components indexed by entity id. Storages are expected to expose a set
+     * of nested types and operations used by the ECS registry and systems.
+     *
+     * Required nested types:
+     * - value_type: must be std::optional<Component>
+     * - reference_type: value_type &
+     * - const_reference_type: const value_type &
+     * - size_type: a size/index type
+     * - iterator / const_iterator: iterator types compatible with begin()/end()
+     *
+     * Required special members:
+     * - default constructible
+     * - copy constructible / assignable
+     * - nothrow move constructible / assignable where appropriate
+     *
+     * Required member functions (signatures shown informally):
+     * - operator[](std::size_t) -> reference_type
+     * - const operator[](std::size_t) -> const_reference_type
+     * - begin(), end(), cbegin(), cend()
+     * - size() -> size_type
+     * - insert_at(pos, component) -> reference_type
+     * - emplace_at(pos, ...) -> reference_type
+     * - erase(pos) -> void
+     * - get_index(const value_type&) -> size_type
+     *
+     * These names are used by the Registry and related utilities to access
+     * and manipulate component data.
+     */
     template<class S, class Component>
     concept ComponentStorage =
             requires
@@ -79,9 +123,25 @@ namespace RType {
                 { cs.get_index(opt) } -> std::same_as<typename S::size_type>;
             };
 
+    /**
+     * @brief Detects components that provide a custom storage type.
+     *
+     * If a component type C defines a nested alias `using storage = ...`,
+     * and that type satisfies ComponentStorage for C, then HasCustomStorage<C>
+     * is true. This allows components to opt-in to custom storage
+     * implementations instead of the default SparseArray.
+     */
     template <class C>
     concept HasCustomStorage = Component<C> && requires {typename C::storage; } && ComponentStorage<typename C::storage, C>;
 
+    /**
+     * @brief Default component storage used by the ECS.
+     *
+     * A SparseArray stores components in a contiguous vector indexed by
+     * entity id. Each element is an std::optional<C> to represent presence or
+     * absence of a component on a given entity. The concrete implementation
+     * is provided in `SparseArray.h`.
+     */
     template <Component C>
     class SparseArray;
 

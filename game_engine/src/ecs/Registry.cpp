@@ -6,6 +6,11 @@
 */
 
 #include "Registry.h"
+#include "IndexedZipper.h"
+#include "Zipper.h"
+
+#include <vector>
 
 namespace RType {
+
 } // RType

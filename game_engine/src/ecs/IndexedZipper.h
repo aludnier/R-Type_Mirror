@@ -11,6 +11,16 @@
 #include "Zipper.h"
 
 namespace RType {
+    /**
+     * @brief Iterator that extends a Zipper iterator by providing the current index.
+     *
+     * The dereferenced value is a tuple where the first element is the
+     * current index (std::size_t) followed by the values produced by the
+     * base ZipperIterator. Use this when you need the entity index together
+     * with the components at that index.
+     *
+     * @tparam Containers The underlying container types forwarded to Zipper.
+     */
     template<class... Containers>
     class IndexedZipperIterator {
     public:
@@ -58,6 +68,16 @@ namespace RType {
         base_iterator _it;
     };
 
+    /**
+     * @brief Range wrapper that yields (index, components...) tuples.
+     *
+     * IndexedZipper simply wraps a Zipper and adapts its iterators so that
+     * each dereferenced element includes the current index as the first
+     * tuple field. This is convenient when iterating component storages
+     * where the entity id is the position in the storage vector.
+     *
+     * @tparam Containers Container types passed to Zipper.
+     */
     template<class... Containers>
     class IndexedZipper {
     public:
