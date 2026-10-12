@@ -201,14 +201,27 @@ A `component` is encoded as:
 |---|---|---|
 | `network_id` | `NetworkId` | Entity identifier |
 
-**COMPONENT_UPDATE (`0x46`)**: new values of some components of an entity.
+**COMPONENT_UPDATE (`0x46`)**: new values of some components of several
+entities.
 
 | Field | Type | Description |
 |---|---|---|
 | `tick` | `Tick` | Tick at which the values were computed |
+| `entity_count` | `u8` | Number of entities that follow |
+| `entities` | `entity` × `entity_count` | Updated entities |
+
+An `entity` is encoded as:
+
+| Field | Type | Description |
+|---|---|---|
 | `network_id` | `NetworkId` | Entity identifier |
 | `component_count` | `u8` | Number of components that follow |
 | `components` | `component` × `component_count` | Same encoding as in ENTITY_SPAWN |
+
+Grouping entities saves the header of one datagram per entity: an entity
+that only updates its position costs 17 bytes, so about 69 of them fit in one
+datagram. When the update does not fit, the server sends several
+COMPONENT_UPDATE with the same `tick`.
 
 **HEARTBEAT_REPLY (`0x47`)**
 

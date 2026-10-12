@@ -73,8 +73,8 @@ package "Packets (server → client)" {
     }
     class component_update <<packet>> {
         tick
-        network_id
-        components : list<{component_type_id, data}>
+        entities : list<{network_id,
+                         components : list<{component_type_id, data}>}>
     }
     class accept_connect <<packet, reliable>> {
         client_id

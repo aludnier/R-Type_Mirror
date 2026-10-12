@@ -22,28 +22,30 @@ namespace RType::Network {
             return reason;
         }
 
-        void writeComponents(
-            ByteWriter &writer, const std::vector<ComponentData> &components)
+        /** @brief Writes a u8 count followed by the elements. */
+        template<class T>
+        void writeList(ByteWriter &writer, const std::vector<T> &elements)
         {
-            if (components.size() > std::numeric_limits<std::uint8_t>::max()) {
-                throw std::length_error("more than 255 components in a packet");
+            if (elements.size() > std::numeric_limits<std::uint8_t>::max()) {
+                throw std::length_error("more than 255 elements in a list");
             }
-            writer.write(static_cast<std::uint8_t>(components.size()));
-            for (const auto &component : components) {
-                component.serialize(writer);
+            writer.write(static_cast<std::uint8_t>(elements.size()));
+            for (const auto &element : elements) {
+                element.serialize(writer);
             }
         }
 
-        std::vector<ComponentData> readComponents(ByteReader &reader)
+        template<class T>
+        std::vector<T> readList(ByteReader &reader)
         {
             auto count = reader.read<std::uint8_t>();
-            std::vector<ComponentData> components;
+            std::vector<T> elements;
 
-            components.reserve(count);
+            elements.reserve(count);
             for (std::uint8_t i = 0; i < count && reader.ok(); ++i) {
-                components.push_back(ComponentData::deserialize(reader));
+                elements.push_back(T::deserialize(reader));
             }
-            return components;
+            return elements;
         }
     } // namespace
 
@@ -60,6 +62,21 @@ namespace RType::Network {
         component.typeId = reader.read<ComponentTypeId>();
         component.data = reader.readBytes();
         return component;
+    }
+
+    void EntityComponents::serialize(ByteWriter &writer) const
+    {
+        writer.write(networkId);
+        writeList(writer, components);
+    }
+
+    EntityComponents EntityComponents::deserialize(ByteReader &reader)
+    {
+        EntityComponents entity;
+
+        entity.networkId = reader.read<NetworkId>();
+        entity.components = readList<ComponentData>(reader);
+        return entity;
     }
 
     void AcceptConnectPacket::serialize(ByteWriter &writer) const
@@ -130,7 +147,7 @@ namespace RType::Network {
     void EntitySpawnPacket::serialize(ByteWriter &writer) const
     {
         writer.write(networkId);
-        writeComponents(writer, components);
+        writeList(writer, components);
     }
 
     EntitySpawnPacket EntitySpawnPacket::deserialize(ByteReader &reader)
@@ -138,7 +155,7 @@ namespace RType::Network {
         EntitySpawnPacket packet;
 
         packet.networkId = reader.read<NetworkId>();
-        packet.components = readComponents(reader);
+        packet.components = readList<ComponentData>(reader);
         return packet;
     }
 
@@ -155,8 +172,7 @@ namespace RType::Network {
     void ComponentUpdatePacket::serialize(ByteWriter &writer) const
     {
         writer.write(tick);
-        writer.write(networkId);
-        writeComponents(writer, components);
+        writeList(writer, entities);
     }
 
     ComponentUpdatePacket ComponentUpdatePacket::deserialize(ByteReader &reader)
@@ -164,8 +180,7 @@ namespace RType::Network {
         ComponentUpdatePacket packet;
 
         packet.tick = reader.read<Tick>();
-        packet.networkId = reader.read<NetworkId>();
-        packet.components = readComponents(reader);
+        packet.entities = readList<EntityComponents>(reader);
         return packet;
     }
 

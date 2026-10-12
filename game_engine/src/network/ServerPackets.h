@@ -34,6 +34,20 @@ namespace RType::Network {
         bool operator==(const ComponentData &other) const = default;
     };
 
+    /**
+     * @brief Components of one entity inside a COMPONENT_UPDATE.
+     */
+    struct EntityComponents {
+        NetworkId networkId = NO_ENTITY;
+        /** @brief At most 255 components. */
+        std::vector<ComponentData> components;
+
+        /** @throws std::length_error If there are more than 255 components. */
+        void serialize(ByteWriter &writer) const;
+        static EntityComponents deserialize(ByteReader &reader);
+        bool operator==(const EntityComponents &other) const = default;
+    };
+
     struct AcceptConnectPacket {
         static constexpr MessageType TYPE = MessageType::AcceptConnect;
         static constexpr bool RELIABLE = true;
@@ -110,16 +124,20 @@ namespace RType::Network {
         bool operator==(const EntityDespawnPacket &other) const = default;
     };
 
+    /**
+     * @brief New values of the components of several entities, so that one
+     *        datagram carries as many entities as fit in MAX_PAYLOAD_SIZE.
+     *        The sender splits larger updates into several packets.
+     */
     struct ComponentUpdatePacket {
         static constexpr MessageType TYPE = MessageType::ComponentUpdate;
         static constexpr bool RELIABLE = false;
 
         Tick tick = 0;
-        NetworkId networkId = NO_ENTITY;
-        /** @brief At most 255 components. */
-        std::vector<ComponentData> components;
+        /** @brief At most 255 entities. */
+        std::vector<EntityComponents> entities;
 
-        /** @throws std::length_error If there are more than 255 components. */
+        /** @throws std::length_error If there are more than 255 entities. */
         void serialize(ByteWriter &writer) const;
         static ComponentUpdatePacket deserialize(ByteReader &reader);
         bool operator==(const ComponentUpdatePacket &other) const = default;

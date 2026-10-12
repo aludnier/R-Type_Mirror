@@ -321,8 +321,9 @@ Test(ServerPackets, roundTripThroughADatagram)
             {.typeId = GAME_COMPONENT_TYPE_MIN, .data = {}}}};
     EntityDespawnPacket despawn {.networkId = 9};
     ComponentUpdatePacket update {.tick = 100,
-        .networkId = 9,
-        .components = {{.typeId = 1, .data = {4, 5}}}};
+        .entities = {
+            {.networkId = 9, .components = {{.typeId = 1, .data = {4, 5}}}},
+            {.networkId = 10, .components = {}}}};
     HeartbeatReplyPacket reply {.clientTime = 123456, .serverTick = 99};
 
     cr_assert(roundTrip(accept) == accept);
@@ -341,6 +342,31 @@ Test(Payloads, encodesControllableDirectionsAsBits)
 
     cr_assert_eq(packet.payload.size(), 7u);
     cr_assert_eq(packet.payload[4], 0b0101);
+}
+
+Test(Payloads, encodesComponentUpdateAsInTheSpecification)
+{
+    ComponentUpdatePacket update {.tick = 1,
+        .entities = {
+            {.networkId = 2, .components = {{.typeId = 3, .data = {4}}}}}};
+
+    // tick, entity_count, network_id, component_count, type_id, data
+    cr_assert(makePacket(update).payload ==
+        (Bytes {1, 0, 0, 0, 1, 2, 0, 0, 0, 1, 3, 0, 1, 0, 4}));
+}
+
+Test(Payloads, fitsSixtyEntityPositionsInOneDatagram)
+{
+    ComponentUpdatePacket update;
+
+    for (NetworkId id = 1; id <= 60; ++id) {
+        update.entities.push_back({.networkId = id,
+            .components = {{.typeId = 1, .data = Bytes(8, 0)}}});
+    }
+    auto datagram = makePacket(update).serialize();
+
+    cr_assert_leq(datagram.size(), MAX_PACKET_SIZE);
+    cr_assert(roundTrip(update) == update);
 }
 
 Test(Payloads, rejectsReservedDirectionBits)
@@ -390,6 +416,14 @@ Test(Payloads, refusesToSendMoreThan255Components)
 
     spawn.components.resize(256);
     cr_assert_throw((void) makePacket(spawn), std::length_error);
+}
+
+Test(Payloads, refusesToSendMoreThan255Entities)
+{
+    ComponentUpdatePacket update;
+
+    update.entities.resize(256);
+    cr_assert_throw((void) makePacket(update), std::length_error);
 }
 
 Test(Robustness, randomDatagramsNeverCrashTheDecoder)

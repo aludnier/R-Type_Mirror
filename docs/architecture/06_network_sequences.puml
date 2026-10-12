@@ -31,8 +31,8 @@ end
 
 client -> server : CONTROLLABLE(input_sequence, directions, actions)
 server -> server : run systems
-server -> client : COMPONENT_UPDATE(tick, network_id, components)
-server -> others : COMPONENT_UPDATE(tick, network_id, components)
+server -> client : COMPONENT_UPDATE(tick, entities)
+server -> others : COMPONENT_UPDATE(tick, entities)
 note over client, server
   Every datagram carries sequence / ack / ack_bits.
   Unacknowledged reliable messages are resent
