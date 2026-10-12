@@ -1,0 +1,142 @@
+/*
+** EPITECH PROJECT, 2026
+** R-Type
+** File description:
+** ServerPackets.h
+*/
+
+#ifndef SERVERPACKETS_H
+#define SERVERPACKETS_H
+
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include "ByteReader.h"
+#include "ByteWriter.h"
+#include "Protocol.h"
+
+/**
+ * @file ServerPackets.h
+ * @brief Payloads sent by the server (docs/protocol.md, section 6.2).
+ */
+namespace RType::Network {
+    /**
+     * @brief One serialized component. The layout of @p data is defined by
+     *        the component type itself.
+     */
+    struct ComponentData {
+        ComponentTypeId typeId = 0;
+        std::vector<std::uint8_t> data;
+
+        void serialize(ByteWriter &writer) const;
+        static ComponentData deserialize(ByteReader &reader);
+        bool operator==(const ComponentData &other) const = default;
+    };
+
+    struct AcceptConnectPacket {
+        static constexpr MessageType TYPE = MessageType::AcceptConnect;
+        static constexpr bool RELIABLE = true;
+
+        ClientId clientId = SERVER_CLIENT_ID;
+        NetworkId linkedEntity = NO_ENTITY;
+        std::uint16_t tickRate = DEFAULT_TICK_RATE;
+
+        void serialize(ByteWriter &writer) const;
+        static AcceptConnectPacket deserialize(ByteReader &reader);
+        bool operator==(const AcceptConnectPacket &other) const = default;
+    };
+
+    struct ForceDisconnectPacket {
+        static constexpr MessageType TYPE = MessageType::ForceDisconnect;
+        // Not acked: the session is closed right after it is sent.
+        static constexpr bool RELIABLE = false;
+
+        DisconnectReason reason = DisconnectReason::Kicked;
+        std::string message;
+
+        void serialize(ByteWriter &writer) const;
+        static ForceDisconnectPacket deserialize(ByteReader &reader);
+        bool operator==(const ForceDisconnectPacket &other) const = default;
+    };
+
+    struct PlayerConnectedPacket {
+        static constexpr MessageType TYPE = MessageType::PlayerConnected;
+        static constexpr bool RELIABLE = true;
+
+        ClientId clientId = SERVER_CLIENT_ID;
+        NetworkId linkedEntity = NO_ENTITY;
+        std::string playerName;
+
+        void serialize(ByteWriter &writer) const;
+        static PlayerConnectedPacket deserialize(ByteReader &reader);
+        bool operator==(const PlayerConnectedPacket &other) const = default;
+    };
+
+    struct PlayerDisconnectedPacket {
+        static constexpr MessageType TYPE = MessageType::PlayerDisconnected;
+        static constexpr bool RELIABLE = true;
+
+        ClientId clientId = SERVER_CLIENT_ID;
+        DisconnectReason reason = DisconnectReason::Left;
+
+        void serialize(ByteWriter &writer) const;
+        static PlayerDisconnectedPacket deserialize(ByteReader &reader);
+        bool operator==(const PlayerDisconnectedPacket &other) const = default;
+    };
+
+    struct EntitySpawnPacket {
+        static constexpr MessageType TYPE = MessageType::EntitySpawn;
+        static constexpr bool RELIABLE = true;
+
+        NetworkId networkId = NO_ENTITY;
+        /** @brief At most 255 components. */
+        std::vector<ComponentData> components;
+
+        /** @throws std::length_error If there are more than 255 components. */
+        void serialize(ByteWriter &writer) const;
+        static EntitySpawnPacket deserialize(ByteReader &reader);
+        bool operator==(const EntitySpawnPacket &other) const = default;
+    };
+
+    struct EntityDespawnPacket {
+        static constexpr MessageType TYPE = MessageType::EntityDespawn;
+        static constexpr bool RELIABLE = true;
+
+        NetworkId networkId = NO_ENTITY;
+
+        void serialize(ByteWriter &writer) const;
+        static EntityDespawnPacket deserialize(ByteReader &reader);
+        bool operator==(const EntityDespawnPacket &other) const = default;
+    };
+
+    struct ComponentUpdatePacket {
+        static constexpr MessageType TYPE = MessageType::ComponentUpdate;
+        static constexpr bool RELIABLE = false;
+
+        Tick tick = 0;
+        NetworkId networkId = NO_ENTITY;
+        /** @brief At most 255 components. */
+        std::vector<ComponentData> components;
+
+        /** @throws std::length_error If there are more than 255 components. */
+        void serialize(ByteWriter &writer) const;
+        static ComponentUpdatePacket deserialize(ByteReader &reader);
+        bool operator==(const ComponentUpdatePacket &other) const = default;
+    };
+
+    struct HeartbeatReplyPacket {
+        static constexpr MessageType TYPE = MessageType::HeartbeatReply;
+        static constexpr bool RELIABLE = false;
+
+        /** @brief Copied from the HEARTBEAT being answered. */
+        std::uint32_t clientTime = 0;
+        Tick serverTick = 0;
+
+        void serialize(ByteWriter &writer) const;
+        static HeartbeatReplyPacket deserialize(ByteReader &reader);
+        bool operator==(const HeartbeatReplyPacket &other) const = default;
+    };
+} // namespace RType::Network
+
+#endif // SERVERPACKETS_H
