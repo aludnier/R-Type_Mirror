@@ -235,7 +235,7 @@ COMPONENT_UPDATE with the same `tick`.
 | Value | Name | Meaning |
 |---|---|---|
 | 0 | `LEFT` | The client sent ASK_DISCONNECT |
-| 1 | `TIMEOUT` | Nothing received for too long (Section 8.3) |
+| 1 | `TIMEOUT` | Nothing received for too long: the client crashed or lost its connection (Section 8.3) |
 | 2 | `KICKED` | Removed by the server |
 | 3 | `SERVER_FULL` | No free slot |
 | 4 | `BAD_VERSION` | Protocol versions differ |
@@ -286,7 +286,7 @@ that a client can be written from this document alone.
 ### 7.2 Reliable messages
 
 - The sender keeps every datagram that has the `RELIABLE` flag until its
-  sequence is acknowledged.
+  sequence is acknowledged, or until the connection is closed.
 - If it is not acknowledged after the resend timeout, the sender sends the
   same payload again, in a new datagram with a new sequence number.
 - A reliable message can therefore arrive more than once, and out of order.
@@ -295,7 +295,9 @@ that a client can be written from this document alone.
   - ENTITY_SPAWN for a `NetworkId` that is already known, or that was already
     despawned, is ignored.
   - ENTITY_DESPAWN for an unknown `NetworkId` is ignored, and the id is
-    remembered as despawned.
+    remembered as despawned for at least the connection timeout (5 s). After
+    that it MAY be forgotten, which keeps the memory used bounded: a spawn
+    still resent that late would mean the connection is lost anyway.
   - ACCEPT_CONNECT, PLAYER_CONNECTED and PLAYER_DISCONNECTED have no further
     effect when applied twice.
 
@@ -305,7 +307,8 @@ Unreliable messages are never resent: the next one carries fresher data.
 
 - COMPONENT_UPDATE: for each (`network_id`, `type_id`) pair, the receiver
   keeps the tick of the last applied value and ignores updates with an older
-  or equal tick. Updates for an unknown `NetworkId` are ignored.
+  or equal tick, and forgets these ticks when the entity is despawned.
+  Updates for an unknown `NetworkId` are ignored.
 - CONTROLLABLE: only the highest `input_sequence` counts.
 
 ## 8. Session lifecycle
@@ -334,7 +337,8 @@ before ACCEPT_CONNECT.
 - The server runs at `tick_rate` (60 recommended). Every tick, it processes
   received messages, runs its systems, then sends COMPONENT_UPDATE for the
   replicated components that changed, and ENTITY_SPAWN / ENTITY_DESPAWN when
-  needed.
+  needed. To save bandwidth, the server MAY send COMPONENT_UPDATE only every
+  few ticks: clients then interpolate between two updates using `tick`.
 - The client SHOULD send CONTROLLABLE once per server tick period
   (`1 / tick_rate`), so that a lost message is quickly replaced.
 - The client sends HEARTBEAT every second. The server answers
@@ -348,8 +352,10 @@ before ACCEPT_CONNECT.
   despawns the player's entity and sends PLAYER_DISCONNECTED (`LEFT`) to the
   other clients.
 - **Timeout**: a peer that has received nothing from the other side for 5
-  seconds considers the connection lost. The server then acts as above with
-  reason `TIMEOUT`. The client goes back to its menu.
+  seconds considers the connection lost. This is how a crashed client is
+  detected: the server acts as above with reason `TIMEOUT`, so the other
+  players are notified, and the game goes on. The client goes back to its
+  menu.
 - **Kick or shutdown**: the server sends FORCE_DISCONNECT (`KICKED` or
   `SERVER_SHUTDOWN`), then closes the session.
 
@@ -358,6 +364,11 @@ before ACCEPT_CONNECT.
 - Every value read from the network is untrusted. Every read is
   bounds-checked (sizes, counts, lengths) and every enumeration is validated
   (Section 4).
+- Memory is bounded: decoding a datagram allocates at most a few tens of
+  kilobytes, whatever its content, and per-session state (reliable messages
+  waiting for an ack, despawned ids) is freed at the latest by the
+  connection timeout. The number of sessions is bounded by the number of
+  player slots.
 - The server is authoritative: clients only send their controls, never
   positions or other state, so a modified client cannot move its entity
   freely.
