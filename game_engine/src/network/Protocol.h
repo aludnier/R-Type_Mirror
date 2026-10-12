@@ -12,6 +12,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <type_traits>
 
 /**
@@ -119,6 +120,9 @@ namespace RType::Network {
     template<class T>
     concept WireInteger =
         (std::integral<T> && !std::same_as<T, bool>) || std::is_enum_v<T>;
+
+    static_assert(std::numeric_limits<float>::is_iec559 && sizeof(float) == 4,
+        "floats are sent as IEEE 754 binary32 on every platform");
 
     template<WireInteger T>
     using wire_raw_t =
