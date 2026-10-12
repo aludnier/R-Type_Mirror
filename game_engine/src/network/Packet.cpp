@@ -27,16 +27,16 @@ namespace RType::Network {
     std::optional<Packet> Packet::deserialize(
         std::span<const std::uint8_t> datagram)
     {
-        if (datagram.size() < HEADER_SIZE
-            || datagram.size() > MAX_PACKET_SIZE) {
+        if (datagram.size() < HEADER_SIZE ||
+            datagram.size() > MAX_PACKET_SIZE) {
             return std::nullopt;
         }
         ByteReader reader(datagram);
         Packet packet;
 
         packet.header = PacketHeader::deserialize(reader);
-        if (!reader.ok() || packet.header.magic != PROTOCOL_MAGIC
-            || packet.header.payloadSize != reader.remaining()) {
+        if (!reader.ok() || packet.header.magic != PROTOCOL_MAGIC ||
+            packet.header.payloadSize != reader.remaining()) {
             return std::nullopt;
         }
         auto payload = datagram.subspan(HEADER_SIZE);

@@ -51,13 +51,13 @@ namespace RType::Network {
      * readPayload().
      */
     template<class P>
-    concept PacketPayload = requires(
-        const P &payload, ByteWriter &writer, ByteReader &reader) {
-        { P::TYPE } -> std::convertible_to<MessageType>;
-        { P::RELIABLE } -> std::convertible_to<bool>;
-        { payload.serialize(writer) } -> std::same_as<void>;
-        { P::deserialize(reader) } -> std::same_as<P>;
-    };
+    concept PacketPayload =
+        requires(const P &payload, ByteWriter &writer, ByteReader &reader) {
+            { P::TYPE } -> std::convertible_to<MessageType>;
+            { P::RELIABLE } -> std::convertible_to<bool>;
+            { payload.serialize(writer) } -> std::same_as<void>;
+            { P::deserialize(reader) } -> std::same_as<P>;
+        };
 
     /**
      * @brief Builds a packet from a payload. Sequence and ack fields are left

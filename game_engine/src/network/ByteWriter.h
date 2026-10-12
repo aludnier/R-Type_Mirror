@@ -26,8 +26,8 @@ namespace RType::Network {
         template<WireInteger T>
         void write(T value)
         {
-            auto raw = static_cast<std::uint64_t>(
-                static_cast<wire_raw_t<T>>(value));
+            auto raw =
+                static_cast<std::uint64_t>(static_cast<wire_raw_t<T>>(value));
 
             for (std::size_t i = 0; i < sizeof(T); ++i) {
                 _buffer.push_back(static_cast<std::uint8_t>(raw >> (i * 8)));

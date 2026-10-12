@@ -98,8 +98,8 @@ namespace RType::Network {
     {
         constexpr Sequence half = 0x8000;
 
-        return (lhs > rhs && lhs - rhs <= half)
-            || (lhs < rhs && rhs - lhs > half);
+        return (lhs > rhs && lhs - rhs <= half) ||
+            (lhs < rhs && rhs - lhs > half);
     }
 
     /**
@@ -107,13 +107,13 @@ namespace RType::Network {
      *        unsigned integers of the same size.
      */
     template<class T>
-    concept WireInteger = (std::integral<T> && !std::same_as<T, bool>)
-        || std::is_enum_v<T>;
+    concept WireInteger =
+        (std::integral<T> && !std::same_as<T, bool>) || std::is_enum_v<T>;
 
     template<WireInteger T>
-    using wire_raw_t = std::make_unsigned_t<typename std::conditional_t<
-        std::is_enum_v<T>, std::underlying_type<T>,
-        std::type_identity<T>>::type>;
+    using wire_raw_t =
+        std::make_unsigned_t<typename std::conditional_t<std::is_enum_v<T>,
+            std::underlying_type<T>, std::type_identity<T>>::type>;
 } // namespace RType::Network
 
 #endif // PROTOCOL_H

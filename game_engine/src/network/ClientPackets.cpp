@@ -28,9 +28,9 @@ namespace RType::Network {
 
     void ControllablePacket::serialize(ByteWriter &writer) const
     {
-        auto directions = static_cast<std::uint8_t>((up ? DIRECTION_UP : 0)
-            | (down ? DIRECTION_DOWN : 0) | (left ? DIRECTION_LEFT : 0)
-            | (right ? DIRECTION_RIGHT : 0));
+        auto directions = static_cast<std::uint8_t>((up ? DIRECTION_UP : 0) |
+            (down ? DIRECTION_DOWN : 0) | (left ? DIRECTION_LEFT : 0) |
+            (right ? DIRECTION_RIGHT : 0));
 
         writer.write(inputSequence);
         writer.write(directions);

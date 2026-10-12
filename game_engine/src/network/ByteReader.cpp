@@ -10,7 +10,8 @@
 #include <bit>
 
 namespace RType::Network {
-    ByteReader::ByteReader(std::span<const std::uint8_t> data) : _data(data)
+    ByteReader::ByteReader(std::span<const std::uint8_t> data) :
+        _data(data)
     {
     }
 
