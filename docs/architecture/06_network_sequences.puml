@@ -1,0 +1,60 @@
+@startuml network_sequences
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+title Network protocol — session lifecycle (see docs/protocol.md)
+
+participant "New client" as client
+participant "Server" as server
+participant "Other clients" as others
+
+== Connection (protocol.md §8.1) ==
+
+loop every 500 ms, at most 10 times, until answered
+    client -> server : ASK_CONNECT(player_name)
+end
+
+alt version differs
+    server -> client : FORCE_DISCONNECT(BAD_VERSION)
+else no free slot
+    server -> client : FORCE_DISCONNECT(SERVER_FULL)
+else accepted
+    server -> server : create session, spawn player entity
+    server -> client : ACCEPT_CONNECT(client_id, linked_entity, tick_rate) [reliable]
+    server -> client : ENTITY_SPAWN(network_id, components) × existing entities [reliable]
+    server -> client : PLAYER_CONNECTED × players already in game [reliable]
+    server -> others : PLAYER_CONNECTED(client_id, linked_entity, player_name) [reliable]
+    server -> others : ENTITY_SPAWN(new player entity) [reliable]
+end
+
+== In game, every tick (§8.2) ==
+
+client -> server : CONTROLLABLE(input_sequence, directions, actions)
+server -> server : run systems
+server -> client : COMPONENT_UPDATE(tick, network_id, components)
+server -> others : COMPONENT_UPDATE(tick, network_id, components)
+note over client, server
+  Every datagram carries sequence / ack / ack_bits.
+  Unacknowledged reliable messages are resent
+  in a new datagram after the resend timeout (§7.2).
+end note
+
+== Every second ==
+
+client -> server : HEARTBEAT(client_time)
+server -> client : HEARTBEAT_REPLY(client_time, server_tick)
+
+== Disconnection (§8.3) ==
+
+alt client leaves
+    client -> server : ASK_DISCONNECT (up to 3 times)
+    server -> others : PLAYER_DISCONNECTED(client_id, LEFT) [reliable]
+    server -> others : ENTITY_DESPAWN(linked_entity) [reliable]
+else nothing received for 5 s
+    server -> others : PLAYER_DISCONNECTED(client_id, TIMEOUT) [reliable]
+    server -> others : ENTITY_DESPAWN(linked_entity) [reliable]
+else kick / shutdown
+    server -> client : FORCE_DISCONNECT(KICKED | SERVER_SHUTDOWN)
+end
+
+@enduml

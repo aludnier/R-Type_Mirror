@@ -74,7 +74,7 @@ package "Shared libraries (components)" {
         + down : bool
         + left : bool
         + right : bool
-        + action : action_id (dev-defined, e.g. shoot)
+        + actions : uint16 bitmask (dev-defined, e.g. bit 0 = shoot)
     }
 
     class position <<component, provided, filled>> {

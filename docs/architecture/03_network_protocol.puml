@@ -4,12 +4,15 @@ skinparam shadowing false
 hide empty members
 
 ' Network: message type and packets
+' Byte-level definition: docs/protocol.md
 ' ===============================================================
 ' FILLED: the enum was "not really modular". Ids are now split into
 ' reserved ranges so the game developer can add packets without
 ' touching the engine enum.
 class message_type <<enum>> {
-    0x00-0x7F : engine reserved (connection, spawn, update...)
+    0x00 : invalid
+    0x01-0x3F : engine, client → server
+    0x40-0x7F : engine, server → client
     0x80-0xFF : game developer range
     --
     one value per packet type
@@ -31,11 +34,16 @@ note right of message_type
 end note
 
 class packet_header <<filled>> {
-    + magic : uint16
+    + magic : uint16 (0x5452, "RT")
     + protocol_version : uint8
     + message_type : uint8
+    + flags : uint8 (bit 0 = reliable)
     + sequence : uint16
+    + ack : uint16
+    + ack_bits : uint32
     + payload_size : uint16
+    --
+    15 bytes, datagram ≤ 1200 bytes
 }
 
 class packet {
@@ -48,36 +56,38 @@ class packet {
 
 package "Packets (server → client)" {
     class force_disconnect <<packet>> {
-        reason_code : enum { server_full, bad_version,
-                             kicked, timeout, server_shutdown }
-        message : string (optional, length-prefixed)
+        reason_code : enum { left, timeout, kicked,
+                             server_full, bad_version, server_shutdown }
+        message : string (may be empty, length-prefixed)
     }
-    class player_disconnected <<packet>> {
+    class player_disconnected <<packet, reliable>> {
         client_id
         reason_code
     }
-    class entity_spawn <<packet>> {
-        entity
+    class entity_spawn <<packet, reliable>> {
+        network_id
         components : list<{component_type_id, data}>
     }
-    class entity_despawn <<packet>> {
-        entity
+    class entity_despawn <<packet, reliable>> {
+        network_id
     }
-    class component_packet <<packet>> {
+    class component_update <<packet>> {
         tick
-        entity
-        component : {component_type_id, data}
+        network_id
+        components : list<{component_type_id, data}>
     }
-    class accept_connect <<packet>> {
-        linked_entity
+    class accept_connect <<packet, reliable>> {
         client_id
+        linked_entity : network_id
         tick_rate
     }
-    class player_connected <<packet>> {
+    class player_connected <<packet, reliable>> {
         client_id
-        linked_entity
+        linked_entity : network_id
+        player_name
     }
     class heartbeat_reply <<packet, filled>> {
+        client_time (echoed)
         server_tick
     }
 }
@@ -88,14 +98,15 @@ package "Packets (client → server)" {
     }
     class "controllable" as controllable_packet <<packet>> {
         input_sequence
-        controllable component data
+        directions : up / down / left / right bits
+        actions : bitmask of dev-defined actions
     }
     class ask_connect <<packet>> {
-        protocol_version
-        player_name (optional)
+        player_name (may be empty)
+        (protocol version is in the header)
     }
     class heartbeat <<packet, filled>> {
-        client_tick
+        client_time (ms)
     }
 }
 
@@ -104,7 +115,7 @@ note bottom of entity_spawn
   force_disconnect → disconnected
   entity_spawn → entity_spawned
   entity_despawn → entity_despawned
-  component_packet → component_updated
+  component_update → component_updated
   accept_connect → connection_accepted
   heartbeat_reply → heartbeat_replied
   player_disconnected and player_connected
@@ -163,7 +174,7 @@ server_network ..> entity
 client_network ..> entity
 server_network ..> client_session : manages
 controllable_packet ..> controllable : carries data of
-component_packet ..> replicated : only for replicated entities
+component_update ..> replicated : only for replicated entities
 
 
 @enduml

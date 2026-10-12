@@ -6,5 +6,6 @@
 - `03_network_protocol.puml` — message types, packet registry, packets, UDP transport and reliability.
 - `04_server.puml` — server runtime, sessions, game state and server systems.
 - `05_client_game.puml` — client runtime, client systems and game-facing libraries.
+- `06_network_sequences.puml` — connection, in-game and disconnection message flows (byte format in `docs/protocol.md`).
 
 

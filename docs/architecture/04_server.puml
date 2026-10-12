@@ -77,7 +77,7 @@ package "Server systems (run by the registry)" <<filled>> {
     }
     class replication_system <<system>> {
         replicated entities → spawn / despawn /
-        component_packet via server_network
+        component_update via server_network
     }
 }
 
