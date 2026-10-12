@@ -1,4 +1,4 @@
-#include <criterion/criterion.h>
+#include <catch2/catch_test_macros.hpp>
 
 #include <tuple>
 #include <vector>
@@ -27,32 +27,32 @@ namespace {
     };
 }
 
-Test(SparseArrayStoresInsertedValues, insertedComponentsRemainAccessible) {
+TEST_CASE("SparseArray stores inserted values", "[ecs][sparse-array]") {
     RType::SparseArray<Position> array;
 
     array.insert_at(2, Position{10, 20});
     array.insert_at(5, Position{30, 40});
 
-    cr_assert(array[2].has_value());
-    cr_assert(array[5].has_value());
-    cr_assert_eq(array[2]->x, 10);
-    cr_assert_eq(array[2]->y, 20);
-    cr_assert_eq(array[5]->x, 30);
-    cr_assert_eq(array[5]->y, 40);
+    REQUIRE(array[2].has_value());
+    REQUIRE(array[5].has_value());
+    REQUIRE(array[2]->x == 10);
+    REQUIRE(array[2]->y == 20);
+    REQUIRE(array[5]->x == 30);
+    REQUIRE(array[5]->y == 40);
 }
 
-Test(SparseArrayEmplacesComponents, emplaceBuildsComponentInPlace) {
+TEST_CASE("SparseArray emplaces components", "[ecs][sparse-array]") {
     RType::SparseArray<Velocity> array;
 
     array.emplace(4, 7, 8);
 
-    cr_assert(array[4].has_value());
-    cr_assert_eq(array[4]->dx, 7);
-    cr_assert_eq(array[4]->dy, 8);
-    cr_assert_eq(array.size(), 5u);
+    REQUIRE(array[4].has_value());
+    REQUIRE(array[4]->dx == 7);
+    REQUIRE(array[4]->dy == 8);
+    REQUIRE(array.size() == 5u);
 }
 
-Test(SparseArrayErasesComponents, eraseRemovesComponentWithoutShrinkingStorage) {
+TEST_CASE("SparseArray erases components", "[ecs][sparse-array]") {
     RType::SparseArray<Health> array;
 
     array.insert_at(0, Health{99});
@@ -60,40 +60,40 @@ Test(SparseArrayErasesComponents, eraseRemovesComponentWithoutShrinkingStorage) 
 
     array.erase(0);
 
-    cr_assert_not(array[0].has_value());
-    cr_assert(array[3].has_value());
-    cr_assert_eq(array.size(), 4u);
-    cr_assert_eq(array.count(), 1u);
+    REQUIRE_FALSE(array[0].has_value());
+    REQUIRE(array[3].has_value());
+    REQUIRE(array.size() == 4u);
+    REQUIRE(array.count() == 1u);
 }
 
-Test(SparseArrayFindsIndex, getIndexReturnsStoredOptionalPosition) {
+TEST_CASE("SparseArray getIndex returns stored optional position", "[ecs][sparse-array]") {
     RType::SparseArray<Position> array;
 
     array.insert_at(9, Position{1, 2});
     auto &slot = array[9];
 
-    cr_assert_eq(array.getIndex(slot), 9u);
+    REQUIRE(array.getIndex(slot) == 9u);
 }
 
-Test(SparseArrayFindsIndex, getIndexThrowsForUnknownOptional) {
+TEST_CASE("SparseArray getIndex throws for unknown optional", "[ecs][sparse-array]") {
     RType::SparseArray<Position> array;
     std::optional<Position> missing = std::nullopt;
 
-    cr_assert_throw(array.getIndex(missing), std::out_of_range);
+    REQUIRE_THROWS_AS(array.getIndex(missing), std::out_of_range);
 }
 
-Test(RegistrySpawnsEntities, uniqueEntityIdsAreProducedInOrder) {
+TEST_CASE("Registry spawns entities", "[ecs][registry]") {
     RType::Registry registry;
 
     auto first = registry.spawnEntity();
     auto second = registry.spawnEntity();
 
-    cr_assert_neq(first, second);
-    cr_assert_eq(static_cast<RType::entity_id_type>(first), 0u);
-    cr_assert_eq(static_cast<RType::entity_id_type>(second), 1u);
+    REQUIRE(first != second);
+    REQUIRE(static_cast<RType::entity_id_type>(first) == 0u);
+    REQUIRE(static_cast<RType::entity_id_type>(second) == 1u);
 }
 
-Test(RegistryRegistersComponents, componentStorageIsCreatedAndReturned) {
+TEST_CASE("Registry registers components", "[ecs][registry]") {
     RType::Registry registry;
 
     auto &positions = registry.registerComponent<Position>();
@@ -101,12 +101,12 @@ Test(RegistryRegistersComponents, componentStorageIsCreatedAndReturned) {
 
     registry.addComponent<Position>(entity, Position{5, 6});
 
-    cr_assert(positions[static_cast<RType::entity_id_type>(entity)].has_value());
-    cr_assert_eq(positions[static_cast<RType::entity_id_type>(entity)]->x, 5);
-    cr_assert_eq(positions[static_cast<RType::entity_id_type>(entity)]->y, 6);
+    REQUIRE(positions[static_cast<RType::entity_id_type>(entity)].has_value());
+    REQUIRE(positions[static_cast<RType::entity_id_type>(entity)]->x == 5);
+    REQUIRE(positions[static_cast<RType::entity_id_type>(entity)]->y == 6);
 }
 
-Test(RegistryRemovesComponents, removeComponentClearsTheComponentSlot) {
+TEST_CASE("Registry removes components", "[ecs][registry]") {
     RType::Registry registry;
     auto entity = registry.spawnEntity();
 
@@ -114,10 +114,10 @@ Test(RegistryRemovesComponents, removeComponentClearsTheComponentSlot) {
     registry.addComponent<Position>(entity, Position{8, 9});
     registry.removeComponent<Position>(entity);
 
-    cr_assert_not(registry.getComponents<Position>()[static_cast<RType::entity_id_type>(entity)].has_value());
+    REQUIRE_FALSE(registry.getComponents<Position>()[static_cast<RType::entity_id_type>(entity)].has_value());
 }
 
-Test(RegistryRunsSystems, systemsSeeComponentsBeforePendingEntitiesAreRemoved) {
+TEST_CASE("Registry systems see components before pending entities are removed", "[ecs][registry]") {
     RType::Registry registry;
     registry.registerComponent<Position>();
 
@@ -132,11 +132,11 @@ Test(RegistryRunsSystems, systemsSeeComponentsBeforePendingEntitiesAreRemoved) {
     registry.killEntity(entity);
     registry.runSystems();
 
-    cr_assert(systemSawEntity);
-    cr_assert_not(registry.getComponents<Position>()[static_cast<RType::entity_id_type>(entity)].has_value());
+    REQUIRE(systemSawEntity);
+    REQUIRE_FALSE(registry.getComponents<Position>()[static_cast<RType::entity_id_type>(entity)].has_value());
 }
 
-Test(RegistryRunsSystems, systemsCanMutateValuesInStorage) {
+TEST_CASE("Registry systems can mutate values in storage", "[ecs][registry]") {
     RType::Registry registry;
     registry.registerComponent<Position>();
 
@@ -145,18 +145,18 @@ Test(RegistryRunsSystems, systemsCanMutateValuesInStorage) {
 
     registry.addSystem<Position>([](RType::storage_t<Position> &positions) {
         auto &component = positions[0];
-        cr_assert(component.has_value());
+        REQUIRE(component.has_value());
         component->x += 5;
         component->y += 7;
     });
 
     registry.runSystems();
 
-    cr_assert_eq(registry.getComponents<Position>()[0]->x, 6);
-    cr_assert_eq(registry.getComponents<Position>()[0]->y, 8);
+    REQUIRE(registry.getComponents<Position>()[0]->x == 6);
+    REQUIRE(registry.getComponents<Position>()[0]->y == 8);
 }
 
-Test(ZipperIteratesValues, onlyPositionsPresentInAllContainersAreVisited) {
+TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]") {
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -174,12 +174,12 @@ Test(ZipperIteratesValues, onlyPositionsPresentInAllContainersAreVisited) {
         seen.emplace_back(position.x, velocity.dx);
     }
 
-    cr_assert_eq(seen.size(), 2u);
-    cr_assert_eq(seen[0], std::make_pair(10, 1));
-    cr_assert_eq(seen[1], std::make_pair(50, 3));
+    REQUIRE(seen.size() == 2u);
+    REQUIRE(seen[0] == std::make_pair(10, 1));
+    REQUIRE(seen[1] == std::make_pair(50, 3));
 }
 
-Test(ZipperIteratesValues, shorterContainerLimitsTheIterationRange) {
+TEST_CASE("Zipper shorter container limits iteration range", "[ecs][zipper]") {
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -197,11 +197,11 @@ Test(ZipperIteratesValues, shorterContainerLimitsTheIterationRange) {
         seen.push_back(position.x + velocity.dx);
     }
 
-    cr_assert_eq(seen.size(), 1u);
-    cr_assert_eq(seen[0], 11);
+    REQUIRE(seen.size() == 1u);
+    REQUIRE(seen[0] == 11);
 }
 
-Test(IndexedZipperIncludesIndex, eachYieldContainsTheCurrentEntityIndex) {
+TEST_CASE("IndexedZipper includes current entity index", "[ecs][indexed-zipper]") {
     RType::SparseArray<Position> positions;
 
     positions.emplace(0, 5, 6);
@@ -215,13 +215,13 @@ Test(IndexedZipperIncludesIndex, eachYieldContainsTheCurrentEntityIndex) {
         seen.emplace_back(index, position.x, position.y);
     }
 
-    cr_assert_eq(seen.size(), 3u);
-    cr_assert_eq(seen[0], std::make_tuple(0u, 5, 6));
-    cr_assert_eq(seen[1], std::make_tuple(2u, 7, 8));
-    cr_assert_eq(seen[2], std::make_tuple(4u, 9, 10));
+    REQUIRE(seen.size() == 3u);
+    REQUIRE(seen[0] == std::make_tuple(0u, 5, 6));
+    REQUIRE(seen[1] == std::make_tuple(2u, 7, 8));
+    REQUIRE(seen[2] == std::make_tuple(4u, 9, 10));
 }
 
-Test(IndexedZipperIncludesIndex, missingValuesAreSkippedBeforeIndexIsReported) {
+TEST_CASE("IndexedZipper skips missing values before reporting index", "[ecs][indexed-zipper]") {
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -236,10 +236,10 @@ Test(IndexedZipperIncludesIndex, missingValuesAreSkippedBeforeIndexIsReported) {
 
     for (auto [index, position, velocity] : zipper) {
         seen.push_back(index);
-        cr_assert_eq(position.x, 1);
-        cr_assert_eq(velocity.dx, 10);
+        REQUIRE(position.x == 1);
+        REQUIRE(velocity.dx == 10);
     }
 
-    cr_assert_eq(seen.size(), 1u);
-    cr_assert_eq(seen[0], 0u);
+    REQUIRE(seen.size() == 1u);
+    REQUIRE(seen[0] == 0u);
 }
