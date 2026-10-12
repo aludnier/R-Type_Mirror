@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - main
+      - Dev
   workflow_dispatch:
 
 env:
@@ -25,13 +26,13 @@ jobs:
         uses: actions/cache@v6
         with:
           path: build
-          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt', 'cmake/**', '.github/workflows/CICD.yml') }}
           restore-keys: |
             ${{ runner.os }}-cmake-
       - name: Configure and build
         run: |
           cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
+          cmake --build build -j
 
   build-project-Window:
     runs-on: windows-latest
@@ -44,14 +45,14 @@ jobs:
         uses: actions/cache@v6
         with:
           path: build
-          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt', 'cmake/**', '.github/workflows/CICD.yml') }}
           restore-keys: |
             ${{ runner.os }}-cmake-
       - name: Configure and build
         shell: powershell
         run: |
           cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release -- /m
+          cmake --build build --config Release -j -- /m
 
   push-to-mirror:
     needs: [ build-project-Linux , build-project-Window ]

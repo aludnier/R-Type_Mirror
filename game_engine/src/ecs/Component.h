@@ -115,8 +115,8 @@ namespace RType {
                 // insertion
                 { s.insert_at(pos, lvalue) } -> std::same_as<typename S::reference_type>;
                 { s.insert_at(pos, std::move(rvalue)) } -> std::same_as<typename S::reference_type>;
-                { s.emplace_at(pos, lvalue) } -> std::same_as<typename S::reference_type>;
-                { s.emplace_at(pos, std::move(rvalue)) } -> std::same_as<typename S::reference_type>;
+                { s.emplace(pos, lvalue) } -> std::same_as<typename S::reference_type>;
+                { s.emplace(pos, std::move(rvalue)) } -> std::same_as<typename S::reference_type>;
 
                 // removal / lookup
                 { s.erase(pos) } -> std::same_as<void>;

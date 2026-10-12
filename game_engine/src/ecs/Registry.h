@@ -13,9 +13,9 @@
 #include <any>
 #include <functional>
 #include <queue>
+#include <ranges>
 
 #include "Component.h"
-#include "SparseArray.h"
 
 namespace RType {
     /**
