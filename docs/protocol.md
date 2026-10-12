@@ -241,12 +241,34 @@ COMPONENT_UPDATE with the same `tick`.
 | 4 | `BAD_VERSION` | Protocol versions differ |
 | 5 | `SERVER_SHUTDOWN` | The server is stopping |
 
-### 6.3 Game-defined messages
+### 6.3 Engine components
 
-Ids `0x80`–`0xFF` are free for the game. The game chooses their payload
-layout and registers them in the engine's packet registry. They follow every
-other rule of this document: header, size limit and validation. A reliable
-game message MUST be idempotent (Section 7.2).
+ENTITY_SPAWN and COMPONENT_UPDATE carry components as a `type_id` and its
+`data`. The engine defines the components below. `controllable` and
+`replicated` are never sent as components: the controls travel in
+CONTROLLABLE, and every entity sent over the network is replicated.
+
+| Id | Component | `data` layout | Size (bytes) |
+|---|---|---|---|
+| `0x0001` | POSITION | `x: f32`, `y: f32` | 8 |
+| `0x0002` | PHYSICS | `velocity_x: f32`, `velocity_y: f32`, `hitbox_w: f32`, `hitbox_h: f32` | 16 |
+| `0x0003` | ANIMATION | `sprite_id: string`, `frame_count: u8`, `frame_duration_ms: u16`, `current_frame: u8` | 5 + N |
+
+Coordinates and units are chosen by the game and documented in Appendix B.
+
+A receiver ignores a component whose `type_id` it does not know: the length
+prefix of `data` lets it skip the component. A component whose `data` does
+not match its layout is ignored as well.
+
+### 6.4 Game-defined messages and components
+
+Message ids `0x80`–`0xFF` and component ids `0x8000`–`0xFFFF` are free for
+the game. The game chooses their layout and registers them in the engine.
+They follow every other rule of this document: header, size limit and
+validation. A reliable game message MUST be idempotent (Section 7.2).
+
+A game MUST document each of its messages and components in Appendix B, so
+that a client can be written from this document alone.
 
 ## 7. Sequencing and reliability
 
@@ -368,3 +390,17 @@ A HEARTBEAT with `client_time = 1000`, sequence 7, acknowledging sequences 5,
 52 54  01  04  00  07 00  05 00  03 00 00 00  04 00  e8 03 00 00
 magic  ver type flg seq   ack    ack_bits     size   client_time
 ```
+
+## Appendix B. R-Type game content
+
+This appendix lists what the R-Type game adds to the engine protocol. It is
+completed as the game components and messages are implemented (issue #7).
+
+For each game component: id (`0x8000`–`0xFFFF`), name and `data` layout.
+For each game message: id (`0x80`–`0xFF`), direction, reliability and payload
+layout. It also gives the coordinate system and units used by POSITION, and
+how a `ClientId` maps to a player color.
+
+| Id | Name | Layout |
+|---|---|---|
+| | *none yet* | |

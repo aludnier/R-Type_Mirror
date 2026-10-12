@@ -76,6 +76,16 @@ namespace RType::Network {
 
     constexpr std::uint8_t GAME_MESSAGE_TYPE_MIN = 0x80;
 
+    /**
+     * @brief Type ids of the components provided by the engine. Their data
+     *        layouts are in docs/protocol.md, section 6.3.
+     */
+    enum class EngineComponentType : ComponentTypeId {
+        Position = 0x0001,
+        Physics = 0x0002,
+        Animation = 0x0003,
+    };
+
     enum class DisconnectReason : std::uint8_t {
         Left = 0,
         Timeout = 1,
