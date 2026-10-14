@@ -15,29 +15,58 @@ env:
 jobs:
   build-project-Linux:
     runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     steps:
       - uses: "actions/checkout@v4"
+        with:
+          submodules: true
 
       - name: Install dependencies
         run: |
-            sudo apt-get update 
+            sudo apt-get update
+            sudo apt-get install -y libcriterion-dev
+
+      # Dependencies are only rebuilt when vcpkg.json changes.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+
       - name: Configure and build
-        run: | 
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          cmake --preset release
+          cmake --build --preset release
+
+      - name: Test
+        run: ctest --test-dir build/release --output-on-failure
 
   build-project-Window:
     runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
     steps:
       - uses: "actions/checkout@v4"
-      - name: Setup Windows tools
-        run: |
-          echo "Using Visual Studio and CMake preinstalled on windows-latest"
+        with:
+          submodules: true
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+
+      # Tests are off: Criterion is not available on Windows.
       - name: Configure and build
         shell: powershell
         run: |
-          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release -- /m
+          New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          cmake --preset release -DBUILD_TESTS=OFF
+          cmake --build --preset release
 
   push-to-mirror:
     needs: [build-project-Linux , build-project-Window]
