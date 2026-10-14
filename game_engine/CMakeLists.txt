@@ -6,6 +6,7 @@ set(SRC
         src/ecs/SparseArray.h
         src/ecs/Zipper.h
         src/ecs/IndexedZipper.h
+        src/library/engine.h
 )
 
 add_library(game_engine STATIC ${SRC})
