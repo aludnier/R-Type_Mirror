@@ -307,7 +307,7 @@ TEST_CASE("ClientPackets round trip through a datagram",
 {
     AskConnectPacket askConnect {.playerName = "player one"};
     ControllablePacket controllable {
-        .inputSequence = 42, .up = true, .right = true, .actions = 0b101};
+        .inputSequence = 42, .actions = 0x80000005};
     HeartbeatPacket heartbeat {.clientTime = 123456};
 
     REQUIRE(roundTrip(askConnect) == askConnect);
@@ -347,13 +347,14 @@ TEST_CASE("ServerPackets round trip through a datagram",
     REQUIRE(roundTrip(reply) == reply);
 }
 
-TEST_CASE("Payloads encodes controllable directions as bits",
+TEST_CASE("Payloads encodes controllable actions as a u32 bitmask",
     "[network][payloads]")
 {
-    auto packet = makePacket(ControllablePacket {.up = true, .left = true});
+    auto packet = makePacket(
+        ControllablePacket {.inputSequence = 1, .actions = 0x80000005});
 
-    REQUIRE(packet.payload.size() == 7u);
-    REQUIRE(packet.payload[4] == 0b0101);
+    // input_sequence, then actions in little-endian
+    REQUIRE(packet.payload == (Bytes {1, 0, 0, 0, 0x05, 0, 0, 0x80}));
 }
 
 TEST_CASE("Payloads encodes component update as in the specification",
@@ -383,13 +384,14 @@ TEST_CASE("Payloads fits sixty entity positions in one datagram",
     REQUIRE(roundTrip(update) == update);
 }
 
-TEST_CASE("Payloads rejects reserved direction bits", "[network][payloads]")
+TEST_CASE("Payloads accepts every controllable action bit",
+    "[network][payloads]")
 {
-    Bytes allDirections {0, 0, 0, 0, 0x0F, 0, 0};
-    Bytes reservedBit {0, 0, 0, 0, 0x10, 0, 0};
+    auto controls = decodeRaw<ControllablePacket>(
+        {0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF});
 
-    REQUIRE(decodeRaw<ControllablePacket>(allDirections).has_value());
-    REQUIRE_FALSE(decodeRaw<ControllablePacket>(reservedBit).has_value());
+    REQUIRE(controls.has_value());
+    REQUIRE(controls->actions == 0xFFFFFFFFu);
 }
 
 TEST_CASE("Payloads rejects unknown disconnect reason", "[network][payloads]")
