@@ -5,6 +5,7 @@ set(SRC
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
+        src/network/NetworkThread.cpp
         src/network/Packet.cpp
         src/network/PacketHeader.cpp
         src/network/ServerPackets.cpp

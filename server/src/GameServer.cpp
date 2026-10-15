@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <iostream>
+#include <thread>
 #include <vector>
 
 #include "network/ClientPackets.h"
@@ -31,28 +32,16 @@ namespace RType {
     } // namespace
 
     GameServer::GameServer(ServerConfig config) :
-        _config(config), _socket(config.port), _incoming(INCOMING_QUEUE_SIZE)
+        _config(config), _network(config.port, INCOMING_QUEUE_SIZE)
     {
     }
 
-    GameServer::~GameServer()
-    {
-        // Only reached with a running network thread if run() threw.
-        if (_networkThread.joinable()) {
-            _socket.close();
-            _networkThread.join();
-        }
-    }
+    GameServer::~GameServer() = default;
 
     void GameServer::run(const std::atomic<bool> &stopRequested)
     {
-        _networkThread = std::thread([this] {
-            _socket.run([this](const Network::Endpoint &from,
-                            std::span<const std::uint8_t> datagram) {
-                onDatagram(from, datagram);
-            });
-        });
-        std::cout << "[server] listening on UDP port " << _socket.localPort()
+        _network.start();
+        std::cout << "[server] listening on UDP port " << _network.localPort()
                   << ", " << _config.tickRate << " ticks/s\n";
 
         // Fixed timestep: the simulation advances by whole ticks, whatever
@@ -78,20 +67,6 @@ namespace RType {
         shutdown();
     }
 
-    void GameServer::onDatagram(
-        const Network::Endpoint &from, std::span<const std::uint8_t> datagram)
-    {
-        auto packet = Network::Packet::deserialize(datagram);
-
-        if (!packet) {
-            ++_droppedDatagrams;
-            return;
-        }
-        if (!_incoming.push({from, std::move(*packet), Clock::now()})) {
-            ++_droppedDatagrams;
-        }
-    }
-
     void GameServer::tick()
     {
         processIncoming();
@@ -105,7 +80,7 @@ namespace RType {
 
     void GameServer::processIncoming()
     {
-        while (auto received = _incoming.tryPop()) {
+        while (auto received = _network.poll()) {
             handlePacket(*received);
         }
     }
@@ -126,7 +101,7 @@ namespace RType {
                             std::to_string(Network::PROTOCOL_VERSION) +
                             " expected"});
             }
-            ++_droppedDatagrams;
+            _network.countDropped();
             return;
         }
         if (session != nullptr) {
@@ -136,7 +111,7 @@ namespace RType {
         } else {
             // Section 2: packets from an endpoint without a session are
             // ignored.
-            ++_droppedDatagrams;
+            _network.countDropped();
         }
     }
 
@@ -234,7 +209,7 @@ namespace RType {
             }
             default:
                 // Server to client types, or game messages not handled yet.
-                ++_droppedDatagrams;
+                _network.countDropped();
                 break;
         }
     }
@@ -256,7 +231,7 @@ namespace RType {
 
     void GameServer::reportDroppedDatagrams()
     {
-        auto dropped = _droppedDatagrams.exchange(0);
+        auto dropped = _network.takeDroppedCount();
 
         if (dropped > 0) {
             std::cerr << "[server] dropped " << dropped
@@ -296,8 +271,7 @@ namespace RType {
         _sessions.clear();
         _sessionIds.clear();
         // The FORCE_DISCONNECTs above are sent before the socket closes.
-        _socket.close();
-        _networkThread.join();
+        _network.stop();
     }
 
     ClientSession *GameServer::findSession(const Network::Endpoint &endpoint)

@@ -14,15 +14,12 @@
 #include <cstdint>
 #include <map>
 #include <optional>
-#include <span>
-#include <thread>
 
 #include "ClientSession.h"
 #include "network/Endpoint.h"
+#include "network/NetworkThread.h"
 #include "network/Packet.h"
 #include "network/Protocol.h"
-#include "network/ThreadSafeQueue.h"
-#include "network/UdpSocket.h"
 
 namespace RType {
     struct ServerConfig {
@@ -37,8 +34,8 @@ namespace RType {
      *        the client sessions (docs/protocol.md, section 8).
      *
      * Two threads:
-     * - the network thread runs the UdpSocket. It decodes each datagram,
-     *   drops the malformed ones and pushes the others into a queue;
+     * - the network thread (Network::NetworkThread) receives the datagrams,
+     *   drops the malformed ones and queues the others;
      * - the game thread runs run(). It is the only one that touches the
      *   sessions (and later the registry), so they need no lock.
      */
@@ -61,18 +58,8 @@ namespace RType {
         void run(const std::atomic<bool> &stopRequested);
 
     private:
-        /** @brief A valid datagram, handed from the network thread. */
-        struct ReceivedPacket {
-            Network::Endpoint from;
-            Network::Packet packet;
-            Clock::time_point receivedAt;
-        };
+        using ReceivedPacket = Network::NetworkThread::ReceivedPacket;
 
-        // Network thread
-        void onDatagram(const Network::Endpoint &from,
-            std::span<const std::uint8_t> datagram);
-
-        // Game thread
         void tick();
         void processIncoming();
         void handlePacket(const ReceivedPacket &received);
@@ -111,7 +98,7 @@ namespace RType {
             auto payload = Network::readPayload<P>(received.packet);
 
             if (!payload) {
-                ++_droppedDatagrams;
+                _network.countDropped();
             }
             return payload;
         }
@@ -122,7 +109,7 @@ namespace RType {
             auto packet = Network::makePacket(payload);
 
             session.stampHeader(packet.header);
-            _socket.sendTo(session.endpoint(), packet.serialize());
+            _network.sendTo(session.endpoint(), packet.serialize());
         }
 
         /**
@@ -132,13 +119,11 @@ namespace RType {
         template<Network::PacketPayload P>
         void sendWithoutSession(const Network::Endpoint &to, const P &payload)
         {
-            _socket.sendTo(to, Network::makePacket(payload).serialize());
+            _network.sendTo(to, Network::makePacket(payload).serialize());
         }
 
         ServerConfig _config;
-        Network::UdpSocket _socket;
-        std::thread _networkThread;
-        Network::ThreadSafeQueue<ReceivedPacket> _incoming;
+        Network::NetworkThread _network;
 
         std::map<Network::ClientId, ClientSession> _sessions;
         std::map<Network::Endpoint, Network::ClientId> _sessionIds;
@@ -146,9 +131,6 @@ namespace RType {
         /** @brief Never reused during a run (docs/protocol.md, section 3). */
         Network::NetworkId _nextNetworkId = 1;
         Network::Tick _tick = 0;
-
-        /** @brief Malformed or unexpected datagrams, for the logs. */
-        std::atomic<std::size_t> _droppedDatagrams {0};
     };
 } // namespace RType
 
