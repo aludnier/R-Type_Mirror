@@ -6,7 +6,7 @@
 */
 
 #ifndef ENGINE_H
-#define ENGINE_H
+    #define ENGINE_H
 #include "ecs/Registry.h"
 #include <chrono>
 #include <iostream>
@@ -31,7 +31,7 @@ public:
         }
     };
 
-    void setActionPerSeconds(uint aps) {
+    void setActionPerSeconds(std::uint32_t aps) {
         if (aps == 0) {
             return;
         }
@@ -44,7 +44,7 @@ public:
 
 private:
     RType::Registry _registry;
-    uint _actionPerSeconds = 60;
+    std::uint32_t _actionPerSeconds = 60;
     bool _isRunning = false;
 };
 
