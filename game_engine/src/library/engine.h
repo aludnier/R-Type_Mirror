@@ -10,6 +10,18 @@
 #include "ecs/Registry.h"
 #include <chrono>
 #include <iostream>
+#include <cstdint>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include "ecs/SparseArray.h"
+
+namespace {
+    struct Sprite {
+        std::string path;
+    };
+}
+
 class EngineLib
 {
 public:
@@ -42,17 +54,33 @@ public:
         _isRunning = false;
     }
 
+    void importAsset(std::string assetName, std::string assetPath) {
+        _assets[assetName] = assetPath;
+    }
+
+    void applyAsset(RType::Entity entity, std::string assetName, std::string assetPath = "") {
+        if (!_assets.contains(assetName)) {
+            if (assetPath.empty()) {
+                return;
+            }
+            _assets[assetName] = assetPath;
+        }
+        _registry.addComponent<Sprite>(entity, Sprite{_assets[assetName]});
+    }
+
 private:
     RType::Registry _registry;
     std::uint32_t _actionPerSeconds = 60;
     bool _isRunning = false;
+    std::unordered_map<std::string, std::string> _assets;
 };
 
-EngineLib::EngineLib(/* args */)
+inline EngineLib::EngineLib(/* args */)
 {
+    _registry.registerComponent<Sprite>();
 }
 
-EngineLib::~EngineLib()
+inline EngineLib::~EngineLib()
 {
 }
 
