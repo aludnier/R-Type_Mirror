@@ -67,11 +67,17 @@ namespace RType {
         shutdown();
     }
 
+    std::uint16_t GameServer::localPort() const
+    {
+        return _network.localPort();
+    }
+
     void GameServer::tick()
     {
         processIncoming();
         checkTimeouts(Clock::now());
-        // TODO(ECS): registry.run_systems(), then replicate the changes.
+        // TODO(ECS): registry.run_systems(), then replicate the changes with
+        // sendComponentUpdate().
         if (_tick % _config.tickRate == 0) {
             reportDroppedDatagrams();
         }
@@ -148,16 +154,15 @@ namespace RType {
         // TODO(ECS): one ENTITY_SPAWN per replicated entity, its own
         // included.
         for (auto &[otherId, other] : _sessions) {
-            if (otherId == *id) {
-                continue;
+            if (otherId != *id) {
+                send(session,
+                    Network::PlayerConnectedPacket {
+                        otherId, other.linkedEntity(), other.playerName()});
             }
-            send(session,
-                Network::PlayerConnectedPacket {
-                    otherId, other.linkedEntity(), other.playerName()});
-            send(other,
-                Network::PlayerConnectedPacket {
-                    *id, linkedEntity, session.playerName()});
         }
+        sendToAllExcept(*id,
+            Network::PlayerConnectedPacket {
+                *id, linkedEntity, session.playerName()});
     }
 
     void GameServer::handleSessionPacket(
@@ -254,24 +259,46 @@ namespace RType {
         _sessionIds.erase(it->second.endpoint());
         _sessions.erase(it);
         // TODO(ECS): despawn the linked entity and send ENTITY_DESPAWN.
-        for (auto &[otherId, other] : _sessions) {
-            send(other, Network::PlayerDisconnectedPacket {id, reason});
-        }
+        sendToAll(Network::PlayerDisconnectedPacket {id, reason});
     }
 
     void GameServer::shutdown()
     {
         std::cout << "[server] shutting down\n";
-        for (auto &[id, session] : _sessions) {
-            send(session,
-                Network::ForceDisconnectPacket {
-                    Network::DisconnectReason::ServerShutdown,
-                    "server shutdown"});
-        }
+        sendToAll(Network::ForceDisconnectPacket {
+            Network::DisconnectReason::ServerShutdown, "server shutdown"});
         _sessions.clear();
         _sessionIds.clear();
         // The FORCE_DISCONNECTs above are sent before the socket closes.
         _network.stop();
+    }
+
+    void GameServer::sendComponentUpdate(
+        const std::vector<Network::EntityComponents> &entities)
+    {
+        for (const auto &update :
+            Network::splitComponentUpdate(_tick, entities)) {
+            sendToAll(update);
+        }
+    }
+
+    void GameServer::sendPacket(
+        ClientSession &session, Network::Packet &packet)
+    {
+        // Overwrites sequence and acks: the same packet can be stamped again
+        // for the next client.
+        session.stampHeader(packet.header);
+        _network.sendTo(session.endpoint(), packet.serialize());
+    }
+
+    void GameServer::broadcastPacket(
+        Network::Packet &packet, std::optional<Network::ClientId> excluded)
+    {
+        for (auto &[id, session] : _sessions) {
+            if (id != excluded) {
+                sendPacket(session, packet);
+            }
+        }
     }
 
     ClientSession *GameServer::findSession(const Network::Endpoint &endpoint)
