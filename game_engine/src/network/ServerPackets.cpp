@@ -184,6 +184,63 @@ namespace RType::Network {
         return packet;
     }
 
+    std::vector<ComponentUpdatePacket> splitComponentUpdate(
+        Tick tick, const std::vector<EntityComponents> &entities)
+    {
+        // Encoded sizes, see docs/protocol.md, section 6.2: tick and
+        // entity_count, then network_id and component_count, then type_id
+        // and the u16 length of data.
+        constexpr std::size_t packetOverhead = sizeof(Tick) + 1;
+        constexpr std::size_t entityOverhead = sizeof(NetworkId) + 1;
+        constexpr std::size_t componentOverhead =
+            sizeof(ComponentTypeId) + sizeof(std::uint16_t);
+        constexpr std::size_t maxListSize =
+            std::numeric_limits<std::uint8_t>::max();
+        std::vector<ComponentUpdatePacket> packets;
+        // Payload size of packets.back().
+        std::size_t size = 0;
+
+        auto addEntity = [&](NetworkId networkId, bool newPacket) {
+            if (newPacket || packets.empty() ||
+                packets.back().entities.size() == maxListSize ||
+                size + entityOverhead > MAX_PAYLOAD_SIZE) {
+                packets.push_back({.tick = tick, .entities = {}});
+                size = packetOverhead;
+            }
+            packets.back().entities.push_back(
+                {.networkId = networkId, .components = {}});
+            size += entityOverhead;
+        };
+
+        for (const auto &entity : entities) {
+            addEntity(entity.networkId, false);
+            for (const auto &component : entity.components) {
+                std::size_t componentSize =
+                    componentOverhead + component.data.size();
+
+                if (packetOverhead + entityOverhead + componentSize >
+                    MAX_PAYLOAD_SIZE) {
+                    throw std::length_error(
+                        "component too large for a COMPONENT_UPDATE");
+                }
+                auto &current = packets.back().entities;
+
+                if (size + componentSize > MAX_PAYLOAD_SIZE ||
+                    current.back().components.size() == maxListSize) {
+                    // Nothing was added to this entity yet: move it to the
+                    // next packet instead of sending it empty.
+                    if (current.back().components.empty()) {
+                        current.pop_back();
+                    }
+                    addEntity(entity.networkId, true);
+                }
+                packets.back().entities.back().components.push_back(component);
+                size += componentSize;
+            }
+        }
+        return packets;
+    }
+
     void HeartbeatReplyPacket::serialize(ByteWriter &writer) const
     {
         writer.write(clientTime);

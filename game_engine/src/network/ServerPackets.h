@@ -143,6 +143,22 @@ namespace RType::Network {
         bool operator==(const ComponentUpdatePacket &other) const = default;
     };
 
+    /**
+     * @brief Splits the update of @p entities into as few COMPONENT_UPDATE
+     *        as possible, each one fitting in MAX_PAYLOAD_SIZE and holding at
+     *        most 255 entities (docs/protocol.md, section 6.2).
+     *
+     * Entities keep their order. An entity whose components do not fit in
+     * what is left of a packet is continued in the next one, under the same
+     * network id. Every packet carries @p tick.
+     *
+     * @return No packet if @p entities is empty.
+     * @throws std::length_error If one component alone cannot fit in a
+     *         packet.
+     */
+    std::vector<ComponentUpdatePacket> splitComponentUpdate(
+        Tick tick, const std::vector<EntityComponents> &entities);
+
     struct HeartbeatReplyPacket {
         static constexpr MessageType TYPE = MessageType::HeartbeatReply;
         static constexpr bool RELIABLE = false;

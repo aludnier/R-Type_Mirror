@@ -221,7 +221,9 @@ An `entity` is encoded as:
 Grouping entities saves the header of one datagram per entity: an entity
 that only updates its position costs 17 bytes, so about 69 of them fit in one
 datagram. When the update does not fit, the server sends several
-COMPONENT_UPDATE with the same `tick`.
+COMPONENT_UPDATE with the same `tick`. An entity with too many components to
+fit in what is left of a datagram is continued in the next one, under the
+same `network_id`.
 
 **HEARTBEAT_REPLY (`0x47`)**
 
