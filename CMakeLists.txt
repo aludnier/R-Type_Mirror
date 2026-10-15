@@ -6,6 +6,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTS "Build the tests" ON)
 
+include(CTest)
+enable_testing()
+
 include(cmake/CPM.cmake)
 
 add_subdirectory(game_engine)
