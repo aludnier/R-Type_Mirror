@@ -20,7 +20,7 @@ the module itself contains only its ECS components and systems.
 Every dynamically loaded module must export the common entry point below:
 
 ```cpp
-extern "C" const ModuleDescriptor &RTypeLibEntryPoint();
+extern "C" const ModuleDescriptor *RTypeLibEntryPoint();
 ```
 
 `ModuleDescriptor` is the common contract between the Engine Core and every
@@ -49,7 +49,7 @@ struct ModuleDependency {
     ModuleApiVersion compatible_api;
 };
 
-using RegisterModuleFn = std::function<ModuleStatus(Registry *registry)>;
+using RegisterModuleFn = std::function<ModuleStatus(Registry &registry)>;
 
 struct ModuleDescriptor {
     std::string name;
@@ -58,7 +58,7 @@ struct ModuleDescriptor {
     RegisterModuleFn registerModule;
 };
 }
-extern "C" const ModuleDescriptor &RTypeLibEntryPoint();
+extern "C" const ModuleDescriptor *RTypeLibEntryPoint();
 ```
 
 `ModuleStatus` must be a shared status type defined by the API header. The
