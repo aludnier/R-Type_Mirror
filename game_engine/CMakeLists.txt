@@ -32,6 +32,7 @@ if (BUILD_TESTS)
 
     add_executable(game_engine_tests
             tests/network_protocol_tests.cpp
+            tests/network_transport_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE game_engine ${CRITERION_LINK_LIBRARIES})
