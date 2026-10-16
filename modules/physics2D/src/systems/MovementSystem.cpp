@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include "ecs/SparseArray.h"
+#include "ecs/Zipper.h"
 #include "MovementSystem.h"
 #include "../components/Rigidbody2D.h"
 #include "../components/PhysicsSettings2D.h"
@@ -42,10 +43,8 @@ namespace RType::Physics2D {
         registry.addSystem<Transform2D, Rigidbody2D, PhysicsSettings2D>(
             [](auto &transforms, auto &bodies, auto &settings) {
                 const auto &s = settingsOf(settings);
-                for (std::size_t i = 0; i < bodies.size(); ++i) {
-                    if (!bodies[i].has_value() || i >= transforms.size() || !transforms[i].has_value())
-                        continue;
-                    stepBody(*bodies[i], *transforms[i], s);
+                for (auto [transform, body]: Zipper(transforms, bodies)) {
+                    stepBody(body, transform, s);
                 }
             });
     }

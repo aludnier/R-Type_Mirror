@@ -11,6 +11,9 @@ set(SRC
         src/math/Vector3.h
         src/components/Transform2D.h
         src/components/Transform3D.h
+        src/components/Controllable.h
+        src/systems/ControllableSystem.cpp
+        src/systems/ControllableSystem.h
         src/library/engine.h
         src/library/InputManager.cpp
         src/library/InputManager.h
