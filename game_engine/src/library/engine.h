@@ -9,16 +9,15 @@
     #define ENGINE_H
 #include "ecs/Registry.h"
 #include <chrono>
-#include <iostream>
 #include <cstdint>
 #include <string>
 #include <thread>
-#include <unordered_map>
-#include "ecs/SparseArray.h"
+#include "InputManager.h"
+#include "RessourceManager.h"
 
 namespace {
     struct Sprite {
-        std::string path;
+        std::uint32_t assetId;
     };
 }
 
@@ -55,24 +54,64 @@ public:
     }
 
     void importAsset(std::string assetName, std::string assetPath) {
-        _assets[assetName] = assetPath;
+        _resources.addAsset(assetName, assetPath);
     }
 
     void applyAsset(RType::Entity entity, std::string assetName, std::string assetPath = "") {
-        if (!_assets.contains(assetName)) {
-            if (assetPath.empty()) {
-                return;
-            }
-            _assets[assetName] = assetPath;
+        try {
+            _resources.getAsset(assetName);
+        } catch (const std::exception &) {
+            _resources.addAsset(assetName, assetPath);
         }
-        _registry.addComponent<Sprite>(entity, Sprite{_assets[assetName]});
+        _registry.addComponent<Sprite>(entity, Sprite{_resources.getAsset(assetName).id});
+    }
+
+    void bindAction(Action action, InputManager::KeyCode key) {
+        _input.bind(action, key);
+    }
+
+    void unbindAction(Action action, InputManager::KeyCode key) {
+        _input.unbind(action, key);
+    }
+
+    void clearActionBindings(Action action) {
+        _input.clearBindings(action);
+    }
+
+    void setKeyState(InputManager::KeyCode key, bool pressed) {
+        _input.setKeyState(key, pressed);
+    }
+
+    bool isActionDown(Action action) const {
+        return _input.isActionDown(action);
+    }
+
+    std::uint8_t actionMask() const {
+        return _input.actionMask();
+    }
+
+    ResourceManager &resources() {
+        return _resources;
+    }
+
+    const ResourceManager &resources() const {
+        return _resources;
+    }
+
+    InputManager &input() {
+        return _input;
+    }
+
+    const InputManager &input() const {
+        return _input;
     }
 
 private:
+    ResourceManager _resources;
+    InputManager _input;
     RType::Registry _registry;
     std::uint32_t _actionPerSeconds = 60;
     bool _isRunning = false;
-    std::unordered_map<std::string, std::string> _assets;
 };
 
 inline EngineLib::EngineLib(/* args */)
@@ -83,6 +122,5 @@ inline EngineLib::EngineLib(/* args */)
 inline EngineLib::~EngineLib()
 {
 }
-
 
 #endif
