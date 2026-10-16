@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.10.0)
 
 set(SRC
+        src/Module.h
         src/ecs/Entity.cpp
         src/ecs/Entity.h
         src/ecs/SparseArray.h
         src/ecs/Zipper.h
         src/ecs/IndexedZipper.h
+        src/math/Vector2.h
+        src/math/Vector3.h
+        src/components/Transform2D.h
+        src/components/Transform3D.h
 )
 
 add_library(game_engine STATIC ${SRC})
