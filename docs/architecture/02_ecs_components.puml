@@ -70,11 +70,7 @@ package "Shared libraries (components)" {
     }
 
     class controllable <<component>> {
-        + up : bool
-        + down : bool
-        + left : bool
-        + right : bool
-        + action : action_id (dev-defined, e.g. shoot)
+        + actions : uint32 bitmask (dev-defined, e.g. bit 0 = up)
     }
 
     class position <<component, provided, filled>> {
