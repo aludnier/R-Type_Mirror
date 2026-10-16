@@ -213,8 +213,8 @@ add_library(example_module SHARED
     src/example_module.cpp
 )
 
-target_include_directories(example_module PRIVATE
-    ${PROJECT_SOURCE_DIR}/path/to/api/include
+target_include_directories(example_module PUBLIC
+    ${PROJECT_SOURCE_DIR}/game_engine/src
 )
 
 target_compile_features(example_module PRIVATE cxx_std_23)
