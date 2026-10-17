@@ -59,7 +59,7 @@ InsertNewlineAtEOF: true
 MacroBlockBegin: ''
 MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 1
-NamespaceIndentation: All
+NamespaceIndentation: Inner
 PointerAlignment: Right
 SpaceAfterCStyleCast: true
 SpaceAfterLogicalNot: false

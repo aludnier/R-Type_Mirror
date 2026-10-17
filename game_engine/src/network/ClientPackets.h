@@ -50,18 +50,17 @@ namespace RType::Network {
 
     /**
      * @brief State of the player's controls, never raw key events.
+     *
+     * Every control, moves included, is a game-defined action: the engine
+     * gives no meaning to the bits.
      */
     struct ControllablePacket {
         static constexpr MessageType TYPE = MessageType::Controllable;
         static constexpr bool RELIABLE = false;
 
         std::uint32_t inputSequence = 0;
-        bool up = false;
-        bool down = false;
-        bool left = false;
-        bool right = false;
-        /** @brief Bitmask of game-defined actions (e.g. bit 0 = shoot). */
-        std::uint16_t actions = 0;
+        /** @brief Bit i set: game action i is active (e.g. bit 0 = up). */
+        std::uint32_t actions = 0;
 
         void serialize(ByteWriter &writer) const;
         static ControllablePacket deserialize(ByteReader &reader);

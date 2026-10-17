@@ -98,8 +98,7 @@ package "Packets (client → server)" {
     }
     class "controllable" as controllable_packet <<packet>> {
         input_sequence
-        directions : up / down / left / right bits
-        actions : bitmask of dev-defined actions
+        actions : bitmask of dev-defined actions (moves included)
     }
     class ask_connect <<packet>> {
         player_name (may be empty)

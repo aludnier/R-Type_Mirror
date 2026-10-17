@@ -70,16 +70,37 @@ package "Shared libraries (components)" {
     }
 
     class controllable <<component>> {
-        + up : bool
-        + down : bool
-        + left : bool
-        + right : bool
-        + actions : uint16 bitmask (dev-defined, e.g. bit 0 = shoot)
+        + actions : uint32 bitmask (dev-defined, e.g. bit 0 = up)
     }
 
     class position <<component, provided, filled>> {
         + x : float
         + y : float
+    }
+
+    class Vector2 <<math>> {
+        + x : float
+        + y : float
+        + operators : + - * / += -= *= /= ==
+    }
+
+    class Vector3 <<math>> {
+        + x : float
+        + y : float
+        + z : float
+        + operators : + - * / += -= *= /= ==
+    }
+
+    class Transform2D <<component, provided>> {
+        + position : Vector2
+        + scale : Vector2 (default 1,1)
+        + rotation : float (radians)
+    }
+
+    class Transform3D <<component, provided>> {
+        + position : Vector3
+        + scale : Vector3 (default 1,1,1)
+        + rotation : Vector3 (Euler, radians)
     }
 
     class physics <<component, provided>> {
@@ -118,6 +139,10 @@ registry ..> indexed_zipper : systems iterate
 sparse_array ..> controllable : Component
 sparse_array ..> position : Component
 sparse_array ..> physics : Component
+sparse_array ..> Transform2D : Component
+sparse_array ..> Transform3D : Component
+Transform2D *-- Vector2 : position, scale
+Transform3D *-- Vector3 : position, scale, rotation
 sparse_array ..> animation : Component
 sparse_array ..> replicated : Component
 sparse_array ..> dev_components : Component
@@ -133,6 +158,8 @@ dev_components ..> registry : registered in
 physics ..> registry : registered in
 animation ..> registry : registered in
 position ..> registry : registered in
+Transform2D ..> registry : registered in
+Transform3D ..> registry : registered in
 replicated ..> registry : registered in
 
 @enduml
