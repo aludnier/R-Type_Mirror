@@ -52,22 +52,22 @@ endif ()
 # engine_client: client only (input, engine loop, later rendering and audio).
 # The graphics library is linked here, never in engine_core.
 # ---------------------------------------------------------------------------
-set(CLIENT_SRC
-        src/library/engine.h
-        src/library/InputManager.cpp
-        src/library/InputManager.h
-)
+if (BUILD_CLIENT)
+    set(CLIENT_SRC
+            src/library/engine.h
+            src/library/InputManager.cpp
+            src/library/InputManager.h
+    )
 
-add_library(engine_client STATIC ${CLIENT_SRC})
+    add_library(engine_client STATIC ${CLIENT_SRC})
 
-target_link_libraries(engine_client PUBLIC engine_core)
+    target_link_libraries(engine_client PUBLIC engine_core)
 
-# ---------------------------------------------------------------------------
-# Temporary: keeps the old target name working for branches opened before
-# the split. Remove once every branch links engine_core / engine_client.
-# ---------------------------------------------------------------------------
-add_library(game_engine INTERFACE)
-target_link_libraries(game_engine INTERFACE engine_core engine_client)
+    # Temporary: keeps the old target name working for branches opened before
+    # the split. Remove once every branch links engine_core / engine_client.
+    add_library(game_engine INTERFACE)
+    target_link_libraries(game_engine INTERFACE engine_core engine_client)
+endif ()
 
 if (BUILD_TESTS)
     CPMAddPackage("gh:catchorg/Catch2@3.4.0")
@@ -76,11 +76,15 @@ if (BUILD_TESTS)
             tests/ecs_unit_tests.cpp
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
-            tests/library_manager_tests.cpp
     )
 
-    # engine_client brings engine_core with it.
-    target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
+    target_link_libraries(game_engine_tests PRIVATE engine_core Catch2::Catch2WithMain)
+
+    # InputManager is client code: only tested when the client is built.
+    if (BUILD_CLIENT)
+        target_sources(game_engine_tests PRIVATE tests/library_manager_tests.cpp)
+        target_link_libraries(game_engine_tests PRIVATE engine_client)
+    endif ()
 
     add_test(NAME game_engine_tests COMMAND game_engine_tests)
 endif ()
