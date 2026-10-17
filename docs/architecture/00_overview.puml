@@ -10,12 +10,6 @@ package "Application" {
 package "Static Engine Core" {
     [Engine Core]
 }
-package "API Contracts" {
-    interface "Physics API" as PhysicsAPI
-    interface "Renderer API" as RendererAPI
-    interface "Animation API" as AnimationAPI
-    interface "Audio API" as AudioAPI
-}
 package "Dynamic Modules" {
     [Physics Module]
     [Renderer Module]
@@ -30,15 +24,6 @@ package "Engine Subsystems" {
 }
 
 [Game] --> [Engine Core]
-[Game] --> PhysicsAPI
-[Game] --> RendererAPI
-[Game] --> AnimationAPI
-[Game] --> AudioAPI
-
-[Physics Module] ..|> PhysicsAPI
-[Renderer Module] ..|> RendererAPI
-[Animation Module] ..|> AnimationAPI
-[Audio Module] ..|> AudioAPI
 
 [Engine Core] --> [Physics Module] : discover/load/init/unload
 [Engine Core] --> [Renderer Module] : discover/load/init/unload
@@ -50,10 +35,10 @@ package "Engine Subsystems" {
 [Engine Core] --> [Server Runtime]
 [Engine Core] --> [Client Runtime / Game Lib]
 
-PhysicsAPI --> [ECS / Components] : physics services
-RendererAPI --> [Client Runtime / Game Lib] : rendering
-AnimationAPI --> [ECS / Components] : animation services
-AudioAPI --> [Client Runtime / Game Lib] : audio services
+[Physics Module] --> [ECS / Components] : components and systems
+[Renderer Module] --> [ECS / Components] : components and systems
+[Animation Module] --> [ECS / Components] : components and systems
+[Audio Module] --> [ECS / Components] : components and systems
 
 note bottom
 Detailed views are separate PUML files.

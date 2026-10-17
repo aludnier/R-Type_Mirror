@@ -3,6 +3,7 @@
 #include <tuple>
 #include <vector>
 #include <stdexcept>
+#include <cstdint>
 
 #include "ecs/Component.h"
 #include "ecs/Entity.h"
@@ -10,6 +11,10 @@
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
 #include "ecs/Zipper.h"
+#include "components/Controllable.h"
+#include "components/Transform2D.h"
+#include "library/InputManager.h"
+#include "systems/ControllableSystem.h"
 
 namespace {
     struct Position {
@@ -154,6 +159,45 @@ TEST_CASE("Registry systems can mutate values in storage", "[ecs][registry]") {
 
     REQUIRE(registry.getComponents<Position>()[0]->x == 6);
     REQUIRE(registry.getComponents<Position>()[0]->y == 8);
+}
+
+TEST_CASE("Controllable system moves entities from their action mask", "[systems][controllable]") {
+    RType::Registry registry;
+    registry.registerComponent<RType::Transform2D>();
+    registry.registerComponent<RType::Controllable>();
+
+    const auto entity = registry.spawnEntity();
+    registry.addComponent<RType::Transform2D>(entity, RType::Transform2D{});
+    registry.addComponent<RType::Controllable>(entity, RType::Controllable{
+        static_cast<std::uint8_t>((1u << static_cast<std::uint8_t>(Action::MoveRight)) |
+                                   (1u << static_cast<std::uint8_t>(Action::MoveDown)))
+    });
+    RType::addControllableSystem(registry, 10.f, 0.5f);
+
+    registry.runSystems();
+
+    const auto &transform = registry.getComponents<RType::Transform2D>()[static_cast<RType::entity_id_type>(entity)];
+    REQUIRE(transform->position == RType::Vector2{5.f, 5.f});
+}
+
+TEST_CASE("Controllable system cancels opposing actions and ignores shooting", "[systems][controllable]") {
+    RType::Registry registry;
+    registry.registerComponent<RType::Transform2D>();
+    registry.registerComponent<RType::Controllable>();
+
+    const auto entity = registry.spawnEntity();
+    registry.addComponent<RType::Transform2D>(entity, RType::Transform2D{});
+    registry.addComponent<RType::Controllable>(entity, RType::Controllable{
+        static_cast<std::uint8_t>((1u << static_cast<std::uint8_t>(Action::MoveLeft)) |
+                                   (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
+                                   (1u << static_cast<std::uint8_t>(Action::Shoot)))
+    });
+    RType::addControllableSystem(registry, 10.f, 1.f);
+
+    registry.runSystems();
+
+    const auto &transform = registry.getComponents<RType::Transform2D>()[static_cast<RType::entity_id_type>(entity)];
+    REQUIRE(transform->position == RType::Vector2{});
 }
 
 TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]") {
