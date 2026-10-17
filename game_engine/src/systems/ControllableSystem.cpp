@@ -1,11 +1,11 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "components/Action.h"
 #include "components/Controllable.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
 #include "ecs/Zipper.h"
-#include "library/InputManager.h"
 #include "systems/ControllableSystem.h"
 
 namespace RType {

@@ -14,15 +14,7 @@
 #include <unordered_set>
 #include <vector>
 
-enum class Action : std::uint8_t
-{
-    MoveUp,
-    MoveDown,
-    MoveLeft,
-    MoveRight,
-    Shoot,
-    Count
-};
+#include "components/Action.h"
 
 class InputManager
 {
