@@ -22,14 +22,26 @@ set(SRC
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
+        src/network/NetworkThread.cpp
         src/network/Packet.cpp
         src/network/PacketHeader.cpp
         src/network/ServerPackets.cpp
+        src/network/UdpSocket.cpp
 )
 
 add_library(game_engine STATIC ${SRC})
 
 target_include_directories(game_engine PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
+
+# Asio is installed by vcpkg (vcpkg.json). PRIVATE: only UdpSocket.cpp
+# includes it, the users of the engine never see it.
+find_package(asio CONFIG REQUIRED)
+find_package(Threads REQUIRED)
+target_link_libraries(game_engine PRIVATE asio::asio PUBLIC Threads::Threads)
+if (WIN32)
+    # Windows 10 API, otherwise Asio warns about a missing _WIN32_WINNT.
+    target_compile_definitions(game_engine PRIVATE _WIN32_WINNT=0x0A00)
+endif ()
 
 if (BUILD_TESTS)
     CPMAddPackage("gh:catchorg/Catch2@3.4.0")
@@ -37,6 +49,7 @@ if (BUILD_TESTS)
     add_executable(game_engine_tests
             tests/ecs_unit_tests.cpp
             tests/network_protocol_tests.cpp
+            tests/network_transport_tests.cpp
             tests/library_manager_tests.cpp
     )
 
