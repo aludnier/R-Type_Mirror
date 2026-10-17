@@ -1,4 +1,4 @@
-#include <criterion/criterion.h>
+#include <catch2/catch_test_macros.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -80,54 +80,59 @@ namespace {
     };
 } // namespace
 
-Test(ThreadSafeQueue, popsInPushOrder)
+TEST_CASE("ThreadSafeQueue pops in push order",
+    "[network][thread-safe-queue]")
 {
     ThreadSafeQueue<int> queue(8);
 
-    cr_assert(queue.push(1));
-    cr_assert(queue.push(2));
-    cr_assert(queue.push(3));
-    cr_assert_eq(queue.tryPop(), 1);
-    cr_assert_eq(queue.tryPop(), 2);
-    cr_assert_eq(queue.tryPop(), 3);
+    REQUIRE(queue.push(1));
+    REQUIRE(queue.push(2));
+    REQUIRE(queue.push(3));
+    REQUIRE(queue.tryPop() == 1);
+    REQUIRE(queue.tryPop() == 2);
+    REQUIRE(queue.tryPop() == 3);
 }
 
-Test(ThreadSafeQueue, tryPopOnEmptyQueueReturnsNothing)
+TEST_CASE("ThreadSafeQueue try pop on empty queue returns nothing",
+    "[network][thread-safe-queue]")
 {
     ThreadSafeQueue<int> queue(8);
 
-    cr_assert_eq(queue.tryPop(), std::nullopt);
+    REQUIRE(queue.tryPop() == std::nullopt);
     queue.push(1);
     queue.tryPop();
-    cr_assert_eq(queue.tryPop(), std::nullopt);
+    REQUIRE(queue.tryPop() == std::nullopt);
 }
 
-Test(ThreadSafeQueue, dropsNewValuesWhenFull)
+TEST_CASE("ThreadSafeQueue drops new values when full",
+    "[network][thread-safe-queue]")
 {
     ThreadSafeQueue<int> queue(2);
 
-    cr_assert(queue.push(1));
-    cr_assert(queue.push(2));
-    cr_assert_not(queue.push(3));
-    cr_assert_eq(queue.tryPop(), 1);
-    cr_assert(queue.push(4));
-    cr_assert_eq(queue.tryPop(), 2);
-    cr_assert_eq(queue.tryPop(), 4);
-    cr_assert_eq(queue.tryPop(), std::nullopt);
+    REQUIRE(queue.push(1));
+    REQUIRE(queue.push(2));
+    REQUIRE_FALSE(queue.push(3));
+    REQUIRE(queue.tryPop() == 1);
+    REQUIRE(queue.push(4));
+    REQUIRE(queue.tryPop() == 2);
+    REQUIRE(queue.tryPop() == 4);
+    REQUIRE(queue.tryPop() == std::nullopt);
 }
 
-Test(ThreadSafeQueue, keepsMoveOnlyValues)
+TEST_CASE("ThreadSafeQueue keeps move only values",
+    "[network][thread-safe-queue]")
 {
     ThreadSafeQueue<std::unique_ptr<int>> queue(1);
 
     queue.push(std::make_unique<int>(42));
     auto value = queue.tryPop();
 
-    cr_assert(value.has_value());
-    cr_assert_eq(**value, 42);
+    REQUIRE(value.has_value());
+    REQUIRE(**value == 42);
 }
 
-Test(ThreadSafeQueue, passesEveryValueFromOneThreadToAnother)
+TEST_CASE("ThreadSafeQueue passes every value from one thread to another",
+    "[network][thread-safe-queue]")
 {
     constexpr int count = 10000;
     ThreadSafeQueue<int> queue(64);
@@ -142,15 +147,16 @@ Test(ThreadSafeQueue, passesEveryValueFromOneThreadToAnother)
 
     while (expected < count) {
         if (auto value = queue.tryPop()) {
-            cr_assert_eq(*value, expected);
+            REQUIRE(*value == expected);
             ++expected;
         }
     }
     producer.join();
-    cr_assert_eq(queue.tryPop(), std::nullopt);
+    REQUIRE(queue.tryPop() == std::nullopt);
 }
 
-Test(UdpSocket, sendsAndReceivesOnLoopback)
+TEST_CASE("UdpSocket sends and receives on loopback",
+    "[network][udp-socket]")
 {
     UdpSocket receiver(0);
     ThreadSafeQueue<std::pair<Endpoint, Bytes>> received(8);
@@ -164,16 +170,17 @@ Test(UdpSocket, sendsAndReceivesOnLoopback)
     std::optional<std::pair<Endpoint, Bytes>> datagram;
 
     sender.send(receiver.localPort(), {1, 2, 3});
-    cr_assert(
+    REQUIRE(
         waitFor([&] { return (datagram = received.tryPop()).has_value(); }));
-    cr_assert_eq(datagram->first.address, "127.0.0.1");
-    cr_assert_eq(datagram->first.port, sender.port());
-    cr_assert(datagram->second == Bytes({1, 2, 3}));
+    REQUIRE(datagram->first.address == "127.0.0.1");
+    REQUIRE(datagram->first.port == sender.port());
+    REQUIRE(datagram->second == Bytes({1, 2, 3}));
     receiver.close();
     thread.join();
 }
 
-Test(UdpSocket, oversizedDatagramIsSeenTooLong)
+TEST_CASE("UdpSocket oversized datagram is seen too long",
+    "[network][udp-socket]")
 {
     UdpSocket receiver(0);
     ThreadSafeQueue<std::size_t> sizes(8);
@@ -187,13 +194,14 @@ Test(UdpSocket, oversizedDatagramIsSeenTooLong)
     std::optional<std::size_t> size;
 
     sender.send(receiver.localPort(), Bytes(MAX_PACKET_SIZE + 100, 0));
-    cr_assert(waitFor([&] { return (size = sizes.tryPop()).has_value(); }));
-    cr_assert_gt(*size, MAX_PACKET_SIZE);
+    REQUIRE(waitFor([&] { return (size = sizes.tryPop()).has_value(); }));
+    REQUIRE(*size > MAX_PACKET_SIZE);
     receiver.close();
     thread.join();
 }
 
-Test(UdpSocket, closeStopsRunWithoutTraffic)
+TEST_CASE("UdpSocket close stops run without traffic",
+    "[network][udp-socket]")
 {
     UdpSocket socket(0);
     std::thread thread([&] { socket.run([](auto &, auto) {}); });
@@ -202,7 +210,8 @@ Test(UdpSocket, closeStopsRunWithoutTraffic)
     thread.join();
 }
 
-Test(NetworkThread, deliversValidPackets)
+TEST_CASE("NetworkThread delivers valid packets",
+    "[network][network-thread]")
 {
     NetworkThread network(0, 8);
     Sender sender;
@@ -210,18 +219,19 @@ Test(NetworkThread, deliversValidPackets)
 
     network.start();
     sender.send(network.localPort(), heartbeatDatagram(1000));
-    cr_assert(waitFor([&] { return (received = network.poll()).has_value(); }));
-    cr_assert_eq(received->from.port, sender.port());
-    cr_assert_eq(received->packet.header.type, MessageType::Heartbeat);
+    REQUIRE(waitFor([&] { return (received = network.poll()).has_value(); }));
+    REQUIRE(received->from.port == sender.port());
+    REQUIRE(received->packet.header.type == MessageType::Heartbeat);
 
     auto heartbeat = readPayload<HeartbeatPacket>(received->packet);
 
-    cr_assert(heartbeat.has_value());
-    cr_assert_eq(heartbeat->clientTime, 1000u);
-    cr_assert_eq(network.takeDroppedCount(), 0u);
+    REQUIRE(heartbeat.has_value());
+    REQUIRE(heartbeat->clientTime == 1000u);
+    REQUIRE(network.takeDroppedCount() == 0u);
 }
 
-Test(NetworkThread, dropsMalformedAndOversizedDatagrams)
+TEST_CASE("NetworkThread drops malformed and oversized datagrams",
+    "[network][network-thread]")
 {
     NetworkThread network(0, 8);
     Sender sender;
@@ -239,15 +249,15 @@ Test(NetworkThread, dropsMalformedAndOversizedDatagrams)
     sender.send(network.localPort(), oversized);
     // Sent last: once it is received, the bad ones were handled.
     sender.send(network.localPort(), heartbeatDatagram(2));
-    cr_assert(waitFor([&] { return (received = network.poll()).has_value(); }));
-    cr_assert_eq(
-        readPayload<HeartbeatPacket>(received->packet)->clientTime, 2u);
-    cr_assert_eq(network.poll().has_value(), false);
-    cr_assert_eq(network.takeDroppedCount(), 4u);
-    cr_assert_eq(network.takeDroppedCount(), 0u);
+    REQUIRE(waitFor([&] { return (received = network.poll()).has_value(); }));
+    REQUIRE(readPayload<HeartbeatPacket>(received->packet)->clientTime == 2u);
+    REQUIRE(network.poll().has_value() == false);
+    REQUIRE(network.takeDroppedCount() == 4u);
+    REQUIRE(network.takeDroppedCount() == 0u);
 }
 
-Test(NetworkThread, dropsPacketsWhenQueueIsFull)
+TEST_CASE("NetworkThread drops packets when queue is full",
+    "[network][network-thread]")
 {
     NetworkThread network(0, 1);
     Sender sender;
@@ -257,27 +267,29 @@ Test(NetworkThread, dropsPacketsWhenQueueIsFull)
     for (std::uint32_t i = 0; i < 3; ++i) {
         sender.send(network.localPort(), heartbeatDatagram(i));
     }
-    cr_assert(
+    REQUIRE(
         waitFor([&] { return (dropped += network.takeDroppedCount()) >= 2; }));
-    cr_assert_eq(dropped, 2u);
+    REQUIRE(dropped == 2u);
 
     auto first = network.poll();
 
-    cr_assert(first.has_value());
-    cr_assert_eq(readPayload<HeartbeatPacket>(first->packet)->clientTime, 0u);
-    cr_assert_eq(network.poll().has_value(), false);
+    REQUIRE(first.has_value());
+    REQUIRE(readPayload<HeartbeatPacket>(first->packet)->clientTime == 0u);
+    REQUIRE(network.poll().has_value() == false);
 }
 
-Test(NetworkThread, countsDatagramsDroppedByTheCaller)
+TEST_CASE("NetworkThread counts datagrams dropped by the caller",
+    "[network][network-thread]")
 {
     NetworkThread network(0, 1);
 
     network.countDropped();
     network.countDropped();
-    cr_assert_eq(network.takeDroppedCount(), 2u);
+    REQUIRE(network.takeDroppedCount() == 2u);
 }
 
-Test(NetworkThread, stopIsSafeWithoutStartAndTwice)
+TEST_CASE("NetworkThread stop is safe without start and twice",
+    "[network][network-thread]")
 {
     NetworkThread notStarted(0, 1);
 
@@ -290,7 +302,8 @@ Test(NetworkThread, stopIsSafeWithoutStartAndTwice)
     started.stop();
 }
 
-Test(NetworkThread, sendsBeforeStopAreDelivered)
+TEST_CASE("NetworkThread sends before stop are delivered",
+    "[network][network-thread]")
 {
     NetworkThread receiver(0, 8);
     std::optional<NetworkThread::ReceivedPacket> received;
@@ -303,8 +316,6 @@ Test(NetworkThread, sendsBeforeStopAreDelivered)
         sender.sendTo(loopback(receiver.localPort()), heartbeatDatagram(7));
         sender.stop();
     }
-    cr_assert(
-        waitFor([&] { return (received = receiver.poll()).has_value(); }));
-    cr_assert_eq(
-        readPayload<HeartbeatPacket>(received->packet)->clientTime, 7u);
+    REQUIRE(waitFor([&] { return (received = receiver.poll()).has_value(); }));
+    REQUIRE(readPayload<HeartbeatPacket>(received->packet)->clientTime == 7u);
 }
