@@ -6,4 +6,4 @@ set(SRC
 
 add_executable(r-type_server ${SRC})
 
-target_link_libraries(r-type_server PRIVATE game_engine)
+target_link_libraries(r-type_server PRIVATE engine_core)

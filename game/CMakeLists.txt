@@ -6,4 +6,4 @@ set(SRC
 
 add_executable(game ${SRC})
 
-target_link_libraries(game PRIVATE game_engine)
+target_link_libraries(game PRIVATE engine_client)
