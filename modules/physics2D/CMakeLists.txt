@@ -14,9 +14,11 @@ target_include_directories(physics2d_module PUBLIC
         ${PROJECT_SOURCE_DIR}/game_engine/src
 )
 
+target_link_libraries(physics2d_module PRIVATE game_engine)
+
 target_compile_features(physics2d_module PRIVATE cxx_std_23)
 
 set_target_properties(physics2d_module PROPERTIES
         PREFIX ""
-        OUTPUT_NAME "physics2d_module"
+        OUTPUT_NAME "Physics2D_Module"
 )
