@@ -71,8 +71,7 @@ namespace RType::Network {
         _impl->io.run();
     }
 
-    void UdpSocket::sendTo(
-        const Endpoint &to, std::vector<std::uint8_t> datagram)
+    void UdpSocket::sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram)
     {
         auto send = [impl = _impl.get(), to, bytes = std::move(datagram)] {
             std::error_code error;
