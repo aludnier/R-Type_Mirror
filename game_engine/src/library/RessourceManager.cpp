@@ -47,11 +47,11 @@ const ResourceManager::Asset &ResourceManager::getAsset(const std::string &name)
     return it->second;
 }
 
-const ResourceManager::Asset *ResourceManager::getAssetById(std::uint32_t id) const
+std::optional<std::reference_wrapper<const ResourceManager::Asset>> ResourceManager::getAssetById(std::uint32_t id) const
 {
     auto nameIt = _namesById.find(id);
     if (nameIt == _namesById.end()) {
-        return nullptr;
+        return std::nullopt;
     }
-    return &_assets.at(nameIt->second);
+    return std::cref(_assets.at(nameIt->second));
 }
