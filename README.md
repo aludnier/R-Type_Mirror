@@ -60,20 +60,13 @@ cmake --build --preset release
 The first configure is slower: vcpkg and CPM download and build the
 dependencies.
 
-### Build options
+### Building a single program
 
-| Option | Default | Effect |
-|---|---|---|
-| `BUILD_SERVER` | `ON` | Builds `engine_server` and `r-type_server` |
-| `BUILD_CLIENT` | `ON` | Builds `engine_client` and `r-type_client` |
-| `BUILD_TESTS` | `ON` | Builds the unit tests |
+By default, everything is built. To build only one program and what it
+needs, name its target:
 
-For example, to build only the server:
-
-```bash
-cmake --preset release -DBUILD_CLIENT=OFF
-cmake --build --preset release
-```
+    cmake --build --preset release --target r-type_server
+    cmake --build --preset release --target r-type_client
 
 ## Run
 
