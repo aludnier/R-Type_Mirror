@@ -14,7 +14,7 @@ target_include_directories(physics2d_module PUBLIC
         ${PROJECT_SOURCE_DIR}/game_engine/src
 )
 
-target_link_libraries(physics2d_module PRIVATE game_engine)
+target_link_libraries(physics2d_module PRIVATE engine_core)
 
 target_compile_features(physics2d_module PRIVATE cxx_std_23)
 

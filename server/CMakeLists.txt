@@ -1,9 +1,5 @@
-set(SRC
-        src/main.cpp
-        src/ClientSession.cpp
-        src/GameServer.cpp
-)
+# r-type_server: only the entry point, the server runtime is engine_server
+# (game_engine/src/server).
+add_executable(r-type_server src/main.cpp)
 
-add_executable(r-type_server ${SRC})
-
-target_link_libraries(r-type_server PRIVATE game_engine)
+target_link_libraries(r-type_server PRIVATE engine_server)
