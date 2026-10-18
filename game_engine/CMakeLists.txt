@@ -98,4 +98,13 @@ if (BUILD_TESTS)
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
 
     add_test(NAME game_engine_tests COMMAND game_engine_tests)
+
+    # Separate binary: the server tests must not link engine_client.
+    add_executable(engine_server_tests
+            tests/server_sending_tests.cpp
+    )
+
+    target_link_libraries(engine_server_tests PRIVATE engine_server Catch2::Catch2WithMain)
+
+    add_test(NAME engine_server_tests COMMAND engine_server_tests)
 endif ()

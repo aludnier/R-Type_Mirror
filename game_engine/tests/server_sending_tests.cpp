@@ -1,4 +1,4 @@
-#include <criterion/criterion.h>
+#include <catch2/catch_test_macros.hpp>
 
 #include <atomic>
 #include <chrono>
@@ -8,13 +8,13 @@
 #include <thread>
 #include <vector>
 
-#include "GameServer.h"
 #include "network/ClientPackets.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
 #include "network/Packet.h"
 #include "network/Protocol.h"
 #include "network/ServerPackets.h"
+#include "server/GameServer.h"
 
 using namespace RType;
 using namespace RType::Network;
@@ -108,8 +108,8 @@ namespace {
             send(AskConnectPacket {name});
             auto accept = expect<AcceptConnectPacket>();
 
-            cr_assert(accept.has_value(), "no ACCEPT_CONNECT for %s",
-                name.c_str());
+            INFO("no ACCEPT_CONNECT for " << name);
+            REQUIRE(accept.has_value());
             return accept->clientId;
         }
 
@@ -131,13 +131,14 @@ namespace {
         const auto &sequences = client.sequences();
 
         for (std::size_t i = 0; i < sequences.size(); ++i) {
-            cr_assert_eq(sequences[i], i, "packet %zu has sequence %u", i,
-                static_cast<unsigned>(sequences[i]));
+            INFO("packet " << i << " has sequence " << sequences[i]);
+            REQUIRE(sequences[i] == i);
         }
     }
 } // namespace
 
-Test(ServerSending, announcesANewPlayerToTheOthersOnly)
+TEST_CASE("Server announces a new player to the others only",
+    "[server][sending]")
 {
     RunningServer server;
     TestClient alice(server.port());
@@ -148,21 +149,22 @@ Test(ServerSending, announcesANewPlayerToTheOthersOnly)
     // Bob is told about Alice, who was already there.
     auto aliceForBob = bob.expect<PlayerConnectedPacket>();
 
-    cr_assert(aliceForBob.has_value());
-    cr_assert_eq(aliceForBob->clientId, aliceId);
-    cr_assert_eq(aliceForBob->playerName, "alice");
+    REQUIRE(aliceForBob.has_value());
+    REQUIRE(aliceForBob->clientId == aliceId);
+    REQUIRE(aliceForBob->playerName == "alice");
 
     // Alice is told about Bob, Bob is not told about himself.
     auto bobForAlice = alice.expect<PlayerConnectedPacket>();
 
-    cr_assert(bobForAlice.has_value());
-    cr_assert_eq(bobForAlice->clientId, bobId);
-    cr_assert_eq(bobForAlice->playerName, "bob");
-    cr_assert(alice.receivesNothing());
-    cr_assert(bob.receivesNothing());
+    REQUIRE(bobForAlice.has_value());
+    REQUIRE(bobForAlice->clientId == bobId);
+    REQUIRE(bobForAlice->playerName == "bob");
+    REQUIRE(alice.receivesNothing());
+    REQUIRE(bob.receivesNothing());
 }
 
-Test(ServerSending, announcesADepartureToTheRemainingClients)
+TEST_CASE("Server announces a departure to the remaining clients",
+    "[server][sending]")
 {
     RunningServer server;
     TestClient alice(server.port());
@@ -174,26 +176,27 @@ Test(ServerSending, announcesADepartureToTheRemainingClients)
     carol.connect("carol");
     // Drain the PLAYER_CONNECTEDs: 2 for Alice, 2 for Bob, 2 for Carol.
     for (auto *client : {&alice, &bob, &carol}) {
-        cr_assert(client->expect<PlayerConnectedPacket>().has_value());
-        cr_assert(client->expect<PlayerConnectedPacket>().has_value());
+        REQUIRE(client->expect<PlayerConnectedPacket>().has_value());
+        REQUIRE(client->expect<PlayerConnectedPacket>().has_value());
     }
 
     alice.send(AskDisconnectPacket {});
     for (auto *client : {&bob, &carol}) {
         auto left = client->expect<PlayerDisconnectedPacket>();
 
-        cr_assert(left.has_value());
-        cr_assert_eq(left->clientId, aliceId);
-        cr_assert_eq(left->reason, DisconnectReason::Left);
+        REQUIRE(left.has_value());
+        REQUIRE(left->clientId == aliceId);
+        REQUIRE(left->reason == DisconnectReason::Left);
     }
-    cr_assert(alice.receivesNothing());
+    REQUIRE(alice.receivesNothing());
     // A packet sent to everyone still uses each client's own sequence.
     for (auto *client : {&alice, &bob, &carol}) {
         assertSequencesFollow(*client);
     }
 }
 
-Test(ServerSending, disconnectsEveryClientOnShutdown)
+TEST_CASE("Server disconnects every client on shutdown",
+    "[server][sending]")
 {
     RunningServer server;
     TestClient alice(server.port());
@@ -201,15 +204,15 @@ Test(ServerSending, disconnectsEveryClientOnShutdown)
 
     alice.connect("alice");
     bob.connect("bob");
-    cr_assert(alice.expect<PlayerConnectedPacket>().has_value());
-    cr_assert(bob.expect<PlayerConnectedPacket>().has_value());
+    REQUIRE(alice.expect<PlayerConnectedPacket>().has_value());
+    REQUIRE(bob.expect<PlayerConnectedPacket>().has_value());
 
     server.stop();
     for (auto *client : {&alice, &bob}) {
         auto shutdown = client->expect<ForceDisconnectPacket>();
 
-        cr_assert(shutdown.has_value());
-        cr_assert_eq(shutdown->reason, DisconnectReason::ServerShutdown);
+        REQUIRE(shutdown.has_value());
+        REQUIRE(shutdown->reason == DisconnectReason::ServerShutdown);
         assertSequencesFollow(*client);
     }
 }

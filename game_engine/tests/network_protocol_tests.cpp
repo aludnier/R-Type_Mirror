@@ -514,34 +514,36 @@ namespace {
         const std::vector<ComponentUpdatePacket> &packets, Tick tick)
     {
         for (const auto &packet : packets) {
-            cr_assert_eq(packet.tick, tick);
-            cr_assert_not(packet.entities.empty());
-            cr_assert_leq(makePacket(packet).serialize().size(),
-                MAX_PACKET_SIZE);
+            REQUIRE(packet.tick == tick);
+            REQUIRE_FALSE(packet.entities.empty());
+            REQUIRE(makePacket(packet).serialize().size() <= MAX_PACKET_SIZE);
             for (const auto &entity : packet.entities) {
-                cr_assert_not(entity.components.empty());
+                REQUIRE_FALSE(entity.components.empty());
             }
         }
     }
 } // namespace
 
-Test(SplitComponentUpdate, nothingToSendGivesNoPacket)
+TEST_CASE("splitComponentUpdate gives no packet when nothing changed",
+    "[network][component-update]")
 {
-    cr_assert(splitComponentUpdate(1, {}).empty());
+    REQUIRE(splitComponentUpdate(1, {}).empty());
 }
 
-Test(SplitComponentUpdate, smallUpdateStaysInOnePacket)
+TEST_CASE("splitComponentUpdate keeps a small update in one packet",
+    "[network][component-update]")
 {
     std::vector<EntityComponents> entities = {
         positionUpdate(1), positionUpdate(2), positionUpdate(3)};
     auto packets = splitComponentUpdate(42, entities);
 
-    cr_assert_eq(packets.size(), 1u);
-    cr_assert(packets[0] ==
+    REQUIRE(packets.size() == 1u);
+    REQUIRE(packets[0] ==
         (ComponentUpdatePacket {.tick = 42, .entities = entities}));
 }
 
-Test(SplitComponentUpdate, splitsManyEntitiesKeepingTheirOrder)
+TEST_CASE("splitComponentUpdate splits many entities keeping their order",
+    "[network][component-update]")
 {
     std::vector<EntityComponents> entities;
 
@@ -552,13 +554,14 @@ Test(SplitComponentUpdate, splitsManyEntitiesKeepingTheirOrder)
 
     // 17 bytes per entity: 69 fit in the 1180 bytes left after tick and
     // entity_count.
-    cr_assert_eq(packets.size(), 3u);
-    cr_assert_eq(packets[0].entities.size(), 69u);
+    REQUIRE(packets.size() == 3u);
+    REQUIRE(packets[0].entities.size() == 69u);
     assertEveryPacketFits(packets, 7);
-    cr_assert(joinUpdates(packets) == entities);
+    REQUIRE(joinUpdates(packets) == entities);
 }
 
-Test(SplitComponentUpdate, continuesALargeEntityInTheNextPacket)
+TEST_CASE("splitComponentUpdate continues a large entity in the next packet",
+    "[network][component-update]")
 {
     EntityComponents boss {.networkId = 9, .components = {}};
 
@@ -570,12 +573,13 @@ Test(SplitComponentUpdate, continuesALargeEntityInTheNextPacket)
         positionUpdate(1), boss, positionUpdate(2)};
     auto packets = splitComponentUpdate(3, entities);
 
-    cr_assert_gt(packets.size(), 1u);
+    REQUIRE(packets.size() > 1u);
     assertEveryPacketFits(packets, 3);
-    cr_assert(joinUpdates(packets) == entities);
+    REQUIRE(joinUpdates(packets) == entities);
 }
 
-Test(SplitComponentUpdate, movesAnEntityThatDoesNotStartToFit)
+TEST_CASE("splitComponentUpdate moves an entity that does not start to fit",
+    "[network][component-update]")
 {
     std::vector<EntityComponents> entities;
 
@@ -588,17 +592,18 @@ Test(SplitComponentUpdate, movesAnEntityThatDoesNotStartToFit)
         .components = {{.typeId = 1, .data = Bytes(1, 0)}}});
     auto packets = splitComponentUpdate(0, entities);
 
-    cr_assert_eq(packets.size(), 2u);
-    cr_assert_eq(packets[0].entities.size(), 69u);
-    cr_assert_eq(packets[1].entities.size(), 1u);
+    REQUIRE(packets.size() == 2u);
+    REQUIRE(packets[0].entities.size() == 69u);
+    REQUIRE(packets[1].entities.size() == 1u);
     assertEveryPacketFits(packets, 0);
-    cr_assert(joinUpdates(packets) == entities);
+    REQUIRE(joinUpdates(packets) == entities);
 }
 
-Test(SplitComponentUpdate, throwsOnAComponentLargerThanAPacket)
+TEST_CASE("splitComponentUpdate throws on a component larger than a packet",
+    "[network][component-update]")
 {
     std::vector<EntityComponents> entities = {{.networkId = 1,
         .components = {{.typeId = 1, .data = Bytes(MAX_PAYLOAD_SIZE, 0)}}}};
 
-    cr_assert_throw(splitComponentUpdate(0, entities), std::length_error);
+    REQUIRE_THROWS_AS(splitComponentUpdate(0, entities), std::length_error);
 }
