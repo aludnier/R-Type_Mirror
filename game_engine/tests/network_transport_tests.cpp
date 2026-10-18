@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "network/ClientPackets.h"
+#include "network/ServerPackets.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
 #include "network/Packet.h"
@@ -318,4 +319,48 @@ TEST_CASE("NetworkThread sends before stop are delivered",
     }
     REQUIRE(waitFor([&] { return (received = receiver.poll()).has_value(); }));
     REQUIRE(readPayload<HeartbeatPacket>(received->packet)->clientTime == 7u);
+}
+
+TEST_CASE("Client and Server Packets round-trip across NetworkThread",
+    "[network][transport][packets]")
+{
+    NetworkThread server(0, 8);
+    NetworkThread client(0, 8);
+    server.start();
+    client.start();
+
+    // 1. Client sends AskConnectPacket to server
+    auto askPacket = makePacket(AskConnectPacket{"TestPlayer"});
+    client.sendTo(loopback(server.localPort()), askPacket.serialize());
+
+    std::optional<NetworkThread::ReceivedPacket> receivedOnServer;
+    REQUIRE(waitFor([&] { return (receivedOnServer = server.poll()).has_value(); }));
+    REQUIRE(receivedOnServer->packet.header.type == MessageType::AskConnect);
+    auto askDecoded = readPayload<AskConnectPacket>(receivedOnServer->packet);
+    REQUIRE(askDecoded.has_value());
+    REQUIRE(askDecoded->playerName == "TestPlayer");
+
+    // 2. Server replies with AcceptConnectPacket
+    auto acceptPacket = makePacket(AcceptConnectPacket{1, 42, 60});
+    server.sendTo(receivedOnServer->from, acceptPacket.serialize());
+
+    std::optional<NetworkThread::ReceivedPacket> receivedOnClient;
+    REQUIRE(waitFor([&] { return (receivedOnClient = client.poll()).has_value(); }));
+    REQUIRE(receivedOnClient->packet.header.type == MessageType::AcceptConnect);
+    auto acceptDecoded = readPayload<AcceptConnectPacket>(receivedOnClient->packet);
+    REQUIRE(acceptDecoded.has_value());
+    REQUIRE(acceptDecoded->clientId == 1);
+    REQUIRE(acceptDecoded->linkedEntity == 42);
+    REQUIRE(acceptDecoded->tickRate == 60);
+
+    // 3. Client sends ControllablePacket
+    auto ctrlPacket = makePacket(ControllablePacket{10, 0x05}); // Up + Shoot
+    client.sendTo(loopback(server.localPort()), ctrlPacket.serialize());
+
+    REQUIRE(waitFor([&] { return (receivedOnServer = server.poll()).has_value(); }));
+    REQUIRE(receivedOnServer->packet.header.type == MessageType::Controllable);
+    auto ctrlDecoded = readPayload<ControllablePacket>(receivedOnServer->packet);
+    REQUIRE(ctrlDecoded.has_value());
+    REQUIRE(ctrlDecoded->inputSequence == 10);
+    REQUIRE(ctrlDecoded->actions == 0x05);
 }
