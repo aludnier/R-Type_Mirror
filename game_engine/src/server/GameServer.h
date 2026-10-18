@@ -14,12 +14,14 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <vector>
 
 #include "ClientSession.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
 #include "network/Packet.h"
 #include "network/Protocol.h"
+#include "network/ServerPackets.h"
 
 namespace RType {
     struct ServerConfig {
@@ -56,6 +58,9 @@ namespace RType {
          *        thread.
          */
         void run(const std::atomic<bool> &stopRequested);
+
+        /** @return The UDP port the server listens on. */
+        [[nodiscard]] std::uint16_t localPort() const;
 
     private:
         using ReceivedPacket = Network::NetworkThread::ReceivedPacket;
@@ -108,9 +113,60 @@ namespace RType {
         {
             auto packet = Network::makePacket(payload);
 
-            session.stampHeader(packet.header);
-            _network.sendTo(session.endpoint(), packet.serialize());
+            sendPacket(session, packet);
         }
+
+        /**
+         * @brief Sends @p payload to the client @p id. Does nothing if it has
+         *        no session.
+         */
+        template<Network::PacketPayload P>
+        void sendTo(Network::ClientId id, const P &payload)
+        {
+            auto it = _sessions.find(id);
+
+            if (it != _sessions.end()) {
+                send(it->second, payload);
+            }
+        }
+
+        /**
+         * @brief Sends @p payload to every connected client. It is encoded
+         *        once, each client still gets its own sequence and acks.
+         */
+        template<Network::PacketPayload P>
+        void sendToAll(const P &payload)
+        {
+            auto packet = Network::makePacket(payload);
+
+            broadcastPacket(packet, std::nullopt);
+        }
+
+        /**
+         * @brief Same as sendToAll(), except to the client @p excluded
+         *        (e.g. the one whose arrival is being announced).
+         */
+        template<Network::PacketPayload P>
+        void sendToAllExcept(Network::ClientId excluded, const P &payload)
+        {
+            auto packet = Network::makePacket(payload);
+
+            broadcastPacket(packet, excluded);
+        }
+
+        /**
+         * @brief Sends the COMPONENT_UPDATE of @p entities to every client,
+         *        split into as many packets as needed.
+         */
+        void sendComponentUpdate(
+            const std::vector<Network::EntityComponents> &entities);
+
+        /** @brief Stamps the header of @p packet for @p session, sends it. */
+        void sendPacket(ClientSession &session, Network::Packet &packet);
+
+        /** @brief Sends @p packet to every client but @p excluded. */
+        void broadcastPacket(Network::Packet &packet,
+            std::optional<Network::ClientId> excluded);
 
         /**
          * @brief Sends to an endpoint that has no session (e.g. a refused

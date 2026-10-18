@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <random>
@@ -473,4 +474,136 @@ TEST_CASE("Robustness random datagrams never crash the decoder",
             decodeAsEveryPayload(*packet);
         }
     }
+}
+
+namespace {
+    EntityComponents positionUpdate(NetworkId id)
+    {
+        return {.networkId = id,
+            .components = {{.typeId = 1, .data = Bytes(8, 0)}}};
+    }
+
+    /**
+     * @brief Puts the split entities back together: an entity continued in
+     *        the next packet is merged with its first part.
+     */
+    std::vector<EntityComponents> joinUpdates(
+        const std::vector<ComponentUpdatePacket> &packets)
+    {
+        std::vector<EntityComponents> entities;
+
+        for (std::size_t i = 0; i < packets.size(); ++i) {
+            for (std::size_t j = 0; j < packets[i].entities.size(); ++j) {
+                const auto &entity = packets[i].entities[j];
+
+                if (i > 0 && j == 0 &&
+                    entities.back().networkId == entity.networkId) {
+                    auto &components = entities.back().components;
+
+                    components.insert(components.end(),
+                        entity.components.begin(), entity.components.end());
+                } else {
+                    entities.push_back(entity);
+                }
+            }
+        }
+        return entities;
+    }
+
+    void assertEveryPacketFits(
+        const std::vector<ComponentUpdatePacket> &packets, Tick tick)
+    {
+        for (const auto &packet : packets) {
+            REQUIRE(packet.tick == tick);
+            REQUIRE_FALSE(packet.entities.empty());
+            REQUIRE(makePacket(packet).serialize().size() <= MAX_PACKET_SIZE);
+            for (const auto &entity : packet.entities) {
+                REQUIRE_FALSE(entity.components.empty());
+            }
+        }
+    }
+} // namespace
+
+TEST_CASE("splitComponentUpdate gives no packet when nothing changed",
+    "[network][component-update]")
+{
+    REQUIRE(splitComponentUpdate(1, {}).empty());
+}
+
+TEST_CASE("splitComponentUpdate keeps a small update in one packet",
+    "[network][component-update]")
+{
+    std::vector<EntityComponents> entities = {
+        positionUpdate(1), positionUpdate(2), positionUpdate(3)};
+    auto packets = splitComponentUpdate(42, entities);
+
+    REQUIRE(packets.size() == 1u);
+    REQUIRE(packets[0] ==
+        (ComponentUpdatePacket {.tick = 42, .entities = entities}));
+}
+
+TEST_CASE("splitComponentUpdate splits many entities keeping their order",
+    "[network][component-update]")
+{
+    std::vector<EntityComponents> entities;
+
+    for (NetworkId id = 1; id <= 200; ++id) {
+        entities.push_back(positionUpdate(id));
+    }
+    auto packets = splitComponentUpdate(7, entities);
+
+    // 17 bytes per entity: 69 fit in the 1180 bytes left after tick and
+    // entity_count.
+    REQUIRE(packets.size() == 3u);
+    REQUIRE(packets[0].entities.size() == 69u);
+    assertEveryPacketFits(packets, 7);
+    REQUIRE(joinUpdates(packets) == entities);
+}
+
+TEST_CASE("splitComponentUpdate continues a large entity in the next packet",
+    "[network][component-update]")
+{
+    EntityComponents boss {.networkId = 9, .components = {}};
+
+    for (ComponentTypeId type = 0; type < 300; ++type) {
+        boss.components.push_back(
+            {.typeId = type, .data = Bytes(8, static_cast<std::uint8_t>(type))});
+    }
+    std::vector<EntityComponents> entities = {
+        positionUpdate(1), boss, positionUpdate(2)};
+    auto packets = splitComponentUpdate(3, entities);
+
+    REQUIRE(packets.size() > 1u);
+    assertEveryPacketFits(packets, 3);
+    REQUIRE(joinUpdates(packets) == entities);
+}
+
+TEST_CASE("splitComponentUpdate moves an entity that does not start to fit",
+    "[network][component-update]")
+{
+    std::vector<EntityComponents> entities;
+
+    // 69 positions leave 7 bytes: room for an entity header, not for a
+    // 1-byte component (5 bytes).
+    for (NetworkId id = 1; id <= 69; ++id) {
+        entities.push_back(positionUpdate(id));
+    }
+    entities.push_back({.networkId = 70,
+        .components = {{.typeId = 1, .data = Bytes(1, 0)}}});
+    auto packets = splitComponentUpdate(0, entities);
+
+    REQUIRE(packets.size() == 2u);
+    REQUIRE(packets[0].entities.size() == 69u);
+    REQUIRE(packets[1].entities.size() == 1u);
+    assertEveryPacketFits(packets, 0);
+    REQUIRE(joinUpdates(packets) == entities);
+}
+
+TEST_CASE("splitComponentUpdate throws on a component larger than a packet",
+    "[network][component-update]")
+{
+    std::vector<EntityComponents> entities = {{.networkId = 1,
+        .components = {{.typeId = 1, .data = Bytes(MAX_PAYLOAD_SIZE, 0)}}}};
+
+    REQUIRE_THROWS_AS(splitComponentUpdate(0, entities), std::length_error);
 }
