@@ -4,6 +4,6 @@ set(SRC
         src/game.cpp
 )
 
-add_executable(game ${SRC})
+add_executable(r-type_client ${SRC})
 
-target_link_libraries(game PRIVATE game_engine)
+target_link_libraries(r-type_client PRIVATE engine_client)

@@ -8,14 +8,6 @@
 #include "ClientPackets.h"
 
 namespace RType::Network {
-    namespace {
-        constexpr std::uint8_t DIRECTION_UP = 1 << 0;
-        constexpr std::uint8_t DIRECTION_DOWN = 1 << 1;
-        constexpr std::uint8_t DIRECTION_LEFT = 1 << 2;
-        constexpr std::uint8_t DIRECTION_RIGHT = 1 << 3;
-        constexpr std::uint8_t DIRECTION_MASK = 0x0F;
-    } // namespace
-
     void AskConnectPacket::serialize(ByteWriter &writer) const
     {
         writer.writeString(playerName);
@@ -28,12 +20,7 @@ namespace RType::Network {
 
     void ControllablePacket::serialize(ByteWriter &writer) const
     {
-        auto directions = static_cast<std::uint8_t>((up ? DIRECTION_UP : 0) |
-            (down ? DIRECTION_DOWN : 0) | (left ? DIRECTION_LEFT : 0) |
-            (right ? DIRECTION_RIGHT : 0));
-
         writer.write(inputSequence);
-        writer.write(directions);
         writer.write(actions);
     }
 
@@ -42,16 +29,7 @@ namespace RType::Network {
         ControllablePacket packet;
 
         packet.inputSequence = reader.read<std::uint32_t>();
-        auto directions = reader.read<std::uint8_t>();
-
-        if ((directions & ~DIRECTION_MASK) != 0) {
-            reader.fail();
-        }
-        packet.up = (directions & DIRECTION_UP) != 0;
-        packet.down = (directions & DIRECTION_DOWN) != 0;
-        packet.left = (directions & DIRECTION_LEFT) != 0;
-        packet.right = (directions & DIRECTION_RIGHT) != 0;
-        packet.actions = reader.read<std::uint16_t>();
+        packet.actions = reader.read<std::uint32_t>();
         return packet;
     }
 

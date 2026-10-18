@@ -29,7 +29,7 @@ end
 
 == In game, every tick (§8.2) ==
 
-client -> server : CONTROLLABLE(input_sequence, directions, actions)
+client -> server : CONTROLLABLE(input_sequence, actions)
 server -> server : run systems
 server -> client : COMPONENT_UPDATE(tick, entities)
 server -> others : COMPONENT_UPDATE(tick, entities)

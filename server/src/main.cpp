@@ -13,7 +13,7 @@
 #include <optional>
 #include <string_view>
 
-#include "GameServer.h"
+#include "server/GameServer.h"
 
 namespace {
     // Written by the signal handler: only lock-free atomics are safe there.

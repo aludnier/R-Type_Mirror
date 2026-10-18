@@ -1,4 +1,4 @@
-#include <criterion/criterion.h>
+#include <catch2/catch_test_macros.hpp>
 
 #include <cstddef>
 #include <cstdint>
@@ -67,7 +67,8 @@ namespace {
     }
 } // namespace
 
-Test(ByteWriter, writesIntegersInLittleEndian)
+TEST_CASE("ByteWriter writes integers in little endian",
+    "[network][byte-writer]")
 {
     ByteWriter writer;
 
@@ -77,42 +78,45 @@ Test(ByteWriter, writesIntegersInLittleEndian)
     writer.write(std::int16_t {-2});
     writer.write(MessageType::Heartbeat);
 
-    cr_assert(writer.data() ==
+    REQUIRE(writer.data() ==
         (Bytes {0x01, 0x03, 0x02, 0x07, 0x06, 0x05, 0x04, 0xFE, 0xFF, 0x04}));
 }
 
-Test(ByteWriter, writesLengthPrefixedStringsAndBytes)
+TEST_CASE("ByteWriter writes length prefixed strings and bytes",
+    "[network][byte-writer]")
 {
     ByteWriter writer;
 
     writer.writeString("abc");
     writer.writeBytes(Bytes {9, 8});
 
-    cr_assert(writer.data() == (Bytes {3, 'a', 'b', 'c', 2, 0, 9, 8}));
+    REQUIRE(writer.data() == (Bytes {3, 'a', 'b', 'c', 2, 0, 9, 8}));
 }
 
-Test(ByteWriter, rejectsStringsLongerThan255Bytes)
+TEST_CASE("ByteWriter rejects strings longer than 255 bytes",
+    "[network][byte-writer]")
 {
     ByteWriter writer;
 
     writer.writeString(std::string(255, 'x'));
-    cr_assert_eq(writer.data().size(), 256u);
-    cr_assert_throw(
+    REQUIRE(writer.data().size() == 256u);
+    REQUIRE_THROWS_AS(
         writer.writeString(std::string(256, 'x')), std::length_error);
 }
 
-Test(ByteWriter, releaseLeavesTheWriterEmpty)
+TEST_CASE("ByteWriter release leaves the writer empty",
+    "[network][byte-writer]")
 {
     ByteWriter writer;
 
     writer.write(std::uint32_t {1});
     auto bytes = writer.release();
 
-    cr_assert_eq(bytes.size(), 4u);
-    cr_assert(writer.data().empty());
+    REQUIRE(bytes.size() == 4u);
+    REQUIRE(writer.data().empty());
 }
 
-Test(ByteReader, readsBackWhatWasWritten)
+TEST_CASE("ByteReader reads back what was written", "[network][byte-reader]")
 {
     ByteWriter writer;
 
@@ -124,61 +128,65 @@ Test(ByteReader, readsBackWhatWasWritten)
     writer.writeBytes(Bytes {1, 2, 3});
     ByteReader reader(writer.data());
 
-    cr_assert_eq(reader.read<std::uint8_t>(), 200);
-    cr_assert_eq(reader.read<std::uint16_t>(), 60000);
-    cr_assert_eq(reader.read<std::int32_t>(), -123456);
+    REQUIRE(reader.read<std::uint8_t>() == 200);
+    REQUIRE(reader.read<std::uint16_t>() == 60000);
+    REQUIRE(reader.read<std::int32_t>() == -123456);
     float value = reader.readFloat();
 
-    cr_assert_float_eq(value, 3.5F, 0.0001F);
-    cr_assert(reader.readString() == "R-Type");
-    cr_assert(reader.readBytes() == (Bytes {1, 2, 3}));
-    cr_assert(reader.ok());
-    cr_assert(reader.atEnd());
+    REQUIRE(value == 3.5F);
+    REQUIRE(reader.readString() == "R-Type");
+    REQUIRE(reader.readBytes() == (Bytes {1, 2, 3}));
+    REQUIRE(reader.ok());
+    REQUIRE(reader.atEnd());
 }
 
-Test(ByteReader, failsWithoutThrowingWhenOutOfBounds)
+TEST_CASE("ByteReader fails without throwing when out of bounds",
+    "[network][byte-reader]")
 {
     Bytes bytes {1, 2, 3};
     ByteReader reader(bytes);
 
-    cr_assert_eq(reader.read<std::uint32_t>(), 0u);
-    cr_assert_not(reader.ok());
-    cr_assert_eq(
-        reader.read<std::uint8_t>(), 0, "the failed state must stay once set");
+    REQUIRE(reader.read<std::uint32_t>() == 0u);
+    REQUIRE_FALSE(reader.ok());
+    INFO("the failed state must stay once set");
+    REQUIRE(reader.read<std::uint8_t>() == 0);
 }
 
-Test(ByteReader, failsOnTruncatedStringOrBytes)
+TEST_CASE("ByteReader fails on truncated string or bytes",
+    "[network][byte-reader]")
 {
     Bytes truncatedString {5, 'a', 'b'};
     Bytes truncatedBytes {4, 0, 1};
     ByteReader stringReader(truncatedString);
     ByteReader bytesReader(truncatedBytes);
 
-    cr_assert(stringReader.readString().empty());
-    cr_assert_not(stringReader.ok());
-    cr_assert(bytesReader.readBytes().empty());
-    cr_assert_not(bytesReader.ok());
+    REQUIRE(stringReader.readString().empty());
+    REQUIRE_FALSE(stringReader.ok());
+    REQUIRE(bytesReader.readBytes().empty());
+    REQUIRE_FALSE(bytesReader.ok());
 }
 
-Test(Protocol, comparesSequencesAcrossWrapAround)
+TEST_CASE("Protocol compares sequences across wrap around",
+    "[network][protocol]")
 {
-    cr_assert(isSequenceMoreRecent(2, 1));
-    cr_assert_not(isSequenceMoreRecent(1, 2));
-    cr_assert_not(isSequenceMoreRecent(5, 5));
-    cr_assert(isSequenceMoreRecent(0, 65535));
-    cr_assert_not(isSequenceMoreRecent(65535, 0));
-    cr_assert(isSequenceMoreRecent(7000, 40000));
-    cr_assert_not(isSequenceMoreRecent(40000, 7000));
+    REQUIRE(isSequenceMoreRecent(2, 1));
+    REQUIRE_FALSE(isSequenceMoreRecent(1, 2));
+    REQUIRE_FALSE(isSequenceMoreRecent(5, 5));
+    REQUIRE(isSequenceMoreRecent(0, 65535));
+    REQUIRE_FALSE(isSequenceMoreRecent(65535, 0));
+    REQUIRE(isSequenceMoreRecent(7000, 40000));
+    REQUIRE_FALSE(isSequenceMoreRecent(40000, 7000));
 }
 
-Test(Protocol, classifiesGameMessageTypes)
+TEST_CASE("Protocol classifies game message types", "[network][protocol]")
 {
-    cr_assert_not(isGameMessageType(MessageType::HeartbeatReply));
-    cr_assert(isGameMessageType(static_cast<MessageType>(0x80)));
-    cr_assert(isGameMessageType(static_cast<MessageType>(0xFF)));
+    REQUIRE_FALSE(isGameMessageType(MessageType::HeartbeatReply));
+    REQUIRE(isGameMessageType(static_cast<MessageType>(0x80)));
+    REQUIRE(isGameMessageType(static_cast<MessageType>(0xFF)));
 }
 
-Test(PacketHeader, roundTripsInFifteenBytes)
+TEST_CASE("PacketHeader round trips in fifteen bytes",
+    "[network][packet-header]")
 {
     PacketHeader header;
     ByteWriter writer;
@@ -193,20 +201,20 @@ Test(PacketHeader, roundTripsInFifteenBytes)
     ByteReader reader(writer.data());
     auto decoded = PacketHeader::deserialize(reader);
 
-    cr_assert_eq(writer.data().size(), HEADER_SIZE);
-    cr_assert_eq(writer.data()[0], 'R');
-    cr_assert_eq(writer.data()[1], 'T');
-    cr_assert_eq(decoded.magic, PROTOCOL_MAGIC);
-    cr_assert_eq(decoded.version, PROTOCOL_VERSION);
-    cr_assert(decoded.type == MessageType::EntitySpawn);
-    cr_assert(decoded.isReliable());
-    cr_assert_eq(decoded.sequence, 513);
-    cr_assert_eq(decoded.ack, 512);
-    cr_assert_eq(decoded.ackBits, 0xDEADBEEF);
-    cr_assert_eq(decoded.payloadSize, 42);
+    REQUIRE(writer.data().size() == HEADER_SIZE);
+    REQUIRE(writer.data()[0] == 'R');
+    REQUIRE(writer.data()[1] == 'T');
+    REQUIRE(decoded.magic == PROTOCOL_MAGIC);
+    REQUIRE(decoded.version == PROTOCOL_VERSION);
+    REQUIRE(decoded.type == MessageType::EntitySpawn);
+    REQUIRE(decoded.isReliable());
+    REQUIRE(decoded.sequence == 513);
+    REQUIRE(decoded.ack == 512);
+    REQUIRE(decoded.ackBits == 0xDEADBEEF);
+    REQUIRE(decoded.payloadSize == 42);
 }
 
-Test(Packet, matchesTheSpecificationExample)
+TEST_CASE("Packet matches the specification example", "[network][packet]")
 {
     auto packet = makePacket(HeartbeatPacket {.clientTime = 1000});
 
@@ -215,7 +223,7 @@ Test(Packet, matchesTheSpecificationExample)
     packet.header.ackBits = 0b11;
 
     // docs/protocol.md, appendix A
-    cr_assert(packet.serialize() ==
+    REQUIRE(packet.serialize() ==
         (Bytes {0x52,
             0x54,
             0x01,
@@ -237,19 +245,19 @@ Test(Packet, matchesTheSpecificationExample)
             0x00}));
 }
 
-Test(Packet, setsPayloadSizeAndReliableFlag)
+TEST_CASE("Packet sets payload size and reliable flag", "[network][packet]")
 {
     auto despawn = Packet::deserialize(
         makePacket(EntityDespawnPacket {.networkId = 1}).serialize());
     auto controllable = makePacket(ControllablePacket {});
 
-    cr_assert(despawn.has_value());
-    cr_assert_eq(despawn->header.payloadSize, 4);
-    cr_assert(despawn->header.isReliable());
-    cr_assert_not(controllable.header.isReliable());
+    REQUIRE(despawn.has_value());
+    REQUIRE(despawn->header.payloadSize == 4);
+    REQUIRE(despawn->header.isReliable());
+    REQUIRE_FALSE(controllable.header.isReliable());
 }
 
-Test(Packet, rejectsDatagramsWithInvalidFraming)
+TEST_CASE("Packet rejects datagrams with invalid framing", "[network][packet]")
 {
     auto valid = makePacket(HeartbeatPacket {.clientTime = 1}).serialize();
     auto badMagic = valid;
@@ -260,27 +268,28 @@ Test(Packet, rejectsDatagramsWithInvalidFraming)
     trailingByte.push_back(0);
     missingByte.pop_back();
 
-    cr_assert(Packet::deserialize(valid).has_value());
-    cr_assert_not(Packet::deserialize(Bytes(HEADER_SIZE - 1, 0)).has_value());
-    cr_assert_not(
+    REQUIRE(Packet::deserialize(valid).has_value());
+    REQUIRE_FALSE(Packet::deserialize(Bytes(HEADER_SIZE - 1, 0)).has_value());
+    REQUIRE_FALSE(
         Packet::deserialize(Bytes(MAX_PACKET_SIZE + 1, 0)).has_value());
-    cr_assert_not(Packet::deserialize(badMagic).has_value());
-    cr_assert_not(Packet::deserialize(trailingByte).has_value());
-    cr_assert_not(Packet::deserialize(missingByte).has_value());
+    REQUIRE_FALSE(Packet::deserialize(badMagic).has_value());
+    REQUIRE_FALSE(Packet::deserialize(trailingByte).has_value());
+    REQUIRE_FALSE(Packet::deserialize(missingByte).has_value());
 }
 
-Test(Packet, keepsPacketsWithAnotherVersion)
+TEST_CASE("Packet keeps packets with another version", "[network][packet]")
 {
     auto datagram = makePacket(AskConnectPacket {}).serialize();
 
     datagram[2] = PROTOCOL_VERSION + 1;
     auto packet = Packet::deserialize(datagram);
 
-    cr_assert(packet.has_value(), "the receiver decides what to do with it");
-    cr_assert_eq(packet->header.version, PROTOCOL_VERSION + 1);
+    INFO("the receiver decides what to do with it");
+    REQUIRE(packet.has_value());
+    REQUIRE(packet->header.version == PROTOCOL_VERSION + 1);
 }
 
-Test(Packet, enforcesTheMaximumPayloadSize)
+TEST_CASE("Packet enforces the maximum payload size", "[network][packet]")
 {
     Packet largest;
     Packet tooLarge;
@@ -289,25 +298,27 @@ Test(Packet, enforcesTheMaximumPayloadSize)
     tooLarge.payload.resize(MAX_PAYLOAD_SIZE + 1);
     auto datagram = largest.serialize();
 
-    cr_assert_eq(datagram.size(), MAX_PACKET_SIZE);
-    cr_assert(Packet::deserialize(datagram).has_value());
-    cr_assert_throw((void) tooLarge.serialize(), std::length_error);
+    REQUIRE(datagram.size() == MAX_PACKET_SIZE);
+    REQUIRE(Packet::deserialize(datagram).has_value());
+    REQUIRE_THROWS_AS((void) tooLarge.serialize(), std::length_error);
 }
 
-Test(ClientPackets, roundTripThroughADatagram)
+TEST_CASE("ClientPackets round trip through a datagram",
+    "[network][client-packets]")
 {
     AskConnectPacket askConnect {.playerName = "player one"};
     ControllablePacket controllable {
-        .inputSequence = 42, .up = true, .right = true, .actions = 0b101};
+        .inputSequence = 42, .actions = 0x80000005};
     HeartbeatPacket heartbeat {.clientTime = 123456};
 
-    cr_assert(roundTrip(askConnect) == askConnect);
-    cr_assert(roundTrip(AskDisconnectPacket {}) == AskDisconnectPacket {});
-    cr_assert(roundTrip(controllable) == controllable);
-    cr_assert(roundTrip(heartbeat) == heartbeat);
+    REQUIRE(roundTrip(askConnect) == askConnect);
+    REQUIRE(roundTrip(AskDisconnectPacket {}) == AskDisconnectPacket {});
+    REQUIRE(roundTrip(controllable) == controllable);
+    REQUIRE(roundTrip(heartbeat) == heartbeat);
 }
 
-Test(ServerPackets, roundTripThroughADatagram)
+TEST_CASE("ServerPackets round trip through a datagram",
+    "[network][server-packets]")
 {
     AcceptConnectPacket accept {
         .clientId = 3, .linkedEntity = 17, .tickRate = 60};
@@ -327,36 +338,40 @@ Test(ServerPackets, roundTripThroughADatagram)
             {.networkId = 10, .components = {}}}};
     HeartbeatReplyPacket reply {.clientTime = 123456, .serverTick = 99};
 
-    cr_assert(roundTrip(accept) == accept);
-    cr_assert(roundTrip(force) == force);
-    cr_assert(roundTrip(connected) == connected);
-    cr_assert(roundTrip(disconnected) == disconnected);
-    cr_assert(roundTrip(spawn) == spawn);
-    cr_assert(roundTrip(despawn) == despawn);
-    cr_assert(roundTrip(update) == update);
-    cr_assert(roundTrip(reply) == reply);
+    REQUIRE(roundTrip(accept) == accept);
+    REQUIRE(roundTrip(force) == force);
+    REQUIRE(roundTrip(connected) == connected);
+    REQUIRE(roundTrip(disconnected) == disconnected);
+    REQUIRE(roundTrip(spawn) == spawn);
+    REQUIRE(roundTrip(despawn) == despawn);
+    REQUIRE(roundTrip(update) == update);
+    REQUIRE(roundTrip(reply) == reply);
 }
 
-Test(Payloads, encodesControllableDirectionsAsBits)
+TEST_CASE("Payloads encodes controllable actions as a u32 bitmask",
+    "[network][payloads]")
 {
-    auto packet = makePacket(ControllablePacket {.up = true, .left = true});
+    auto packet = makePacket(
+        ControllablePacket {.inputSequence = 1, .actions = 0x80000005});
 
-    cr_assert_eq(packet.payload.size(), 7u);
-    cr_assert_eq(packet.payload[4], 0b0101);
+    // input_sequence, then actions in little-endian
+    REQUIRE(packet.payload == (Bytes {1, 0, 0, 0, 0x05, 0, 0, 0x80}));
 }
 
-Test(Payloads, encodesComponentUpdateAsInTheSpecification)
+TEST_CASE("Payloads encodes component update as in the specification",
+    "[network][payloads]")
 {
     ComponentUpdatePacket update {.tick = 1,
         .entities = {
             {.networkId = 2, .components = {{.typeId = 3, .data = {4}}}}}};
 
     // tick, entity_count, network_id, component_count, type_id, data
-    cr_assert(makePacket(update).payload ==
+    REQUIRE(makePacket(update).payload ==
         (Bytes {1, 0, 0, 0, 1, 2, 0, 0, 0, 1, 3, 0, 1, 0, 4}));
 }
 
-Test(Payloads, fitsSixtyEntityPositionsInOneDatagram)
+TEST_CASE("Payloads fits sixty entity positions in one datagram",
+    "[network][payloads]")
 {
     ComponentUpdatePacket update;
 
@@ -366,68 +381,73 @@ Test(Payloads, fitsSixtyEntityPositionsInOneDatagram)
     }
     auto datagram = makePacket(update).serialize();
 
-    cr_assert_leq(datagram.size(), MAX_PACKET_SIZE);
-    cr_assert(roundTrip(update) == update);
+    REQUIRE(datagram.size() <= MAX_PACKET_SIZE);
+    REQUIRE(roundTrip(update) == update);
 }
 
-Test(Payloads, rejectsReservedDirectionBits)
+TEST_CASE("Payloads accepts every controllable action bit",
+    "[network][payloads]")
 {
-    Bytes allDirections {0, 0, 0, 0, 0x0F, 0, 0};
-    Bytes reservedBit {0, 0, 0, 0, 0x10, 0, 0};
+    auto controls = decodeRaw<ControllablePacket>(
+        {0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF});
 
-    cr_assert(decodeRaw<ControllablePacket>(allDirections).has_value());
-    cr_assert_not(decodeRaw<ControllablePacket>(reservedBit).has_value());
+    REQUIRE(controls.has_value());
+    REQUIRE(controls->actions == 0xFFFFFFFFu);
 }
 
-Test(Payloads, rejectsUnknownDisconnectReason)
+TEST_CASE("Payloads rejects unknown disconnect reason", "[network][payloads]")
 {
-    cr_assert(decodeRaw<PlayerDisconnectedPacket>({1, 0, 5}).has_value());
-    cr_assert_not(decodeRaw<PlayerDisconnectedPacket>({1, 0, 6}).has_value());
-    cr_assert_not(decodeRaw<ForceDisconnectPacket>({0xFF, 0}).has_value());
+    REQUIRE(decodeRaw<PlayerDisconnectedPacket>({1, 0, 5}).has_value());
+    REQUIRE_FALSE(decodeRaw<PlayerDisconnectedPacket>({1, 0, 6}).has_value());
+    REQUIRE_FALSE(decodeRaw<ForceDisconnectPacket>({0xFF, 0}).has_value());
 }
 
-Test(Payloads, rejectsTruncatedOrTrailingBytes)
+TEST_CASE("Payloads rejects truncated or trailing bytes", "[network][payloads]")
 {
-    cr_assert(decodeRaw<HeartbeatPacket>({0xE8, 3, 0, 0}).has_value());
-    cr_assert_not(decodeRaw<HeartbeatPacket>({0xE8, 3, 0}).has_value());
-    cr_assert_not(decodeRaw<HeartbeatPacket>({0xE8, 3, 0, 0, 0}).has_value());
+    REQUIRE(decodeRaw<HeartbeatPacket>({0xE8, 3, 0, 0}).has_value());
+    REQUIRE_FALSE(decodeRaw<HeartbeatPacket>({0xE8, 3, 0}).has_value());
+    REQUIRE_FALSE(decodeRaw<HeartbeatPacket>({0xE8, 3, 0, 0, 0}).has_value());
 }
 
-Test(Payloads, rejectsAnotherMessageType)
+TEST_CASE("Payloads rejects another message type", "[network][payloads]")
 {
     auto heartbeat = makePacket(HeartbeatPacket {.clientTime = 1});
 
     // Same payload size: only the header type tells them apart.
-    cr_assert_not(readPayload<EntityDespawnPacket>(heartbeat).has_value());
+    REQUIRE_FALSE(readPayload<EntityDespawnPacket>(heartbeat).has_value());
 }
 
-Test(Payloads, rejectsComponentCountLargerThanTheData)
+TEST_CASE("Payloads rejects component count larger than the data",
+    "[network][payloads]")
 {
     // network_id = 1, 3 components announced, only one present.
     Bytes payload {1, 0, 0, 0, 3, 1, 0, 1, 0, 42};
 
-    cr_assert_not(decodeRaw<EntitySpawnPacket>(payload).has_value());
+    REQUIRE_FALSE(decodeRaw<EntitySpawnPacket>(payload).has_value());
     payload[4] = 1;
-    cr_assert(decodeRaw<EntitySpawnPacket>(payload).has_value());
+    REQUIRE(decodeRaw<EntitySpawnPacket>(payload).has_value());
 }
 
-Test(Payloads, refusesToSendMoreThan255Components)
+TEST_CASE("Payloads refuses to send more than 255 components",
+    "[network][payloads]")
 {
     EntitySpawnPacket spawn;
 
     spawn.components.resize(256);
-    cr_assert_throw((void) makePacket(spawn), std::length_error);
+    REQUIRE_THROWS_AS((void) makePacket(spawn), std::length_error);
 }
 
-Test(Payloads, refusesToSendMoreThan255Entities)
+TEST_CASE("Payloads refuses to send more than 255 entities",
+    "[network][payloads]")
 {
     ComponentUpdatePacket update;
 
     update.entities.resize(256);
-    cr_assert_throw((void) makePacket(update), std::length_error);
+    REQUIRE_THROWS_AS((void) makePacket(update), std::length_error);
 }
 
-Test(Robustness, randomDatagramsNeverCrashTheDecoder)
+TEST_CASE("Robustness random datagrams never crash the decoder",
+    "[network][robustness]")
 {
     std::mt19937 random(42);
     std::uniform_int_distribution<std::size_t> size(0, MAX_PACKET_SIZE + 10);

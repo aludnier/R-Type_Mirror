@@ -135,12 +135,15 @@ Fields are listed in the order they are written in the payload.
 | Field | Type | Description |
 |---|---|---|
 | `input_sequence` | `u32` | Incremented by the client for every CONTROLLABLE it sends |
-| `directions` | `u8` | Bit 0: up, bit 1: down, bit 2: left, bit 3: right. Bits 4–7 MUST be 0 |
-| `actions` | `u16` | Bitmask of game-defined actions (for example bit 0: shoot) |
+| `actions` | `u32` | Bit `i` set: game-defined action `i` is active |
 
 The client sends the state of its controls, never raw key events. The server
 keeps the CONTROLLABLE with the highest `input_sequence` and ignores older
 ones.
+
+The engine gives no meaning to the bits of `actions`: moving is an action like
+any other, so a game can have no vertical move, or more than four directions.
+Each game lists its actions, R-Type in Appendix B.
 
 **HEARTBEAT (`0x04`)**
 
@@ -411,8 +414,9 @@ completed as the game components and messages are implemented (issue #7).
 
 For each game component: id (`0x8000`–`0xFFFF`), name and `data` layout.
 For each game message: id (`0x80`–`0xFF`), direction, reliability and payload
-layout. It also gives the coordinate system and units used by POSITION, and
-how a `ClientId` maps to a player color.
+layout. It also gives the bits of the CONTROLLABLE `actions` (for example
+bit 0: up, bit 4: shoot), the coordinate system and units used by POSITION,
+and how a `ClientId` maps to a player color.
 
 | Id | Name | Layout |
 |---|---|---|

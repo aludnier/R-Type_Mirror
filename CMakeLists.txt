@@ -9,6 +9,10 @@ option(BUILD_TESTS "Build the tests" ON)
 include(CTest)
 enable_testing()
 
+include(cmake/CPM.cmake)
+
 add_subdirectory(game_engine)
 add_subdirectory(game)
 add_subdirectory(server)
+add_subdirectory(modules/example)
+add_subdirectory(modules/physics2D)
