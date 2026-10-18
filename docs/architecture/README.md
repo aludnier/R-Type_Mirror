@@ -17,7 +17,7 @@
 | Engine Core | `engine_core` | `game_engine/` |
 | `shared_lib` | `engine_core` | `game_engine/` |
 | `client_lib` | `engine_client` | `game_engine/` |
-| `server_lib` | `engine_server` | `server/` |
-| `game_server` | `GameServer` in `engine_server` | `server/src/` |
+| `server_lib` | `engine_server` | `game_engine/` |
+| `game_server` | `GameServer` in `engine_server` | `game_engine/src/server/` |
 
 The server links `engine_server` and `engine_core` only, never `engine_client`.
