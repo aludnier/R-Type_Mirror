@@ -63,6 +63,21 @@ add_library(engine_client STATIC ${CLIENT_SRC})
 target_link_libraries(engine_client PUBLIC engine_core)
 
 # ---------------------------------------------------------------------------
+# engine_server: server runtime (game loop, client sessions). Server only,
+# never links engine_client.
+# ---------------------------------------------------------------------------
+set(SERVER_SRC
+        src/server/ClientSession.cpp
+        src/server/ClientSession.h
+        src/server/GameServer.cpp
+        src/server/GameServer.h
+)
+
+add_library(engine_server STATIC ${SERVER_SRC})
+
+target_link_libraries(engine_server PUBLIC engine_core)
+
+# ---------------------------------------------------------------------------
 # Temporary: keeps the old target name working for branches opened before
 # the split. Remove once every branch links engine_core / engine_client.
 # ---------------------------------------------------------------------------
