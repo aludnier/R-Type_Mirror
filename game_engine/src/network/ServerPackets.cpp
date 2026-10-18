@@ -9,6 +9,7 @@
 
 #include <limits>
 #include <stdexcept>
+#include <utility>
 
 namespace RType::Network {
     namespace {
@@ -184,37 +185,31 @@ namespace RType::Network {
         return packet;
     }
 
-    std::vector<ComponentUpdatePacket> splitComponentUpdate(
-        Tick tick, const std::vector<EntityComponents> &entities)
-    {
-        // Encoded sizes, see docs/protocol.md, section 6.2: tick and
-        // entity_count, then network_id and component_count, then type_id
-        // and the u16 length of data.
-        constexpr std::size_t packetOverhead = sizeof(Tick) + 1;
-        constexpr std::size_t entityOverhead = sizeof(NetworkId) + 1;
-        constexpr std::size_t componentOverhead =
-            sizeof(ComponentTypeId) + sizeof(std::uint16_t);
-        constexpr std::size_t maxListSize =
-            std::numeric_limits<std::uint8_t>::max();
-        std::vector<ComponentUpdatePacket> packets;
-        // Payload size of packets.back().
-        std::size_t size = 0;
+    namespace {
+        /** @brief Fills COMPONENT_UPDATEs one entity or component at once. */
+        class ComponentUpdateSplitter {
+        public:
+            explicit ComponentUpdateSplitter(Tick tick) : _tick(tick) {}
 
-        auto addEntity = [&](NetworkId networkId, bool newPacket) {
-            if (newPacket || packets.empty() ||
-                packets.back().entities.size() == maxListSize ||
-                size + entityOverhead > MAX_PAYLOAD_SIZE) {
-                packets.push_back({.tick = tick, .entities = {}});
-                size = packetOverhead;
+            /** @brief Opens a new packet if the entity header does not fit. */
+            void addEntity(NetworkId networkId)
+            {
+                if (_packets.empty() ||
+                    _packets.back().entities.size() == maxListSize ||
+                    _size + entityOverhead > MAX_PAYLOAD_SIZE) {
+                    startPacket();
+                }
+                pushEntity(networkId);
             }
-            packets.back().entities.push_back(
-                {.networkId = networkId, .components = {}});
-            size += entityOverhead;
-        };
 
-        for (const auto &entity : entities) {
-            addEntity(entity.networkId, false);
-            for (const auto &component : entity.components) {
+            /**
+             * @brief Adds a component to the last entity, continuing it in a
+             * new packet when it does not fit.
+             * @throws std::length_error If it does not fit in an empty packet.
+             */
+            void addComponent(
+                NetworkId networkId, const ComponentData &component)
+            {
                 std::size_t componentSize =
                     componentOverhead + component.data.size();
 
@@ -223,22 +218,70 @@ namespace RType::Network {
                     throw std::length_error(
                         "component too large for a COMPONENT_UPDATE");
                 }
-                auto &current = packets.back().entities;
+                auto &current = _packets.back().entities;
 
-                if (size + componentSize > MAX_PAYLOAD_SIZE ||
+                if (_size + componentSize > MAX_PAYLOAD_SIZE ||
                     current.back().components.size() == maxListSize) {
                     // Nothing was added to this entity yet: move it to the
                     // next packet instead of sending it empty.
                     if (current.back().components.empty()) {
                         current.pop_back();
                     }
-                    addEntity(entity.networkId, true);
+                    startPacket();
+                    pushEntity(networkId);
                 }
-                packets.back().entities.back().components.push_back(component);
-                size += componentSize;
+                _packets.back().entities.back().components.push_back(component);
+                _size += componentSize;
+            }
+
+            std::vector<ComponentUpdatePacket> take()
+            {
+                return std::move(_packets);
+            }
+
+        private:
+            // Encoded sizes, see docs/protocol.md, section 6.2: tick and
+            // entity_count, then network_id and component_count, then
+            // type_id and the u16 length of data.
+            static constexpr std::size_t packetOverhead = sizeof(Tick) + 1;
+            static constexpr std::size_t entityOverhead = sizeof(NetworkId) + 1;
+            static constexpr std::size_t componentOverhead =
+                sizeof(ComponentTypeId) + sizeof(std::uint16_t);
+            static constexpr std::size_t maxListSize =
+                std::numeric_limits<std::uint8_t>::max();
+
+            void startPacket()
+            {
+                _packets.push_back({.tick = _tick, .entities = {}});
+                _size = packetOverhead;
+            }
+
+            void pushEntity(NetworkId networkId)
+            {
+                _packets.back().entities.push_back(
+                    {.networkId = networkId, .components = {}});
+                _size += entityOverhead;
+            }
+
+            Tick _tick;
+            std::vector<ComponentUpdatePacket> _packets;
+            /** @brief Payload size of _packets.back(). */
+            std::size_t _size = 0;
+        };
+    } // namespace
+
+    std::vector<ComponentUpdatePacket> splitComponentUpdate(
+        Tick tick, const std::vector<EntityComponents> &entities)
+    {
+        ComponentUpdateSplitter splitter(tick);
+
+        for (const auto &entity : entities) {
+            splitter.addEntity(entity.networkId);
+            for (const auto &component : entity.components) {
+                splitter.addComponent(entity.networkId, component);
             }
         }
-        return packets;
+        return splitter.take();
     }
 
     void HeartbeatReplyPacket::serialize(ByteWriter &writer) const
