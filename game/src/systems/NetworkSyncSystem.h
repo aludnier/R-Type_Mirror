@@ -13,6 +13,7 @@
 #include "library/RessourceManager.h"
 #include "network/NetworkClient.h"
 #include "components/NetworkEntity.h"
+#include "network/ByteReader.h"
 #include <unordered_map>
 
 namespace Game {
@@ -92,6 +93,13 @@ namespace Game {
             const RType::Network::ComponentData &compData,
             RType::Registry &registry,
             bool isLocalPlayer
+        );
+
+        /** @brief Adds the game component matching an ENTITY_KIND component. */
+        void applyEntityKind(
+            RType::Entity entity,
+            RType::Network::ByteReader &reader,
+            RType::Registry &registry
         );
 
         void processServerMessages(

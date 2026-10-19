@@ -13,7 +13,10 @@
 #include "components/Sprite.h"
 #include "components/Controllable.h"
 #include "components/Player.h"
+#include "components/Enemy.h"
+#include "components/Projectile.h"
 #include "network/ByteReader.h"
+#include "network/GameProtocol.h"
 #include <cmath>
 #include <iostream>
 
@@ -237,16 +240,25 @@ namespace Game {
             applyComponentData(entity, comp, registry, isLocal);
         }
 
+        // Enemies and projectiles carry ENTITY_KIND and are drawn from their
+        // game component. The other entities are the players.
+        auto &enemies = registry.getComponents<Enemy>();
+        auto &projectiles = registry.getComponents<Projectile>();
+        const bool hasKind = (entityId < enemies.size() && enemies[entity].has_value()) ||
+            (entityId < projectiles.size() && projectiles[entity].has_value());
+
+        if (hasKind) {
+            return;
+        }
+        if (!isLocal && (entityId >= players.size() || !players[entity].has_value())) {
+            registry.addComponent<Player>(entity, Player(3, false));
+        }
+
         auto &sprites = registry.getComponents<RType::Sprite>();
         if (entityId >= sprites.size() || !sprites[entity].has_value()) {
             try {
-                if (isLocal) {
-                    auto &asset = resources.getAsset("player_ship");
-                    registry.addComponent<RType::Sprite>(entity, RType::Sprite(asset.id, 10));
-                } else {
-                    auto &asset = resources.getAsset("enemy_bydo_scout");
-                    registry.addComponent<RType::Sprite>(entity, RType::Sprite(asset.id, 5));
-                }
+                auto &asset = resources.getAsset("player_ship");
+                registry.addComponent<RType::Sprite>(entity, RType::Sprite(asset.id, 10));
             } catch (...) {
             }
         }
@@ -303,6 +315,11 @@ namespace Game {
     {
         RType::Network::ByteReader reader(compData.data);
         std::size_t entityId = static_cast<std::size_t>(entity);
+
+        if (compData.typeId == Protocol::ENTITY_KIND) {
+            applyEntityKind(entity, reader, registry);
+            return;
+        }
 
         switch (static_cast<RType::Network::EngineComponentType>(compData.typeId)) {
             case RType::Network::EngineComponentType::Position: {
@@ -367,6 +384,35 @@ namespace Game {
             }
             case RType::Network::EngineComponentType::Animation:
             default:
+                break;
+        }
+    }
+
+    void NetworkSyncSystem::applyEntityKind(
+        RType::Entity entity,
+        RType::Network::ByteReader &reader,
+        RType::Registry &registry
+    )
+    {
+        auto kind = reader.read<std::uint8_t>();
+
+        if (!reader.ok() || !Protocol::isValidKind(kind)) {
+            return;
+        }
+        switch (static_cast<Protocol::EntityKind>(kind)) {
+            case Protocol::EntityKind::Enemy:
+                registry.addComponent<Enemy>(entity, Enemy());
+                break;
+            case Protocol::EntityKind::PlayerLaser:
+                registry.addComponent<Projectile>(entity, Projectile(true, 1, false, 700.0f));
+                break;
+            case Protocol::EntityKind::ChargedBeam:
+                registry.addComponent<Projectile>(entity, Projectile(true, 5, true, 900.0f));
+                break;
+            case Protocol::EntityKind::EnemyBullet:
+                registry.addComponent<Projectile>(entity, Projectile(false, 1, false, 450.0f));
+                break;
+            case Protocol::EntityKind::Player:
                 break;
         }
     }
