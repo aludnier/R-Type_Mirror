@@ -16,8 +16,8 @@
 #include "components/Projectile.h"
 #include "components/ForcePod.h"
 #include "components/ParallaxBackground.h"
+#include "systems/ParallaxSystem.h"
 #include "components/Hitbox.h"
-#include "components/Health.h"
 #include <cmath>
 
 namespace Game {
@@ -38,16 +38,16 @@ namespace Game {
     void GameRenderSystem::renderBackground(RType::Registry &registry, sf::RenderWindow &window)
     {
         auto &transforms = registry.getComponents<RType::Transform2D>();
-        auto &parallax = registry.getComponents<ParallaxBackground>();
+        auto &parallax = registry.getComponents<RType::Environment::ParallaxBackground>();
 
         for (auto [transform, bg] : RType::Zipper(transforms, parallax)) {
             (void)bg;
             sf::CircleShape star(2.0f);
             star.setFillColor(sf::Color(180, 180, 230, 150));
             for (int i = 0; i < 20; ++i) {
-                float x = std::fmod(transform.position.x + static_cast<float>(i * 100), 1920.0f);
+                auto x = std::fmod(transform.position.x + static_cast<float>(i * 100), 1920.0f);
                 if (x < 0.0f) x += 1920.0f;
-                float y = static_cast<float>((i * 67) % 1080);
+                auto y = static_cast<float>((i * 67) % 1080);
                 star.setPosition(sf::Vector2f(x, y));
                 window.draw(star);
             }

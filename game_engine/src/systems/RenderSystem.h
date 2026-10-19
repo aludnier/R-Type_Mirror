@@ -17,6 +17,9 @@
 #include <optional>
 #include <functional>
 
+#include "components/Sprite.h"
+#include "components/Transform2D.h"
+
 namespace RType {
 
     /**
@@ -46,6 +49,9 @@ namespace RType {
          * @brief Clears the internal texture cache.
          */
         void clearTextureCache();
+
+        static void drawSprite(sf::RenderTarget &target, const Transform2D &transform,
+                               const Sprite &sprite, const sf::Texture &texture);
 
         /**
          * @brief Renders all entities with Transform2D and Sprite components to the provided render target.

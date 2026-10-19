@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.10.0)
 
 add_library(environment2d_module SHARED
         src/Environment2DModule.cpp
-        src/components/ParallaxBackground.cpp
-        src/systems/ParallaxSystem.cpp
+        src/components/ParallaxBackground.h
+        src/systems/ParallaxSystem.h
 )
 
 target_include_directories(environment2d_module PUBLIC
