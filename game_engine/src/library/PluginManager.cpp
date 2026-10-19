@@ -157,6 +157,26 @@ const Descriptor *PluginManager::readDescriptor(
     return descriptor;
 }
 
+std::vector<std::string> PluginManager::copyNames(const char *const *names,
+    std::size_t count, std::string_view pluginName, std::string_view kind)
+{
+    if (count == 0)
+        return {};
+    if (names == nullptr)
+        throw std::runtime_error("Plugin '" + std::string(pluginName) +
+            "' has a null " + std::string(kind) + " list");
+
+    std::vector<std::string> result;
+    result.reserve(count);
+    for (std::size_t i = 0; i < count; ++i) {
+        if (names[i] == nullptr || names[i][0] == '\0')
+            throw std::runtime_error("Plugin '" + std::string(pluginName) +
+                "' has an invalid " + std::string(kind) + " name");
+        result.emplace_back(names[i]);
+    }
+    return result;
+}
+
 PluginManager::Candidate PluginManager::loadCandidate(const std::filesystem::path &path)
 {
     Library library(openLibrary(path));
