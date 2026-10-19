@@ -115,16 +115,8 @@ bool PluginManager::isSharedLibrary(const std::filesystem::path &path)
 // Discovery and validation
 // ---------------------------------------------------------------------------
 
-bool PluginManager::isInsideDirectory(const std::filesystem::path &path,
-    const std::filesystem::path &root)
-{
-    // Resolves symlinks: a link pointing outside the plugin directory is
-    // rejected, so only code physically placed in the directory is loaded.
-    return std::filesystem::canonical(path).parent_path() == root;
-}
 
-std::vector<std::filesystem::path> PluginManager::listLibraries(
-    const std::filesystem::path &directory) const
+std::vector<std::filesystem::path> PluginManager::listLibraries(const std::filesystem::path &directory) const
 {
     if (!std::filesystem::is_directory(directory))
         throw std::runtime_error(
@@ -135,11 +127,7 @@ std::vector<std::filesystem::path> PluginManager::listLibraries(
     for (const auto &entry : std::filesystem::directory_iterator(root)) {
         if (!entry.is_regular_file() || !isSharedLibrary(entry.path()))
             continue;
-        if (isInsideDirectory(entry.path(), root))
-            paths.push_back(entry.path());
-        else
-            warn("Ignoring plugin outside directory: " +
-                entry.path().string());
+        paths.push_back(entry.path());
     }
     std::sort(paths.begin(), paths.end());
     return paths;
@@ -169,26 +157,7 @@ const Descriptor *PluginManager::readDescriptor(
     return descriptor;
 }
 
-PluginManager::NameList PluginManager::copyNames(const char *const *names,
-    std::size_t count, std::string_view pluginName, std::string_view kind)
-{
-    if (count != 0 && names == nullptr)
-        throw std::runtime_error("Plugin '" + std::string(pluginName) +
-            "' has a null " + std::string(kind) + " list");
-
-    NameList result;
-    result.reserve(count);
-    for (std::size_t i = 0; i < count; ++i) {
-        if (names[i] == nullptr || names[i][0] == '\0')
-            throw std::runtime_error("Plugin '" + std::string(pluginName) +
-                "' has an empty " + std::string(kind) + " name");
-        result.emplace_back(names[i]);
-    }
-    return result;
-}
-
-PluginManager::Candidate PluginManager::loadCandidate(
-    const std::filesystem::path &path)
+PluginManager::Candidate PluginManager::loadCandidate(const std::filesystem::path &path)
 {
     Library library(openLibrary(path));
     const Descriptor *descriptor = readDescriptor(library, path);
@@ -207,21 +176,16 @@ PluginManager::Candidate PluginManager::loadCandidate(
     return candidate;
 }
 
-std::optional<PluginManager::Candidate> PluginManager::tryLoadCandidate(
-    const std::filesystem::path &path) const
+std::optional<PluginManager::Candidate> PluginManager::tryLoadCandidate(const std::filesystem::path &path) const
 {
     try {
         return loadCandidate(path);
     } catch (const std::runtime_error &error) {
-        if (_strict)
-            throw;
-        warn(std::string("Skipping invalid plugin: ") + error.what());
-        return std::nullopt;
+        throw;
     }
 }
 
-std::vector<PluginManager::Candidate> PluginManager::loadCandidates(
-    const std::filesystem::path &directory) const
+std::vector<PluginManager::Candidate> PluginManager::loadCandidates(const std::filesystem::path &directory) const
 {
     const auto paths = listLibraries(directory);
     std::vector<Candidate> candidates;
@@ -244,7 +208,7 @@ std::vector<PluginManager::Candidate> PluginManager::loadCandidates(
 // Selection and ordering
 // ---------------------------------------------------------------------------
 
-void PluginManager::addOwners(OwnerMap &owners, const NameList &names,
+void PluginManager::addOwners(OwnerMap &owners, const std::vector<std::string> &names,
     std::size_t pluginIndex, std::string_view kind,
     std::string_view pluginName)
 {
@@ -256,8 +220,7 @@ void PluginManager::addOwners(OwnerMap &owners, const NameList &names,
     }
 }
 
-PluginManager::OwnerMap PluginManager::buildOwners(
-    const std::vector<Candidate> &candidates, NameList Candidate::*names,
+PluginManager::OwnerMap PluginManager::buildOwners(const std::vector<Candidate> &candidates, std::vector<std::string> Candidate::*names,
     std::string_view kind)
 {
     OwnerMap owners;
@@ -267,8 +230,7 @@ PluginManager::OwnerMap PluginManager::buildOwners(
     return owners;
 }
 
-PluginManager::OwnerMap PluginManager::buildNameIndex(
-    const std::vector<Candidate> &candidates)
+PluginManager::OwnerMap PluginManager::buildNameIndex(const std::vector<Candidate> &candidates)
 {
     OwnerMap index;
 
@@ -278,7 +240,7 @@ PluginManager::OwnerMap PluginManager::buildNameIndex(
 }
 
 std::vector<std::size_t> PluginManager::findOwners(const OwnerMap &owners,
-    const NameList &required, std::string_view kind)
+    const std::vector<std::string> &required, std::string_view kind)
 {
     std::vector<std::size_t> result;
 
@@ -292,32 +254,8 @@ std::vector<std::size_t> PluginManager::findOwners(const OwnerMap &owners,
     return result;
 }
 
-void PluginManager::visit(const std::vector<Candidate> &candidates,
-    const OwnerMap &nameIndex, std::size_t index,
-    std::vector<VisitState> &state, std::vector<std::size_t> &order)
-{
-    const auto &candidate = candidates[index];
-
-    if (state[index] == VisitState::Done)
-        return;
-    if (state[index] == VisitState::Visiting)
-        throw std::runtime_error(
-            "Circular plugin dependency involving '" + candidate.name + "'");
-    state[index] = VisitState::Visiting;
-    for (const auto &dependency : candidate.dependencies) {
-        auto found = nameIndex.find(dependency);
-        if (found == nameIndex.end())
-            throw std::runtime_error("Plugin '" + candidate.name +
-                "' requires missing plugin '" + dependency + "'");
-        visit(candidates, nameIndex, found->second, state, order);
-    }
-    state[index] = VisitState::Done;
-    order.push_back(index);
-}
-
-std::vector<std::size_t> PluginManager::resolveLoadOrder(
-    const std::vector<Candidate> &candidates, const NameList &components,
-    const NameList &systems)
+std::vector<std::size_t> PluginManager::resolveLoadOrder(const std::vector<Candidate> &candidates,
+    const std::vector<std::string> &components, const std::vector<std::string> &systems)
 {
     const auto nameIndex = buildNameIndex(candidates);
     auto roots = findOwners(
@@ -330,8 +268,6 @@ std::vector<std::size_t> PluginManager::resolveLoadOrder(
     std::vector<std::size_t> order;
 
     roots.insert(roots.end(), systemRoots.begin(), systemRoots.end());
-    for (const auto root : roots)
-        visit(candidates, nameIndex, root, state, order);
     return order;
 }
 
@@ -343,26 +279,25 @@ void PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
     const std::vector<std::size_t> &order, RType::Registry &registry)
 {
     _registry = &registry;
-    for (const auto index : order) {
-        auto &candidate = candidates[index];
-        const auto initialize = candidate.initialize;
-        // Registered before initialize(): if it throws midway, the shutdown
-        // hook still gets a chance to clean what was already registered.
-        _loadedPlugins.push_back({std::move(candidate.library),
-            candidate.name,
-            candidate.dependencies,
-            candidate.shutdown});
-        initialize(&registry);
-    }
-}
-
-void PluginManager::ensureNoDependents(const std::string &name) const
-{
-    for (const auto &plugin : _loadedPlugins) {
-        const auto &deps = plugin.dependencies;
-        if (std::find(deps.begin(), deps.end(), name) != deps.end())
-            throw std::runtime_error("Cannot unload plugin '" + name +
-                "': plugin '" + plugin.name + "' depends on it");
+    const auto firstNewPlugin = _loadedPlugins.size();
+    try {
+        for (const auto index : order) {
+            auto &candidate = candidates[index];
+            const auto initialize = candidate.initialize;
+            _loadedPlugins.push_back({std::move(candidate.library),
+                candidate.name,
+                candidate.dependencies,
+                candidate.shutdown});
+            initialize(&registry);
+        }
+    } catch (...) {
+        while (_loadedPlugins.size() > firstNewPlugin) {
+            shutdownPlugin(_loadedPlugins.back());
+            _loadedPlugins.pop_back();
+        }
+        if (_loadedPlugins.empty())
+            _registry = nullptr;
+        throw;
     }
 }
 
@@ -373,28 +308,15 @@ void PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
     try {
         plugin.shutdown(_registry);
     } catch (const std::exception &error) {
-        warn("Plugin '" + plugin.name +
-            "' threw during shutdown: " + error.what());
-    } catch (...) {
-        warn("Plugin '" + plugin.name + "' threw during shutdown");
+        throw ;
     }
-}
-
-void PluginManager::warn(const std::string &message) const
-{
-    if (_warningHandler)
-        _warningHandler(message);
 }
 
 // ---------------------------------------------------------------------------
 // Public interface
 // ---------------------------------------------------------------------------
 
-PluginManager::PluginManager(bool strict) :
-    _warningHandler([](const std::string &message) {
-        std::cerr << "[plugin] " << message << '\n';
-    }),
-    _strict(strict)
+PluginManager::PluginManager()
 {
 }
 
@@ -403,16 +325,14 @@ PluginManager::~PluginManager()
     unloadAll();
 }
 
-void PluginManager::setWarningHandler(WarningHandler handler)
-{
-    _warningHandler = std::move(handler);
-}
-
 bool PluginManager::isLoaded(const std::string &name) const
 {
-    return std::any_of(_loadedPlugins.begin(),
-        _loadedPlugins.end(),
-        [&name](const LoadedPlugin &plugin) { return plugin.name == name; });
+    for (auto &loaded : _loadedPlugins) {
+        if (loaded.name == name) {
+            return true;
+        }
+    }
+    return false;
 }
 
 bool PluginManager::unload(const std::string &name)
@@ -423,7 +343,6 @@ bool PluginManager::unload(const std::string &name)
 
     if (found == _loadedPlugins.end())
         return false;
-    ensureNoDependents(name);
     shutdownPlugin(*found);
     _loadedPlugins.erase(found);
     return true;
@@ -431,15 +350,13 @@ bool PluginManager::unload(const std::string &name)
 
 void PluginManager::unloadAll()
 {
-    // Reverse order: dependents are shut down before their dependencies.
     while (!_loadedPlugins.empty()) {
         shutdownPlugin(_loadedPlugins.back());
         _loadedPlugins.pop_back();
     }
 }
 
-void PluginManager::loadRequiredPlugins(const std::filesystem::path &directory,
-    const std::vector<std::string> &components,
+void PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, const std::vector<std::string> &components,
     const std::vector<std::string> &systems, RType::Registry &registry)
 {
     if (_configured)

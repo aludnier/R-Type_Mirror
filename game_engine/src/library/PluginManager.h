@@ -11,23 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ecs/Registry.h" // TODO: move Registry out of the RType namespace
-
-/*
- * ABI NOTE
- * --------
- * The plugin boundary uses C++ types (Registry). Host and plugins MUST be
- * built with the same compiler, standard library, build type and (on Windows)
- * the same C runtime. The descriptor itself is plain C data so it can be read
- * safely before any other check.
- *
- * LIFETIME NOTE
- * -------------
- * The Registry passed to loadRequiredPlugins() must outlive the PluginManager
- * (declare the registry BEFORE the manager). The manager calls each plugin's
- * `shutdown` hook before unloading its library, so the plugin can remove every
- * component/system whose code lives in the library.
- */
+#include "ecs/Registry.h"
 
 #ifdef _WIN32
 #define ENGINE_PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -56,40 +40,25 @@ namespace Engine::Plugin {
     };
 
     using DescriptorFunction = const Descriptor *(*)();
-} // namespace Engine::Plugin
+}
 
 class PluginManager
 {
 public:
-    using WarningHandler = std::function<void(const std::string &)>;
-
-    // strict = true : any invalid library in the directory is an error.
-    // strict = false: invalid libraries are skipped with a warning.
-    explicit PluginManager(bool strict = true);
+    explicit PluginManager();
     ~PluginManager();
 
     PluginManager(const PluginManager &) = delete;
     PluginManager &operator=(const PluginManager &) = delete;
 
-    void setWarningHandler(WarningHandler handler);
-
-    // Loads the plugins providing the required components/systems, plus
-    // their dependencies (initialized in dependency order). Callable once.
     void loadRequiredPlugins(const std::filesystem::path &directory,
         const std::vector<std::string> &components,
         const std::vector<std::string> &systems, RType::Registry &registry);
-
-    // Unloads one plugin. Throws if another loaded plugin depends on it.
-    // Returns false if no plugin has this name.
     bool unload(const std::string &name);
-
-    // Unloads everything, in reverse load order.
     void unloadAll();
-
     bool isLoaded(const std::string &name) const;
 
 private:
-    // RAII owner of a native library handle (dlopen / LoadLibrary).
     class Library
     {
     public:
@@ -110,16 +79,14 @@ private:
         void *_handle = nullptr;
     };
 
-    using NameList = std::vector<std::string>;
     using OwnerMap = std::unordered_map<std::string, std::size_t>;
 
-    // A plugin found on disk, validated but not yet initialized.
     struct Candidate {
         Library library;
         std::string name;
-        NameList components;
-        NameList systems;
-        NameList dependencies;
+        std::vector<std::string> components;
+        std::vector<std::string> systems;
+        std::vector<std::string> dependencies;
         Engine::Plugin::InitializeFunction initialize = nullptr;
         Engine::Plugin::ShutdownFunction shutdown = nullptr;
     };
@@ -127,62 +94,45 @@ private:
     struct LoadedPlugin {
         Library library;
         std::string name;
-        NameList dependencies;
+        std::vector<std::string> dependencies;
         Engine::Plugin::ShutdownFunction shutdown;
     };
 
-    enum class VisitState : char { Unvisited, Visiting, Done };
+    enum class VisitState : char {
+        Unvisited,
+        Visiting,
+        Done
+    };
 
-    // Platform layer
     static void closeLibrary(void *handle);
     static void *openLibrary(const std::filesystem::path &path);
     static void *findSymbol(void *handle, const char *name);
     static bool isSharedLibrary(const std::filesystem::path &path);
 
-    // Discovery and validation
-    std::vector<std::filesystem::path> listLibraries(
-        const std::filesystem::path &directory) const;
-    static bool isInsideDirectory(const std::filesystem::path &path,
-        const std::filesystem::path &root);
-    static const Engine::Plugin::Descriptor *readDescriptor(
-        const Library &library, const std::filesystem::path &path);
-    static bool isValidDescriptor(
-        const Engine::Plugin::Descriptor *descriptor);
-    static NameList copyNames(const char *const *names, std::size_t count,
+    std::vector<std::filesystem::path> listLibraries(const std::filesystem::path &directory) const;
+    static const Engine::Plugin::Descriptor *readDescriptor(const Library &library, const std::filesystem::path &path);
+    static bool isValidDescriptor(const Engine::Plugin::Descriptor *descriptor);
+    static std::vector<std::string> copyNames(const char *const *names, std::size_t count,
         std::string_view pluginName, std::string_view kind);
     static Candidate loadCandidate(const std::filesystem::path &path);
-    std::optional<Candidate> tryLoadCandidate(
-        const std::filesystem::path &path) const;
-    std::vector<Candidate> loadCandidates(
-        const std::filesystem::path &directory) const;
+    std::optional<Candidate> tryLoadCandidate(const std::filesystem::path &path) const;
+    std::vector<Candidate> loadCandidates(const std::filesystem::path &directory) const;
 
     // Selection and ordering
-    static void addOwners(OwnerMap &owners, const NameList &names,
-        std::size_t pluginIndex, std::string_view kind,
+    static void addOwners(OwnerMap &owners, const std::vector<std::string> &names, std::size_t pluginIndex, std::string_view kind,
         std::string_view pluginName);
-    static OwnerMap buildOwners(const std::vector<Candidate> &candidates,
-        NameList Candidate::*names, std::string_view kind);
+    static OwnerMap buildOwners(const std::vector<Candidate> &candidates, std::vector<std::string> Candidate::*names, std::string_view kind);
     static OwnerMap buildNameIndex(const std::vector<Candidate> &candidates);
-    static std::vector<std::size_t> findOwners(const OwnerMap &owners,
-        const NameList &required, std::string_view kind);
-    static void visit(const std::vector<Candidate> &candidates,
-        const OwnerMap &nameIndex, std::size_t index,
-        std::vector<VisitState> &state, std::vector<std::size_t> &order);
-    static std::vector<std::size_t> resolveLoadOrder(
-        const std::vector<Candidate> &candidates, const NameList &components,
-        const NameList &systems);
+    static std::vector<std::size_t> findOwners(const OwnerMap &owners, const std::vector<std::string> &required, std::string_view kind);
+    static std::vector<std::size_t> resolveLoadOrder(const std::vector<Candidate> &candidates, const std::vector<std::string> &components,
+        const std::vector<std::string> &systems);
 
-    // Activation / deactivation
     void initializeInOrder(std::vector<Candidate> &candidates,
         const std::vector<std::size_t> &order, RType::Registry &registry);
-    void ensureNoDependents(const std::string &name) const;
     void shutdownPlugin(LoadedPlugin &plugin) noexcept;
-    void warn(const std::string &message) const;
 
     std::vector<LoadedPlugin> _loadedPlugins;
     RType::Registry *_registry = nullptr;
-    WarningHandler _warningHandler;
-    bool _strict;
     bool _configured = false;
 };
 
