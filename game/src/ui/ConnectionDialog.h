@@ -50,9 +50,9 @@ namespace Game {
 
     private:
         bool _visible = true;
-        std::array<char, 128> _hostBuffer;
+        std::string _hostBuffer;
         int _port = 4242;
-        std::array<char, 64> _playerNameBuffer;
+        std::string _playerNameBuffer;
     };
 
 } // namespace Game

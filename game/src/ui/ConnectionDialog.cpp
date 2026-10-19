@@ -7,21 +7,16 @@
 
 #include "ui/ConnectionDialog.h"
 #include <imgui.h>
-#include <cstring>
 
 namespace Game {
 
-    ConnectionDialog::ConnectionDialog()
+    ConnectionDialog::ConnectionDialog() : _hostBuffer("127.0.0.1"), _playerNameBuffer("Player1")
     {
-        std::strncpy(_hostBuffer.data(), "127.0.0.1", _hostBuffer.size() - 1);
-        _hostBuffer.back() = '\0';
-        std::strncpy(_playerNameBuffer.data(), "Player1", _playerNameBuffer.size() - 1);
-        _playerNameBuffer.back() = '\0';
     }
 
     void ConnectionDialog::renderScreen(NetworkClient &client, float windowWidth, float windowHeight)
     {
-        const ImVec2 dialogSize(500.0f, 440.0f);
+        constexpr ImVec2 dialogSize(500.0f, 440.0f);
         ImGui::SetNextWindowPos(ImVec2(windowWidth * 0.5f, windowHeight * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(dialogSize, ImGuiCond_Always);
 
@@ -93,7 +88,7 @@ namespace Game {
 
                 ImGui::Spacing();
                 if (ImGui::Button("CONNECT TO SERVER", ImVec2(480.0f, 45.0f))) {
-                    client.connect(std::string(_hostBuffer.data()), static_cast<std::uint16_t>(_port), std::string(_playerNameBuffer.data()));
+                    client.connect(_hostBuffer, static_cast<std::uint16_t>(_port), _playerNameBuffer);
                 }
             }
         }
@@ -106,7 +101,7 @@ namespace Game {
             return;
         }
 
-        const ImVec2 dialogSize(420.0f, 320.0f);
+        constexpr ImVec2 dialogSize(420.0f, 320.0f);
         ImGui::SetNextWindowPos(ImVec2(windowWidth * 0.5f, windowHeight * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
         ImGui::SetNextWindowSize(dialogSize, ImGuiCond_Always);
 
