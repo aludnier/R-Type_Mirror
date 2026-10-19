@@ -13,7 +13,7 @@
 #include <optional>
 #include <string_view>
 
-#include "server/GameServer.h"
+#include "RTypeServer.h"
 
 namespace {
     // Written by the signal handler: only lock-free atomics are safe there.
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
     try {
-        RType::GameServer server(config);
+        RType::RTypeServer server(config);
 
         server.run(stopRequested);
     } catch (const std::exception &error) {

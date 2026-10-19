@@ -8,6 +8,8 @@
 #include <thread>
 #include <vector>
 
+#include "components/Action.h"
+#include "network/ByteReader.h"
 #include "network/ClientPackets.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
@@ -72,15 +74,25 @@ namespace {
             _network.sendTo(_server, packet.serialize());
         }
 
-        /** @return The next packet, if one comes before @p timeout. */
+        /**
+         * @return The next packet, if one comes before @p timeout.
+         *         COMPONENT_UPDATEs are skipped unless @p withUpdates: the
+         *         server sends them on its own every second.
+         */
         std::optional<Packet> next(
-            std::chrono::milliseconds timeout = TIMEOUT)
+            std::chrono::milliseconds timeout = TIMEOUT,
+            bool withUpdates = false)
         {
             auto deadline = std::chrono::steady_clock::now() + timeout;
 
             while (std::chrono::steady_clock::now() < deadline) {
                 if (auto received = _network.poll()) {
                     _sequences.push_back(received->packet.header.sequence);
+                    if (!withUpdates &&
+                        received->packet.header.type ==
+                            MessageType::ComponentUpdate) {
+                        continue;
+                    }
                     return received->packet;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -97,20 +109,78 @@ namespace {
             return packet ? readPayload<P>(*packet) : std::nullopt;
         }
 
+        /**
+         * @return The position of @p networkId in the next COMPONENT_UPDATE
+         *         that carries it, if one comes before @p timeout.
+         */
+        std::optional<std::pair<float, float>> nextPosition(
+            NetworkId networkId, std::chrono::milliseconds timeout = TIMEOUT)
+        {
+            auto deadline = std::chrono::steady_clock::now() + timeout;
+
+            while (true) {
+                auto remaining =
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                        deadline - std::chrono::steady_clock::now());
+
+                if (remaining.count() <= 0) {
+                    break;
+                }
+                auto packet = next(remaining, true);
+
+                if (!packet) {
+                    break;
+                }
+                auto update = readPayload<ComponentUpdatePacket>(*packet);
+
+                if (!update) {
+                    continue;
+                }
+                for (const auto &entity : update->entities) {
+                    if (entity.networkId != networkId) {
+                        continue;
+                    }
+                    if (auto position = decodePosition(entity.components)) {
+                        return position;
+                    }
+                }
+            }
+            return std::nullopt;
+        }
+
+        /** @return The POSITION among @p components, if there is one. */
+        static std::optional<std::pair<float, float>> decodePosition(
+            const std::vector<ComponentData> &components)
+        {
+            for (const auto &component : components) {
+                if (component.typeId !=
+                    static_cast<ComponentTypeId>(
+                        EngineComponentType::Position)) {
+                    continue;
+                }
+                ByteReader reader(component.data);
+                float x = reader.readFloat();
+                float y = reader.readFloat();
+
+                return std::pair {x, y};
+            }
+            return std::nullopt;
+        }
+
         bool receivesNothing()
         {
             return !next(SILENCE).has_value();
         }
 
         /** @brief Sends ASK_CONNECT and waits for ACCEPT_CONNECT. */
-        ClientId connect(const std::string &name)
+        AcceptConnectPacket connect(const std::string &name)
         {
             send(AskConnectPacket {name});
             auto accept = expect<AcceptConnectPacket>();
 
             INFO("no ACCEPT_CONNECT for " << name);
             REQUIRE(accept.has_value());
-            return accept->clientId;
+            return *accept;
         }
 
         /** @brief Sequences of every packet received so far, in order. */
@@ -137,27 +207,63 @@ namespace {
     }
 } // namespace
 
+TEST_CASE("Server spawns the player's entity on connection",
+    "[server][sending][ecs]")
+{
+    RunningServer server;
+    TestClient alice(server.port());
+    auto accept = alice.connect("alice");
+
+    REQUIRE(accept.linkedEntity != NO_ENTITY);
+    // Its own entity, with the position it appears at.
+    auto spawn = alice.expect<EntitySpawnPacket>();
+
+    REQUIRE(spawn.has_value());
+    REQUIRE(spawn->networkId == accept.linkedEntity);
+    REQUIRE(TestClient::decodePosition(spawn->components).has_value());
+    REQUIRE(alice.receivesNothing());
+}
+
 TEST_CASE("Server announces a new player to the others only",
     "[server][sending]")
 {
     RunningServer server;
     TestClient alice(server.port());
     TestClient bob(server.port());
-    ClientId aliceId = alice.connect("alice");
-    ClientId bobId = bob.connect("bob");
+    auto aliceAccept = alice.connect("alice");
 
-    // Bob is told about Alice, who was already there.
+    REQUIRE(alice.expect<EntitySpawnPacket>().has_value());
+    auto bobAccept = bob.connect("bob");
+
+    // Bob gets every entity, Alice's and his own, then is told about Alice,
+    // who was already there.
+    std::vector<NetworkId> spawnedForBob;
+
+    for (int i = 0; i < 2; ++i) {
+        auto spawn = bob.expect<EntitySpawnPacket>();
+
+        REQUIRE(spawn.has_value());
+        spawnedForBob.push_back(spawn->networkId);
+    }
+    REQUIRE(spawnedForBob ==
+        std::vector {aliceAccept.linkedEntity, bobAccept.linkedEntity});
     auto aliceForBob = bob.expect<PlayerConnectedPacket>();
 
     REQUIRE(aliceForBob.has_value());
-    REQUIRE(aliceForBob->clientId == aliceId);
+    REQUIRE(aliceForBob->clientId == aliceAccept.clientId);
+    REQUIRE(aliceForBob->linkedEntity == aliceAccept.linkedEntity);
     REQUIRE(aliceForBob->playerName == "alice");
 
-    // Alice is told about Bob, Bob is not told about himself.
+    // Alice gets Bob's entity and is told about him, Bob is not told about
+    // himself.
+    auto bobEntity = alice.expect<EntitySpawnPacket>();
+
+    REQUIRE(bobEntity.has_value());
+    REQUIRE(bobEntity->networkId == bobAccept.linkedEntity);
     auto bobForAlice = alice.expect<PlayerConnectedPacket>();
 
     REQUIRE(bobForAlice.has_value());
-    REQUIRE(bobForAlice->clientId == bobId);
+    REQUIRE(bobForAlice->clientId == bobAccept.clientId);
     REQUIRE(bobForAlice->playerName == "bob");
     REQUIRE(alice.receivesNothing());
     REQUIRE(bob.receivesNothing());
@@ -170,22 +276,38 @@ TEST_CASE("Server announces a departure to the remaining clients",
     TestClient alice(server.port());
     TestClient bob(server.port());
     TestClient carol(server.port());
-    ClientId aliceId = alice.connect("alice");
+    auto aliceAccept = alice.connect("alice");
 
     bob.connect("bob");
     carol.connect("carol");
-    // Drain the PLAYER_CONNECTEDs: 2 for Alice, 2 for Bob, 2 for Carol.
+    // Drain the connection: each client gets 3 ENTITY_SPAWN and 2
+    // PLAYER_CONNECTED, in an order that depends on when it joined.
     for (auto *client : {&alice, &bob, &carol}) {
-        REQUIRE(client->expect<PlayerConnectedPacket>().has_value());
-        REQUIRE(client->expect<PlayerConnectedPacket>().has_value());
+        int spawns = 0;
+        int players = 0;
+
+        while (spawns < 3 || players < 2) {
+            auto packet = client->next();
+
+            REQUIRE(packet.has_value());
+            if (packet->header.type == MessageType::EntitySpawn) {
+                ++spawns;
+            } else if (packet->header.type == MessageType::PlayerConnected) {
+                ++players;
+            }
+        }
     }
 
     alice.send(AskDisconnectPacket {});
     for (auto *client : {&bob, &carol}) {
+        auto despawn = client->expect<EntityDespawnPacket>();
+
+        REQUIRE(despawn.has_value());
+        REQUIRE(despawn->networkId == aliceAccept.linkedEntity);
         auto left = client->expect<PlayerDisconnectedPacket>();
 
         REQUIRE(left.has_value());
-        REQUIRE(left->clientId == aliceId);
+        REQUIRE(left->clientId == aliceAccept.clientId);
         REQUIRE(left->reason == DisconnectReason::Left);
     }
     REQUIRE(alice.receivesNothing());
@@ -193,6 +315,34 @@ TEST_CASE("Server announces a departure to the remaining clients",
     for (auto *client : {&alice, &bob, &carol}) {
         assertSequencesFollow(*client);
     }
+}
+
+TEST_CASE("Server moves a player's entity with its controls",
+    "[server][sending][ecs]")
+{
+    RunningServer server;
+    TestClient alice(server.port());
+    auto accept = alice.connect("alice");
+    auto spawn = alice.expect<EntitySpawnPacket>();
+
+    REQUIRE(spawn.has_value());
+    auto start = TestClient::decodePosition(spawn->components);
+
+    REQUIRE(start.has_value());
+    alice.send(ControllablePacket {1,
+        1U << static_cast<unsigned>(Action::MoveRight)});
+    // The entity moves right only: x grows, y stays.
+    std::optional<std::pair<float, float>> position;
+
+    for (int i = 0; i < 10; ++i) {
+        position = alice.nextPosition(accept.linkedEntity);
+        REQUIRE(position.has_value());
+        if (position->first > start->first) {
+            break;
+        }
+    }
+    REQUIRE(position->first > start->first);
+    REQUIRE(position->second == start->second);
 }
 
 TEST_CASE("Server disconnects every client on shutdown",
@@ -204,7 +354,11 @@ TEST_CASE("Server disconnects every client on shutdown",
 
     alice.connect("alice");
     bob.connect("bob");
+    REQUIRE(alice.expect<EntitySpawnPacket>().has_value());
+    REQUIRE(alice.expect<EntitySpawnPacket>().has_value());
     REQUIRE(alice.expect<PlayerConnectedPacket>().has_value());
+    REQUIRE(bob.expect<EntitySpawnPacket>().has_value());
+    REQUIRE(bob.expect<EntitySpawnPacket>().has_value());
     REQUIRE(bob.expect<PlayerConnectedPacket>().has_value());
 
     server.stop();

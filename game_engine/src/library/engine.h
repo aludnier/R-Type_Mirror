@@ -8,18 +8,15 @@
 #ifndef ENGINE_H
     #define ENGINE_H
 #include "ecs/Registry.h"
+#include "ecs/SparseArray.h"
 #include <chrono>
 #include <cstdint>
 #include <string>
 #include <thread>
 #include "InputManager.h"
 #include "RessourceManager.h"
-
-namespace {
-    struct Sprite {
-        std::uint32_t assetId;
-    };
-}
+#include "components/Sprite.h"
+#include "systems/RenderSystem.h"
 
 class EngineLib
 {
@@ -63,7 +60,7 @@ public:
         } catch (const std::exception &) {
             _resources.addAsset(assetName, assetPath);
         }
-        _registry.addComponent<Sprite>(entity, Sprite{_resources.getAsset(assetName).id});
+        _registry.addComponent<RType::Sprite>(entity, RType::Sprite{_resources.getAsset(assetName).id});
     }
 
     void bindAction(Action action, InputManager::KeyCode key) {
@@ -116,7 +113,7 @@ private:
 
 inline EngineLib::EngineLib(/* args */)
 {
-    _registry.registerComponent<Sprite>();
+    _registry.registerComponent<RType::Sprite>();
 }
 
 inline EngineLib::~EngineLib()

@@ -17,6 +17,8 @@ set(CORE_SRC
         src/components/Transform2D.h
         src/components/Transform3D.h
         src/components/Controllable.h
+        src/components/Health.h
+        src/components/Hitbox.h
         src/systems/ControllableSystem.cpp
         src/systems/ControllableSystem.h
         src/library/RessourceManager.cpp
@@ -52,18 +54,23 @@ if (WIN32)
 endif ()
 
 # ---------------------------------------------------------------------------
-# engine_client: client only (input, engine loop, later rendering and audio).
+# engine_client: client only (input, engine loop, rendering and audio).
 # The graphics library is linked here, never in engine_core.
 # ---------------------------------------------------------------------------
+find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
+
 set(CLIENT_SRC
         src/library/engine.h
         src/library/InputManager.cpp
         src/library/InputManager.h
+        src/components/Sprite.h
+        src/systems/RenderSystem.cpp
+        src/systems/RenderSystem.h
 )
 
 add_library(engine_client STATIC ${CLIENT_SRC})
 
-target_link_libraries(engine_client PUBLIC engine_core)
+target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
@@ -88,7 +95,7 @@ add_library(game_engine INTERFACE)
 target_link_libraries(game_engine INTERFACE engine_core engine_client)
 
 if (BUILD_TESTS)
-    CPMAddPackage("gh:catchorg/Catch2@3.4.0")
+    find_package(Catch2 REQUIRED)
 
     add_executable(game_engine_tests
             tests/ecs_unit_tests.cpp

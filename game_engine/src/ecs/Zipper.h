@@ -62,6 +62,9 @@ namespace RType {
         friend class Zipper<Containers...>;
 
         ZipperIterator(iterator_tuple const &it_tuple, std::size_t max) : _current(it_tuple), _max(max), _idx(0) {
+            if (this->_idx < this->_max && !this->allSet(_seq)) {
+                this->incrementAll(_seq);
+            }
         }
 
         ZipperIterator(ZipperIterator const &z) = default;
