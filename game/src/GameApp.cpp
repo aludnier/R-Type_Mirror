@@ -259,7 +259,8 @@ namespace Game {
         } else {
             ImGuiIO &io = ImGui::GetIO();
             if (io.Fonts->Fonts.empty()) {
-                io.Fonts->AddFontDefault();
+                auto *font = io.Fonts->AddFontDefault();
+                font->Scale = 2;
             }
         }
 

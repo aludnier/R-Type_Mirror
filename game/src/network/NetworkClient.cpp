@@ -185,8 +185,7 @@ namespace Game {
 
         switch (header.type) {
             case RType::Network::MessageType::AcceptConnect: {
-                auto payload = RType::Network::readPayload<RType::Network::AcceptConnectPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::AcceptConnectPacket>(received.packet)) {
                     _clientId = payload->clientId;
                     _linkedEntity = payload->linkedEntity;
                     _tickRate = payload->tickRate;
@@ -197,8 +196,7 @@ namespace Game {
                 break;
             }
             case RType::Network::MessageType::ForceDisconnect: {
-                auto payload = RType::Network::readPayload<RType::Network::ForceDisconnectPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::ForceDisconnectPacket>(received.packet)) {
                     _status = ConnectionStatus::DisconnectedByServer;
                     _lastError = payload->message.empty() ? "Disconnected by server" : payload->message;
                     _pendingMessages.emplace_back(*payload);
@@ -206,43 +204,37 @@ namespace Game {
                 break;
             }
             case RType::Network::MessageType::PlayerConnected: {
-                auto payload = RType::Network::readPayload<RType::Network::PlayerConnectedPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::PlayerConnectedPacket>(received.packet)) {
                     _pendingMessages.emplace_back(*payload);
                 }
                 break;
             }
             case RType::Network::MessageType::PlayerDisconnected: {
-                auto payload = RType::Network::readPayload<RType::Network::PlayerDisconnectedPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::PlayerDisconnectedPacket>(received.packet)) {
                     _pendingMessages.emplace_back(*payload);
                 }
                 break;
             }
             case RType::Network::MessageType::EntitySpawn: {
-                auto payload = RType::Network::readPayload<RType::Network::EntitySpawnPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::EntitySpawnPacket>(received.packet)) {
                     _pendingMessages.emplace_back(*payload);
                 }
                 break;
             }
             case RType::Network::MessageType::EntityDespawn: {
-                auto payload = RType::Network::readPayload<RType::Network::EntityDespawnPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::EntityDespawnPacket>(received.packet)) {
                     _pendingMessages.emplace_back(*payload);
                 }
                 break;
             }
             case RType::Network::MessageType::ComponentUpdate: {
-                auto payload = RType::Network::readPayload<RType::Network::ComponentUpdatePacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::ComponentUpdatePacket>(received.packet)) {
                     _pendingMessages.emplace_back(*payload);
                 }
                 break;
             }
             case RType::Network::MessageType::HeartbeatReply: {
-                auto payload = RType::Network::readPayload<RType::Network::HeartbeatReplyPacket>(received.packet);
-                if (payload) {
+                if (auto payload = RType::Network::readPayload<RType::Network::HeartbeatReplyPacket>(received.packet)) {
                     auto nowMs = static_cast<std::uint32_t>(
                         std::chrono::duration_cast<std::chrono::milliseconds>(
                             Clock::now().time_since_epoch()).count() & 0xFFFFFFFF
