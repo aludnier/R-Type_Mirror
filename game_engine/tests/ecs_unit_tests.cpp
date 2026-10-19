@@ -223,6 +223,36 @@ TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]") {
     REQUIRE(seen[1] == std::make_pair(50, 3));
 }
 
+TEST_CASE("Zipper skips missing values at the start", "[ecs][zipper]") {
+    RType::SparseArray<Position> positions;
+    RType::SparseArray<Velocity> velocities;
+
+    positions.emplace(1, 3, 4);
+    velocities.emplace(0, 10, 20);
+    velocities.emplace(1, 30, 40);
+
+    RType::Zipper zipper(positions, velocities);
+    std::vector<int> seen;
+
+    for (auto [position, velocity] : zipper) {
+        seen.push_back(position.x + velocity.dx);
+    }
+
+    REQUIRE(seen == std::vector<int>{33});
+}
+
+TEST_CASE("Zipper over storages with no common value is empty", "[ecs][zipper]") {
+    RType::SparseArray<Position> positions;
+    RType::SparseArray<Velocity> velocities;
+
+    positions.emplace(0, 1, 2);
+    velocities.emplace(1, 10, 20);
+
+    RType::Zipper zipper(positions, velocities);
+
+    REQUIRE(zipper.begin() == zipper.end());
+}
+
 TEST_CASE("Zipper shorter container limits iteration range", "[ecs][zipper]") {
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
