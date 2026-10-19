@@ -5,6 +5,7 @@
 ** Physics2DModule.cpp
 */
 
+#include "ecs/SparseArray.h"
 #include "Physics2DModule.h"
 #include "components/Rigidbody2D.h"
 #include "components/BoxCollider2D.h"
