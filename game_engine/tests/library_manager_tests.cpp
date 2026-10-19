@@ -21,6 +21,8 @@
 #include "systems/RenderSystem.h"
 #include <SFML/Graphics.hpp>
 
+#include "catch2/internal/catch_getenv.hpp"
+
 namespace {
 constexpr std::uint8_t bit(Action action) {
     return static_cast<std::uint8_t>(1u << static_cast<std::size_t>(action));
@@ -305,6 +307,11 @@ TEST_CASE("RenderSystem manages texture cache and renders entities safely", "[re
 }
 
 TEST_CASE("addRenderSystem registers rendering system into ECS registry", "[render][system]") {
+
+    if (Catch::Detail::getEnv("DISPLAY") == nullptr) {
+        SUCCEED("Skipping render system registration test in headless environment.");
+        return;
+    }
     RType::Registry registry;
     registry.registerComponent<RType::Transform2D>();
     registry.registerComponent<RType::Sprite>();
