@@ -92,8 +92,6 @@ add_library(game_engine INTERFACE)
 target_link_libraries(game_engine INTERFACE engine_core engine_client)
 
 if (BUILD_TESTS)
-    CPMAddPackage("gh:catchorg/Catch2@3.4.0")
-
     add_executable(game_engine_tests
             tests/ecs_unit_tests.cpp
             tests/network_protocol_tests.cpp

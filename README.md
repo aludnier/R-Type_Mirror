@@ -34,8 +34,7 @@ never links the client library, so it never depends on the graphics library.
 - Git
 
 Nothing else needs to be installed: dependencies are fetched by the build.
-Asio comes from [vcpkg](https://github.com/microsoft/vcpkg) (a git submodule),
-and Catch2 from CPM.
+Asio, SFML, ImGui-SFML comes from [vcpkg](https://github.com/microsoft/vcpkg) (a git submodule).
 
 ## Build
 
@@ -57,8 +56,7 @@ cmake --preset release
 cmake --build --preset release
 ```
 
-The first configure is slower: vcpkg and CPM download and build the
-dependencies.
+The first configure is slower: vcpkg downloads and builds the dependencies.
 
 ### Building a single program
 
