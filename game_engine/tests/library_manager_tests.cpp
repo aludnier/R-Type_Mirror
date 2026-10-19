@@ -14,6 +14,14 @@
 
 #include "library/InputManager.h"
 #include "library/RessourceManager.h"
+#include "components/Sprite.h"
+#include "components/Transform2D.h"
+#include "ecs/Registry.h"
+#include "ecs/SparseArray.h"
+#include "systems/RenderSystem.h"
+#include <SFML/Graphics.hpp>
+
+#include "catch2/internal/catch_getenv.hpp"
 
 namespace {
 constexpr std::uint8_t bit(Action action) {
@@ -200,7 +208,7 @@ TEST_CASE("ResourceManager never resolves id 0", "[resource][manager]") {
 
     manager.addAsset("ship", "assets/ship.png");
 
-    REQUIRE(manager.getAssetById(0) == nullptr);
+    REQUIRE_FALSE(manager.getAssetById(0).has_value());
 }
 
 TEST_CASE("ResourceManager removing an unknown asset does nothing", "[resource][manager]") {
@@ -210,7 +218,7 @@ TEST_CASE("ResourceManager removing an unknown asset does nothing", "[resource][
 
     REQUIRE_NOTHROW(manager.removeAsset("ghost"));
     REQUIRE(manager.hasAsset("ship"));
-    REQUIRE(manager.getAssetById(id) != nullptr);
+    REQUIRE(manager.getAssetById(id).has_value());
 }
 
 TEST_CASE("ResourceManager removing one asset keeps the others", "[resource][manager]") {
@@ -222,10 +230,10 @@ TEST_CASE("ResourceManager removing one asset keeps the others", "[resource][man
     manager.removeAsset("drop");
 
     REQUIRE_FALSE(manager.hasAsset("drop"));
-    REQUIRE(manager.getAssetById(dropId) == nullptr);
+    REQUIRE_FALSE(manager.getAssetById(dropId).has_value());
     REQUIRE(manager.hasAsset("keep"));
-    REQUIRE(manager.getAssetById(keepId) != nullptr);
-    REQUIRE(manager.getAssetById(keepId)->path == "assets/keep.png");
+    REQUIRE(manager.getAssetById(keepId).has_value());
+    REQUIRE(manager.getAssetById(keepId)->get().path == "assets/keep.png");
 }
 
 TEST_CASE("ResourceManager does not reuse the id of a removed asset", "[resource][manager]") {
@@ -236,9 +244,9 @@ TEST_CASE("ResourceManager does not reuse the id of a removed asset", "[resource
     const auto newId = manager.addAsset("cursor", "assets/cursor2.png");
 
     REQUIRE(newId != oldId);
-    REQUIRE(manager.getAssetById(oldId) == nullptr);
-    REQUIRE(manager.getAssetById(newId) != nullptr);
-    REQUIRE(manager.getAssetById(newId)->path == "assets/cursor2.png");
+    REQUIRE_FALSE(manager.getAssetById(oldId).has_value());
+    REQUIRE(manager.getAssetById(newId).has_value());
+    REQUIRE(manager.getAssetById(newId)->get().path == "assets/cursor2.png");
 }
 
 TEST_CASE("ResourceManager keeps lookups by name and by id consistent after an update", "[resource][manager]") {
@@ -248,6 +256,75 @@ TEST_CASE("ResourceManager keeps lookups by name and by id consistent after an u
     manager.addAsset("music", "assets/new.ogg", ResourceManager::AssetType::Music);
 
     REQUIRE(manager.getAsset("music").path == "assets/new.ogg");
-    REQUIRE(manager.getAssetById(id)->path == "assets/new.ogg");
-    REQUIRE(manager.getAssetById(id) == &manager.getAsset("music"));
+    REQUIRE(manager.getAssetById(id)->get().path == "assets/new.ogg");
+    REQUIRE(&manager.getAssetById(id)->get() == &manager.getAsset("music"));
+}
+
+// ---------------------------------------------------------------------------
+// RenderSystem & Sprite
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Sprite component initializes with defaults and custom parameters", "[render][sprite]") {
+    RType::Sprite defaultSprite;
+    REQUIRE(defaultSprite.assetId == 0);
+    REQUIRE(defaultSprite.zIndex == 0);
+    REQUIRE(defaultSprite.rectWidth == 0);
+    REQUIRE(defaultSprite.rectHeight == 0);
+
+    RType::Sprite customSprite(42, 10, 20, 100, 200, 5);
+    REQUIRE(customSprite.assetId == 42);
+    REQUIRE(customSprite.rectLeft == 10);
+    REQUIRE(customSprite.rectTop == 20);
+    REQUIRE(customSprite.rectWidth == 100);
+    REQUIRE(customSprite.rectHeight == 200);
+    REQUIRE(customSprite.zIndex == 5);
+}
+
+TEST_CASE("RenderSystem manages texture cache and renders entities safely", "[render][system]") {
+
+    if (Catch::Detail::getEnv("DISPLAY") == nullptr) {
+        SUCCEED("Skipping render system test in headless environment.");
+        return;
+    }
+    RType::Registry registry;
+    registry.registerComponent<RType::Transform2D>();
+    registry.registerComponent<RType::Sprite>();
+
+    ResourceManager resources;
+    const auto textureId = resources.addAsset("non_existing_test_sprite", "assets/does_not_exist.png");
+
+    auto entity1 = registry.spawnEntity();
+    registry.addComponent(entity1, RType::Transform2D({100.0f, 200.0f}, {1.0f, 1.0f}, 0.0f));
+    registry.addComponent(entity1, RType::Sprite(textureId, 1));
+
+    auto entity2 = registry.spawnEntity();
+    registry.addComponent(entity2, RType::Transform2D({300.0f, 400.0f}, {2.0f, 2.0f}, 1.57f));
+    registry.addComponent(entity2, RType::Sprite(0, 2));
+
+    RType::RenderSystem renderSystem;
+    REQUIRE_FALSE(renderSystem.getTexture("assets/does_not_exist.png").has_value());
+
+    sf::RenderTexture renderTexture(sf::Vector2u(800, 600));
+    // RenderSystem rendering with fallback for missing assets
+    REQUIRE_NOTHROW(renderSystem.render(registry, resources, renderTexture));
+
+    renderSystem.clearTextureCache();
+}
+
+TEST_CASE("addRenderSystem registers rendering system into ECS registry", "[render][system]") {
+
+    if (Catch::Detail::getEnv("DISPLAY") == nullptr) {
+        SUCCEED("Skipping render system registration test in headless environment.");
+        return;
+    }
+    RType::Registry registry;
+    registry.registerComponent<RType::Transform2D>();
+    registry.registerComponent<RType::Sprite>();
+
+    ResourceManager resources;
+    RType::RenderSystem renderSystem;
+    sf::RenderTexture renderTexture(sf::Vector2u(800, 600));
+
+    RType::addRenderSystem(registry, resources, renderTexture, renderSystem);
+    REQUIRE_NOTHROW(registry.runSystems());
 }

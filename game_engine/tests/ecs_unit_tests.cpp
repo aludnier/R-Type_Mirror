@@ -13,6 +13,8 @@
 #include "ecs/Zipper.h"
 #include "components/Controllable.h"
 #include "components/Transform2D.h"
+#include "components/Health.h"
+#include "components/Hitbox.h"
 #include "library/InputManager.h"
 #include "systems/ControllableSystem.h"
 
@@ -223,24 +225,6 @@ TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]") {
     REQUIRE(seen[1] == std::make_pair(50, 3));
 }
 
-TEST_CASE("Zipper skips missing values at the start", "[ecs][zipper]") {
-    RType::SparseArray<Position> positions;
-    RType::SparseArray<Velocity> velocities;
-
-    positions.emplace(1, 3, 4);
-    velocities.emplace(0, 10, 20);
-    velocities.emplace(1, 30, 40);
-
-    RType::Zipper zipper(positions, velocities);
-    std::vector<int> seen;
-
-    for (auto [position, velocity] : zipper) {
-        seen.push_back(position.x + velocity.dx);
-    }
-
-    REQUIRE(seen == std::vector<int>{33});
-}
-
 TEST_CASE("Zipper over storages with no common value is empty", "[ecs][zipper]") {
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
@@ -275,6 +259,29 @@ TEST_CASE("Zipper shorter container limits iteration range", "[ecs][zipper]") {
     REQUIRE(seen[0] == 11);
 }
 
+TEST_CASE("Zipper skips leading unset optionals", "[ecs][zipper]") {
+    RType::SparseArray<Position> positions;
+    RType::SparseArray<Velocity> velocities;
+
+    positions.emplace(2, 50, 60);
+    positions.emplace(4, 70, 80);
+
+    velocities.emplace(0, 1, 2);
+    velocities.emplace(2, 3, 4);
+    velocities.emplace(4, 5, 6);
+
+    RType::Zipper zipper(positions, velocities);
+    std::vector<std::pair<int, int>> seen;
+
+    for (auto [position, velocity] : zipper) {
+        seen.emplace_back(position.x, velocity.dx);
+    }
+
+    REQUIRE(seen.size() == 2u);
+    REQUIRE(seen[0] == std::make_pair(50, 3));
+    REQUIRE(seen[1] == std::make_pair(70, 5));
+}
+
 TEST_CASE("IndexedZipper includes current entity index", "[ecs][indexed-zipper]") {
     RType::SparseArray<Position> positions;
 
@@ -290,9 +297,9 @@ TEST_CASE("IndexedZipper includes current entity index", "[ecs][indexed-zipper]"
     }
 
     REQUIRE(seen.size() == 3u);
-    REQUIRE(seen[0] == std::make_tuple(0u, 5, 6));
-    REQUIRE(seen[1] == std::make_tuple(2u, 7, 8));
-    REQUIRE(seen[2] == std::make_tuple(4u, 9, 10));
+    REQUIRE((seen[0] == std::make_tuple(0u, 5, 6)));
+    REQUIRE((seen[1] == std::make_tuple(2u, 7, 8)));
+    REQUIRE((seen[2] == std::make_tuple(4u, 9, 10)));
 }
 
 TEST_CASE("IndexedZipper skips missing values before reporting index", "[ecs][indexed-zipper]") {
@@ -316,4 +323,30 @@ TEST_CASE("IndexedZipper skips missing values before reporting index", "[ecs][in
 
     REQUIRE(seen.size() == 1u);
     REQUIRE(seen[0] == 0u);
+}
+
+TEST_CASE("Health component behaves correctly", "[ecs][components][health]") {
+    RType::Health health(10, 20);
+
+    REQUIRE(health.current == 10);
+    REQUIRE(health.max == 20);
+    REQUIRE_FALSE(health.isDead());
+
+    health.takeDamage(5);
+    REQUIRE(health.current == 5);
+    REQUIRE_FALSE(health.isDead());
+
+    health.takeDamage(10);
+    REQUIRE(health.current == 0);
+    REQUIRE(health.isDead());
+}
+
+TEST_CASE("Hitbox component initializes dimensions", "[ecs][components][hitbox]") {
+    RType::Hitbox defaultBox;
+    REQUIRE(defaultBox.size.x == 32.0f);
+    REQUIRE(defaultBox.size.y == 32.0f);
+
+    RType::Hitbox customBox(64.0f, 48.0f);
+    REQUIRE(customBox.size.x == 64.0f);
+    REQUIRE(customBox.size.y == 48.0f);
 }

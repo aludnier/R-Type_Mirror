@@ -9,6 +9,8 @@
 #define RESOURCEMANAGER_H_
 
 #include <cstdint>
+#include <functional>
+#include <optional>
 #include <string>
 #include <unordered_map>
 
@@ -72,10 +74,10 @@ public:
     /**
      * @brief Gets an asset from its id.
      * @param id Id of the asset (as stored in components).
-     * @return Pointer to the asset, or nullptr if the id is unknown.
-     * @note The pointer is invalidated if the asset is removed.
+     * @return Optional reference to the asset, or std::nullopt if the id is unknown.
+     * @note The reference is invalidated if the asset is removed.
      */
-    const Asset *getAssetById(std::uint32_t id) const;
+    std::optional<std::reference_wrapper<const Asset>> getAssetById(std::uint32_t id) const;
 
 private:
     std::unordered_map<std::string, Asset> _assets;
