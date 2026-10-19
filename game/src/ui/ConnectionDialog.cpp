@@ -7,6 +7,7 @@
 
 #include "ui/ConnectionDialog.h"
 #include <imgui.h>
+#include <imgui_stdlib.h>
 
 namespace Game {
 
@@ -45,7 +46,7 @@ namespace Game {
 
             ImGui::Text("Server Host / IP:");
             ImGui::SetNextItemWidth(480.0f);
-            ImGui::InputText("##ServerAddress", _hostBuffer.data(), _hostBuffer.size());
+            ImGui::InputText("##ServerAddress", &_hostBuffer);
 
             ImGui::Spacing();
             ImGui::Text("Server Port:");
@@ -57,7 +58,7 @@ namespace Game {
             ImGui::Spacing();
             ImGui::Text("Pilot Name:");
             ImGui::SetNextItemWidth(480.0f);
-            ImGui::InputText("##PlayerName", _playerNameBuffer.data(), _playerNameBuffer.size());
+            ImGui::InputText("##PlayerName", &_playerNameBuffer);
 
             if (isConnecting) {
                 ImGui::EndDisabled();
