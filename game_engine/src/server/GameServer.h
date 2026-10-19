@@ -17,6 +17,10 @@
 #include <vector>
 
 #include "ClientSession.h"
+#include "ecs/Entity.h"
+#include "ecs/Registry.h"
+#include "ecs/SparseArray.h"
+#include "math/Vector2.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
 #include "network/Packet.h"
@@ -29,6 +33,8 @@ namespace RType {
         /** @brief Player slots. R-Type is played by up to 4 players. */
         std::size_t maxPlayers = 4;
         std::uint16_t tickRate = Network::DEFAULT_TICK_RATE;
+        /** @brief Speed of a player's entity, in units per second. */
+        float playerSpeed = 300.f;
     };
 
     /**
@@ -39,7 +45,7 @@ namespace RType {
      * - the network thread (Network::NetworkThread) receives the datagrams,
      *   drops the malformed ones and queues the others;
      * - the game thread runs run(). It is the only one that touches the
-     *   sessions (and later the registry), so they need no lock.
+     *   sessions and the registry, so they need no lock.
      */
     class GameServer {
     public:
@@ -73,6 +79,41 @@ namespace RType {
             ClientSession &session, const ReceivedPacket &received);
         void checkTimeouts(Clock::time_point now);
         void reportDroppedDatagrams();
+
+        /** @brief Registers the components and systems of the server. */
+        void setupRegistry();
+
+        /**
+         * @brief Spawns the entity of the player @p id and makes it
+         *        replicated.
+         * @return Its NetworkId.
+         */
+        Network::NetworkId spawnPlayer(Network::ClientId id);
+
+        /**
+         * @brief Kills the replicated entity @p networkId and sends
+         *        ENTITY_DESPAWN to every client.
+         */
+        void despawn(Network::NetworkId networkId);
+
+        /** @brief Copies each client's last controls into its entity. */
+        void applyControls();
+
+        /**
+         * @brief Sends COMPONENT_UPDATE for the replicated components that
+         *        changed since they were last sent, and for all of them once
+         *        per second, so that a lost update does not leave a client
+         *        stale (COMPONENT_UPDATE is unreliable).
+         */
+        void replicate();
+
+        /** @return The ENTITY_SPAWN describing the entity @p networkId. */
+        [[nodiscard]] Network::EntitySpawnPacket makeSpawnPacket(
+            Network::NetworkId networkId);
+
+        /** @return The replicated components of @p entity, encoded. */
+        [[nodiscard]] std::vector<Network::ComponentData> replicatedComponents(
+            Entity entity);
 
         /**
          * @brief Removes the session and tells the other clients, with
@@ -183,6 +224,12 @@ namespace RType {
 
         std::map<Network::ClientId, ClientSession> _sessions;
         std::map<Network::Endpoint, Network::ClientId> _sessionIds;
+
+        Registry _registry;
+        /** @brief Replicated entities, by the id the clients know them by. */
+        std::map<Network::NetworkId, Entity> _replicated;
+        /** @brief Last position sent for each replicated entity. */
+        std::map<Network::NetworkId, Vector2> _lastSentPositions;
 
         /** @brief Never reused during a run (docs/protocol.md, section 3). */
         Network::NetworkId _nextNetworkId = 1;
