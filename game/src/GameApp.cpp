@@ -34,7 +34,6 @@
 
 // Game system headers
 #include "systems/MovementSystem.h"
-#include "systems/EnemyAISystem.h"
 #include "systems/ForcePodSystem.h"
 #include "systems/PlayerWeaponSystem.h"
 #include "systems/CollisionSystem.h"
@@ -118,7 +117,6 @@ namespace Game {
 
         // Game systems
         PlayerWeaponSystem::addSystem(_registry, _inputManager, _fixedDeltaTime);
-        EnemyAISystem::addSystem(_registry, _fixedDeltaTime);
         ForcePodSystem::addSystem(_registry);
         CollisionSystem::addSystem(_registry);
         BoundaryCleanupSystem::addSystem(_registry, 1920.0f, 1080.0f);

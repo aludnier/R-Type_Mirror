@@ -14,6 +14,7 @@
 #include <cstdint>
 #include <map>
 #include <optional>
+#include <set>
 #include <vector>
 
 #include "ClientSession.h"
@@ -67,6 +68,39 @@ namespace RType {
 
         /** @return The UDP port the server listens on. */
         [[nodiscard]] std::uint16_t localPort() const;
+
+    protected:
+        /*
+         * Extension points for the game: it adds its components and systems
+         * to registry() (they run every tick, after the engine's), and makes
+         * the entities it spawns visible to the clients with
+         * replicateEntity().
+         */
+
+        [[nodiscard]] Registry &registry();
+
+        /** @return The simulated duration of one tick, in seconds. */
+        [[nodiscard]] float tickDelta() const;
+
+        /**
+         * @brief Makes @p entity replicated and sends its ENTITY_SPAWN to
+         *        every client (and later to the clients that join).
+         * @param spawnComponents Components that never change, sent only
+         *        in ENTITY_SPAWN (e.g. PHYSICS or a game component).
+         * @param predictable The clients move it from its PHYSICS on their
+         *        own: its POSITION is then only sent with the update of
+         *        every second, not each time it changes.
+         * @return Its NetworkId.
+         */
+        Network::NetworkId replicateEntity(Entity entity,
+            std::vector<Network::ComponentData> spawnComponents = {},
+            bool predictable = false);
+
+        /**
+         * @brief Kills the replicated @p entity and sends ENTITY_DESPAWN.
+         *        Does nothing if it is not replicated.
+         */
+        void despawnEntity(Entity entity);
 
     private:
         using ReceivedPacket = Network::NetworkThread::ReceivedPacket;
@@ -230,6 +264,11 @@ namespace RType {
         std::map<Network::NetworkId, Entity> _replicated;
         /** @brief Last position sent for each replicated entity. */
         std::map<Network::NetworkId, Vector2> _lastSentPositions;
+        /** @brief See replicateEntity(). */
+        std::map<Network::NetworkId, std::vector<Network::ComponentData>>
+            _spawnComponents;
+        /** @brief See replicateEntity(). */
+        std::set<Network::NetworkId> _predictable;
 
         /** @brief Never reused during a run (docs/protocol.md, section 3). */
         Network::NetworkId _nextNetworkId = 1;

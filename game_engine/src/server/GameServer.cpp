@@ -309,6 +309,42 @@ namespace RType {
         return networkId;
     }
 
+    Registry &GameServer::registry()
+    {
+        return _registry;
+    }
+
+    float GameServer::tickDelta() const
+    {
+        return 1.f / static_cast<float>(_config.tickRate);
+    }
+
+    Network::NetworkId GameServer::replicateEntity(Entity entity,
+        std::vector<Network::ComponentData> spawnComponents, bool predictable)
+    {
+        Network::NetworkId networkId = _nextNetworkId++;
+
+        _replicated.emplace(networkId, entity);
+        if (!spawnComponents.empty()) {
+            _spawnComponents.emplace(networkId, std::move(spawnComponents));
+        }
+        if (predictable) {
+            _predictable.insert(networkId);
+        }
+        sendToAll(makeSpawnPacket(networkId));
+        return networkId;
+    }
+
+    void GameServer::despawnEntity(Entity entity)
+    {
+        auto it = std::ranges::find(
+            _replicated, entity, [](const auto &pair) { return pair.second; });
+
+        if (it != _replicated.end()) {
+            despawn(it->first);
+        }
+    }
+
     void GameServer::despawn(Network::NetworkId networkId)
     {
         auto it = _replicated.find(networkId);
@@ -321,6 +357,8 @@ namespace RType {
         _registry.killEntity(it->second);
         _replicated.erase(it);
         _lastSentPositions.erase(networkId);
+        _spawnComponents.erase(networkId);
+        _predictable.erase(networkId);
         sendToAll(Network::EntityDespawnPacket {networkId});
     }
 
@@ -355,7 +393,8 @@ namespace RType {
             auto last = _lastSentPositions.find(networkId);
 
             if (!sendAll && last != _lastSentPositions.end() &&
-                last->second == transform->position) {
+                (last->second == transform->position ||
+                    _predictable.contains(networkId))) {
                 continue;
             }
             _lastSentPositions[networkId] = transform->position;
@@ -367,7 +406,14 @@ namespace RType {
     Network::EntitySpawnPacket GameServer::makeSpawnPacket(
         Network::NetworkId networkId)
     {
-        return {networkId, replicatedComponents(_replicated.at(networkId))};
+        auto components = replicatedComponents(_replicated.at(networkId));
+        auto extra = _spawnComponents.find(networkId);
+
+        if (extra != _spawnComponents.end()) {
+            components.insert(
+                components.end(), extra->second.begin(), extra->second.end());
+        }
+        return {networkId, std::move(components)};
     }
 
     std::vector<Network::ComponentData> GameServer::replicatedComponents(
