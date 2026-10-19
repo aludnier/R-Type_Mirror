@@ -45,4 +45,5 @@ target_include_directories(r-type_client PRIVATE
 find_package(SFML COMPONENTS Graphics Window Audio System CONFIG REQUIRED)
 find_package(ImGui-SFML CONFIG REQUIRED)
 
-target_link_libraries(r-type_client PRIVATE engine_client physics2d_module SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
+add_dependencies(r-type_client physics2d_module environment2d_module)
+target_link_libraries(r-type_client PRIVATE engine_client SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)

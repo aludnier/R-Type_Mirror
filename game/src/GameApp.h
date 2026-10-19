@@ -18,6 +18,9 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 
+#include "DLLoader.hpp"
+#include "Module.h"
+
 namespace Game {
 
     /**
@@ -73,6 +76,8 @@ namespace Game {
         bool _running = false;
         float _frameRate = 60.0f;
         float _fixedDeltaTime = 1.0f / 60.0f;
+        RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader;
+        RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader;
     };
 
 } // namespace Game

@@ -29,7 +29,6 @@
 #include "components/Projectile.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
-#include "components/ParallaxBackground.h"
 #include "components/ForcePod.h"
 #include "components/NetworkEntity.h"
 
@@ -50,6 +49,13 @@ namespace Game {
     GameApp::GameApp()
         : _running(false), _frameRate(60.0f), _fixedDeltaTime(1.0f / 60.0f)
     {
+#ifdef WIN32
+        _physics2DModuleLoader.loadFile("../modules/physics2D/Physics2D_Module.dll");
+        _environmentModuleLoader.loadFile("../modules/environment2D/Environment2D_Module.dll");
+#else
+        _physics2DModuleLoader.loadFile("../modules/physics2D/Physics2D_Module.so");
+        _environmentModuleLoader.loadFile("../modules/environment2D/Environment2D_Module.so");
+#endif
     }
 
     void GameApp::init()
@@ -60,8 +66,6 @@ namespace Game {
         _registry.registerComponent<NetworkEntity>();
         _registry.registerComponent<Player>();
         _registry.registerComponent<Enemy>();
-        _registry.registerComponent<RType::Physics2D::Rigidbody2D>();
-        _registry.registerComponent<RType::Physics2D::PhysicsSettings2D>();
         _registry.registerComponent<Projectile>();
         _registry.registerComponent<Health>();
         _registry.registerComponent<Hitbox>();
@@ -108,8 +112,9 @@ namespace Game {
         // Engine Controllable system (local client prediction)
         RType::addControllableSystem(_registry, playerSpeed, _fixedDeltaTime);
 
-        // Physics2D movement system
-        RType::Physics2D::addMovementSystem(_registry);
+        // Modules systems
+        _physics2DModuleLoader.getInstance().registerModule(_registry);
+        _environmentModuleLoader.getInstance().registerModule(_registry);
 
         // Game systems
         PlayerWeaponSystem::addSystem(_registry, _inputManager, _fixedDeltaTime);
@@ -117,7 +122,6 @@ namespace Game {
         ForcePodSystem::addSystem(_registry);
         CollisionSystem::addSystem(_registry);
         BoundaryCleanupSystem::addSystem(_registry, 1920.0f, 1080.0f);
-        ParallaxSystem::addSystem(_registry, _fixedDeltaTime);
     }
 
     void GameApp::spawnInitialEntities()

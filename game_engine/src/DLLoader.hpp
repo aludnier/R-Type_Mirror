@@ -49,7 +49,7 @@ namespace RType {
             return *this;
         }
 
-        std::unique_ptr<T> getInstance()
+        const T &getInstance()
         {
             void *entryPoint = dlsym(this->_handle, ENTRY_POINT_SYMBOL.data());
             if (!entryPoint)
@@ -63,8 +63,7 @@ namespace RType {
                 throw InstanceCreationException(
                     std::string("Failed to create a new instance using ") +
                     ENTRY_POINT_SYMBOL.data());
-            std::unique_ptr<T> ptr(instance);
-            return std::move(ptr);
+            return *instance;
         }
 
         void close() noexcept
