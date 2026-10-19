@@ -107,7 +107,7 @@ namespace Game {
 
     void GameApp::setupSystems()
     {
-        constexpr float playerSpeed = 350.0f;
+        constexpr float playerSpeed = 300.0f;
 
         // Engine Controllable system (local client prediction)
         RType::addControllableSystem(_registry, playerSpeed, _fixedDeltaTime);
