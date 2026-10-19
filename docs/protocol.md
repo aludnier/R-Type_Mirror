@@ -420,4 +420,20 @@ and how a `ClientId` maps to a player color.
 
 | Id | Name | Layout |
 |---|---|---|
-| | *none yet* | |
+| `0x8000` | ENTITY_KIND | `kind: u8` (see below) |
+
+ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
+An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy
+(Bydo), `2` player laser, `3` charged beam (wave cannon), `4` enemy bullet.
+A client ignores an unknown value.
+
+Enemies and projectiles also carry PHYSICS in their ENTITY_SPAWN, with their
+hitbox size. A projectile moves in a straight line at its PHYSICS velocity:
+the client moves it on its own, and the server sends its POSITION only with
+the COMPONENT_UPDATE of every second. The server despawns a projectile when
+it hits its target or leaves the screen.
+
+POSITION is in pixels, in a 1920x1080 play area, origin at the top-left.
+CONTROLLABLE `actions`: bit 0 up, bit 1 down, bit 2 left, bit 3 right,
+bit 4 shoot. The server fires when the shoot bit goes from 1 to 0: a laser,
+or a charged beam if it was held for 1.5 s or more.
