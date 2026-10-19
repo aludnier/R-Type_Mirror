@@ -12,6 +12,7 @@ add_library(physics2d_module SHARED
 
 target_include_directories(physics2d_module PUBLIC
         ${PROJECT_SOURCE_DIR}/game_engine/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 target_link_libraries(physics2d_module PRIVATE engine_core)
