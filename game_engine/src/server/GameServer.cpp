@@ -9,11 +9,16 @@
 
 #include <algorithm>
 #include <iostream>
+#include <ranges>
 #include <thread>
 #include <vector>
 
+#include "components/Controllable.h"
+#include "components/Transform2D.h"
+#include "network/ByteWriter.h"
 #include "network/ClientPackets.h"
 #include "network/ServerPackets.h"
+#include "systems/ControllableSystem.h"
 
 namespace RType {
     namespace {
@@ -29,11 +34,30 @@ namespace RType {
          *        making the server fall further and further behind.
          */
         constexpr int MAX_CATCH_UP_TICKS = 5;
+
+        /** @brief Where the player @p id appears: one row per player. */
+        Vector2 playerSpawnPosition(Network::ClientId id)
+        {
+            return {100.f, 100.f * static_cast<float>(id)};
+        }
+
+        /** @brief POSITION component (docs/protocol.md, section 6.3). */
+        Network::ComponentData encodePosition(const Vector2 &position)
+        {
+            Network::ByteWriter writer;
+
+            writer.writeFloat(position.x);
+            writer.writeFloat(position.y);
+            return {static_cast<Network::ComponentTypeId>(
+                        Network::EngineComponentType::Position),
+                writer.release()};
+        }
     } // namespace
 
     GameServer::GameServer(ServerConfig config) :
         _config(config), _network(config.port, INCOMING_QUEUE_SIZE)
     {
+        setupRegistry();
     }
 
     GameServer::~GameServer() = default;
@@ -76,8 +100,9 @@ namespace RType {
     {
         processIncoming();
         checkTimeouts(Clock::now());
-        // TODO(ECS): registry.run_systems(), then replicate the changes with
-        // sendComponentUpdate().
+        applyControls();
+        _registry.runSystems();
+        replicate();
         if (_tick % _config.tickRate == 0) {
             reportDroppedDatagrams();
         }
@@ -136,8 +161,7 @@ namespace RType {
                     Network::DisconnectReason::ServerFull, "server is full"});
             return;
         }
-        // TODO(ECS): spawn the player's entity and use its NetworkId.
-        Network::NetworkId linkedEntity = _nextNetworkId++;
+        Network::NetworkId linkedEntity = spawnPlayer(*id);
         auto [it, inserted] = _sessions.try_emplace(*id, *id, received.from,
             linkedEntity, ask->playerName, received.receivedAt);
         ClientSession &session = it->second;
@@ -151,8 +175,9 @@ namespace RType {
         send(session,
             Network::AcceptConnectPacket {
                 *id, linkedEntity, _config.tickRate});
-        // TODO(ECS): one ENTITY_SPAWN per replicated entity, its own
-        // included.
+        for (const auto &networkId : _replicated | std::views::keys) {
+            send(session, makeSpawnPacket(networkId));
+        }
         for (auto &[otherId, other] : _sessions) {
             if (otherId != *id) {
                 send(session,
@@ -160,6 +185,7 @@ namespace RType {
                         otherId, other.linkedEntity(), other.playerName()});
             }
         }
+        sendToAllExcept(*id, makeSpawnPacket(linkedEntity));
         sendToAllExcept(*id,
             Network::PlayerConnectedPacket {
                 *id, linkedEntity, session.playerName()});
@@ -256,10 +282,104 @@ namespace RType {
                   << (reason == Network::DisconnectReason::Timeout ? "timeout"
                                                                    : "left")
                   << ")\n";
+        auto linkedEntity = it->second.linkedEntity();
+
         _sessionIds.erase(it->second.endpoint());
         _sessions.erase(it);
-        // TODO(ECS): despawn the linked entity and send ENTITY_DESPAWN.
+        despawn(linkedEntity);
         sendToAll(Network::PlayerDisconnectedPacket {id, reason});
+    }
+
+    void GameServer::setupRegistry()
+    {
+        _registry.registerComponent<Transform2D>();
+        _registry.registerComponent<Controllable>();
+        addControllableSystem(_registry, _config.playerSpeed,
+            1.f / static_cast<float>(_config.tickRate));
+    }
+
+    Network::NetworkId GameServer::spawnPlayer(Network::ClientId id)
+    {
+        Entity entity = _registry.spawnEntity();
+        Network::NetworkId networkId = _nextNetworkId++;
+
+        _registry.addComponent(entity, Transform2D {playerSpawnPosition(id)});
+        _registry.addComponent(entity, Controllable {});
+        _replicated.emplace(networkId, entity);
+        return networkId;
+    }
+
+    void GameServer::despawn(Network::NetworkId networkId)
+    {
+        auto it = _replicated.find(networkId);
+
+        if (it == _replicated.end()) {
+            return;
+        }
+        // Deferred by the registry: the components go at the end of the
+        // next runSystems().
+        _registry.killEntity(it->second);
+        _replicated.erase(it);
+        _lastSentPositions.erase(networkId);
+        sendToAll(Network::EntityDespawnPacket {networkId});
+    }
+
+    void GameServer::applyControls()
+    {
+        auto &controllables = _registry.getComponents<Controllable>();
+
+        for (const auto &session : _sessions | std::views::values) {
+            auto entity = _replicated.find(session.linkedEntity());
+
+            if (entity == _replicated.end()) {
+                continue;
+            }
+            // Controllable holds 8 actions: the higher bits are not used.
+            controllables[entity->second] = Controllable {
+                static_cast<std::uint8_t>(session.controls().actions)};
+        }
+    }
+
+    void GameServer::replicate()
+    {
+        auto &transforms = _registry.getComponents<Transform2D>();
+        bool sendAll = _tick % _config.tickRate == 0;
+        std::vector<Network::EntityComponents> updates;
+
+        for (const auto &[networkId, entity] : _replicated) {
+            const auto &transform = transforms[entity];
+
+            if (!transform) {
+                continue;
+            }
+            auto last = _lastSentPositions.find(networkId);
+
+            if (!sendAll && last != _lastSentPositions.end() &&
+                last->second == transform->position) {
+                continue;
+            }
+            _lastSentPositions[networkId] = transform->position;
+            updates.push_back({networkId, {encodePosition(transform->position)}});
+        }
+        sendComponentUpdate(updates);
+    }
+
+    Network::EntitySpawnPacket GameServer::makeSpawnPacket(
+        Network::NetworkId networkId)
+    {
+        return {networkId, replicatedComponents(_replicated.at(networkId))};
+    }
+
+    std::vector<Network::ComponentData> GameServer::replicatedComponents(
+        Entity entity)
+    {
+        std::vector<Network::ComponentData> components;
+        const auto &transform = _registry.getComponents<Transform2D>()[entity];
+
+        if (transform) {
+            components.push_back(encodePosition(transform->position));
+        }
+        return components;
     }
 
     void GameServer::shutdown()
