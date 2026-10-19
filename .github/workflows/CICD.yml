@@ -1,56 +1,93 @@
 name: CICD
 
 on:
-    push: 
-        branches:
-            - main
-    pull_request: 
-        branches:
-            - main
-    workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+      - Dev
+  workflow_dispatch:
 
-env: 
-    EPITECH_REPO: "git@github.com:EpitechPGE3-2026/G-ING-500-PAR-5-1-rtype-12.git"
+env:
+  EPITECH_REPO: "git@github.com:EpitechPGE3-2026/G-ING-500-PAR-5-1-rtype-12.git"
 
 jobs:
   build-project-Linux:
     runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     steps:
-      - uses: "actions/checkout@v4"
+      # vcpkg is a git submodule: it must be checked out too.
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
 
-      - name: Install dependencies
+      # Dependencies are only rebuilt when vcpkg.json changes.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+      - name: Install Linux dependencies
         run: |
-            sudo apt-get update 
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libudev-dev \
+            libgl1-mesa-dev
       - name: Configure and build
-        run: | 
-          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-          cmake --build build
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          cmake --preset release
+          cmake --build --preset release -j
+
+      - name: Test
+        run: ctest --test-dir build/release --output-on-failure
 
   build-project-Window:
     runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
     steps:
-      - uses: "actions/checkout@v4"
-      - name: Setup Windows tools
-        run: |
-          echo "Using Visual Studio and CMake preinstalled on windows-latest"
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+
       - name: Configure and build
         shell: powershell
         run: |
-          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
-          cmake --build build --config Release -- /m
+          New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          cmake --preset release
+          cmake --build --preset release -j
+
+      # Visual Studio is multi-config: ctest needs the configuration.
+      - name: Test
+        run: ctest --test-dir build/release -C Release --output-on-failure
 
   push-to-mirror:
-    needs: [build-project-Linux , build-project-Window]
+    needs: [ build-project-Linux , build-project-Window ]
     if: github.repository == 'aludnier/R-Type_Mirror'
     runs-on: ubuntu-latest
     steps:
-        - name: Checkout Code
-          uses: "actions/checkout@v4"
-          with:
-            fetch-depth: 0
-        - name: Push to Epitech Repository
-          uses: pixta-dev/repository-mirroring-action@v1
-          with:
-            target_repo_url: ${{ env.EPITECH_REPO }}
-            ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-
+      - name: Checkout Code
+        uses: "actions/checkout@v7"
+        with:
+          fetch-depth: 0
+      - name: Push to Epitech Repository
+        uses: pixta-dev/repository-mirroring-action@v1
+        with:
+          target_repo_url: ${{ env.EPITECH_REPO }}
+          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}

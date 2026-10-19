@@ -1,0 +1,48 @@
+@startuml modular_game_engine_overview
+skinparam shadowing false
+skinparam packageStyle rectangle
+
+title Modular Game Engine — Architecture Overview
+
+package "Application" {
+    [Game]
+}
+package "Static Engine Core" {
+    [Engine Core]
+}
+package "Dynamic Modules" {
+    [Physics Module]
+    [Renderer Module]
+    [Animation Module]
+    [Audio Module]
+}
+package "Engine Subsystems" {
+    [ECS / Components]
+    [Network Protocol / Transport]
+    [Server Runtime]
+    [Client Runtime / Game Lib]
+}
+
+[Game] --> [Engine Core]
+
+[Engine Core] --> [Physics Module] : discover/load/init/unload
+[Engine Core] --> [Renderer Module] : discover/load/init/unload
+[Engine Core] --> [Animation Module] : discover/load/init/unload
+[Engine Core] --> [Audio Module] : discover/load/init/unload
+
+[Engine Core] --> [ECS / Components]
+[Engine Core] --> [Network Protocol / Transport]
+[Engine Core] --> [Server Runtime]
+[Engine Core] --> [Client Runtime / Game Lib]
+
+[Physics Module] --> [ECS / Components] : components and systems
+[Renderer Module] --> [ECS / Components] : components and systems
+[Animation Module] --> [ECS / Components] : components and systems
+[Audio Module] --> [ECS / Components] : components and systems
+
+note bottom
+Detailed views are separate PUML files.
+Each detailed view has external-reference stubs,
+so it can be rendered independently.
+end note
+@enduml
