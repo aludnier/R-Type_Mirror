@@ -103,9 +103,9 @@ if (BUILD_TESTS)
             tests/network_transport_tests.cpp
             tests/library_manager_tests.cpp
             tests/plugin_manager_tests.cpp
+            tests/physics2d_plugin_tests.cpp
     )
 
-    # engine_client brings engine_core with it.
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
 
     set(PLUGIN_TEST_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test_plugins")
