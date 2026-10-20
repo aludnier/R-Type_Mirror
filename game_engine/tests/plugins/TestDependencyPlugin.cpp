@@ -9,7 +9,6 @@ namespace {
 
     void shutdown(RType::Registry *registry)
     {
-        registry->unregisterComponent<TestDependencyComponent>();
     }
 
     const Engine::Plugin::Descriptor descriptor{
