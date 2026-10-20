@@ -54,6 +54,8 @@ public:
     void loadRequiredPlugins(const std::filesystem::path &directory,
         const std::vector<std::string> &components,
         const std::vector<std::string> &systems, RType::Registry &registry);
+    void loadModule(const std::filesystem::path &path,
+        RType::Registry &registry);
     bool unload(const std::string &name);
     void unloadAll();
     bool isLoaded(const std::string &name) const;
@@ -98,6 +100,11 @@ private:
         Engine::Plugin::ShutdownFunction shutdown;
     };
 
+    struct LoadedModule {
+        Library library;
+        std::string name;
+    };
+
     enum class VisitState : char {
         Unvisited,
         Visiting,
@@ -132,6 +139,7 @@ private:
     void shutdownPlugin(LoadedPlugin &plugin) noexcept;
 
     std::vector<LoadedPlugin> _loadedPlugins;
+    std::vector<LoadedModule> _loadedModules;
     RType::Registry *_registry = nullptr;
     bool _configured = false;
 };

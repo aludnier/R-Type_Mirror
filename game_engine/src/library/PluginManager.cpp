@@ -1,4 +1,5 @@
 #include "PluginManager.h"
+#include "Module.h"
 
 #include <algorithm>
 #include <iostream>
@@ -288,6 +289,30 @@ std::vector<std::size_t> PluginManager::resolveLoadOrder(const std::vector<Candi
     std::vector<std::size_t> order;
 
     roots.insert(roots.end(), systemRoots.begin(), systemRoots.end());
+
+    const auto visit = [&](const auto &self, std::size_t index) -> void {
+        if (state[index] == VisitState::Done)
+            return;
+        if (state[index] == VisitState::Visiting)
+            throw std::runtime_error(
+                "Plugin dependency cycle detected at '" +
+                candidates[index].name + "'");
+
+        state[index] = VisitState::Visiting;
+        for (const auto &dependency : candidates[index].dependencies) {
+            const auto found = nameIndex.find(dependency);
+            if (found == nameIndex.end())
+                throw std::runtime_error("Plugin '" + candidates[index].name +
+                    "' requires missing dependency '" + dependency + "'");
+            self(self, found->second);
+        }
+        state[index] = VisitState::Done;
+        order.push_back(index);
+    };
+
+    for (const auto root : roots)
+        visit(visit, root);
+
     return order;
 }
 
@@ -342,27 +367,53 @@ PluginManager::PluginManager()
 
 PluginManager::~PluginManager()
 {
-    unloadAll();
+    while (!_loadedPlugins.empty()) {
+        shutdownPlugin(_loadedPlugins.back());
+        _loadedPlugins.pop_back();
+    }
 }
 
 bool PluginManager::isLoaded(const std::string &name) const
 {
-    for (auto &loaded : _loadedPlugins) {
+    for (const auto &loaded : _loadedPlugins) {
         if (loaded.name == name) {
             return true;
         }
+    }
+    for (const auto &loaded : _loadedModules) {
+        if (loaded.name == name)
+            return true;
     }
     return false;
 }
 
 bool PluginManager::unload(const std::string &name)
 {
+    const auto module = std::find_if(_loadedModules.begin(),
+        _loadedModules.end(),
+        [&name](const LoadedModule &loaded) { return loaded.name == name; });
+    if (module != _loadedModules.end())
+        throw std::logic_error(
+            "Cannot unload module '" + name +
+            "' because its descriptor has no shutdown callback");
+
     auto found = std::find_if(_loadedPlugins.begin(),
         _loadedPlugins.end(),
         [&name](const LoadedPlugin &plugin) { return plugin.name == name; });
 
     if (found == _loadedPlugins.end())
         return false;
+    const auto dependent = std::find_if(_loadedPlugins.begin(),
+        _loadedPlugins.end(),
+        [&name](const LoadedPlugin &plugin) {
+            return plugin.name != name &&
+                std::find(plugin.dependencies.begin(), plugin.dependencies.end(),
+                    name) != plugin.dependencies.end();
+        });
+    if (dependent != _loadedPlugins.end())
+        throw std::runtime_error("Cannot unload plugin '" + name +
+            "' because plugin '" + dependent->name + "' depends on it");
+
     shutdownPlugin(*found);
     _loadedPlugins.erase(found);
     return true;
@@ -370,10 +421,48 @@ bool PluginManager::unload(const std::string &name)
 
 void PluginManager::unloadAll()
 {
+    if (!_loadedModules.empty())
+        throw std::logic_error(
+            "Cannot unload modules without shutdown callbacks");
     while (!_loadedPlugins.empty()) {
         shutdownPlugin(_loadedPlugins.back());
         _loadedPlugins.pop_back();
     }
+}
+
+void PluginManager::loadModule(const std::filesystem::path &path,
+    RType::Registry &registry)
+{
+    if (_registry != nullptr && _registry != &registry)
+        throw std::logic_error(
+            "PluginManager cannot load into multiple registries");
+
+    Library library(openLibrary(path));
+    using ModuleEntryPoint = const RType::ModuleDescriptor *(*)();
+    auto entryPoint = reinterpret_cast<ModuleEntryPoint>(
+        findSymbol(library.get(), "RTypeLibEntryPoint"));
+    if (entryPoint == nullptr)
+        throw std::runtime_error(
+            "Module is missing RTypeLibEntryPoint: " + path.string());
+
+    const auto *descriptor = entryPoint();
+    if (descriptor == nullptr || descriptor->name.empty() ||
+        descriptor->apiVersion.major != RType::MODULE_API_MAJOR ||
+        !descriptor->registerModule)
+        throw std::runtime_error(
+            "Module has an invalid descriptor or incompatible API: " +
+            path.string());
+    if (isLoaded(descriptor->name))
+        throw std::logic_error(
+            "Module is already loaded: " + descriptor->name);
+
+    _registry = &registry;
+    _loadedModules.push_back(
+        {std::move(library), descriptor->name});
+    const auto status = descriptor->registerModule(registry);
+    if (status != RType::ModuleStatus::Success)
+        throw std::runtime_error(
+            "Module '" + descriptor->name + "' failed to initialize");
 }
 
 void PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, const std::vector<std::string> &components,
