@@ -7,6 +7,7 @@
 #include "components/Rigidbody2D.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
+#include "ecs/SparseArray.h"
 #include "library/PluginManager.h"
 
 TEST_CASE("PluginManager loads and runs the production Physics2D module",

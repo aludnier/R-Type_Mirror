@@ -5,10 +5,26 @@
 #include <stdexcept>
 
 #include "ecs/Registry.h"
+#include "ecs/SparseArray.h"
 #include "library/PluginManager.h"
 #include "plugins/TestDependencyComponent.h"
 #include "plugins/TestFailingComponent.h"
 #include "plugins/TestPluginComponent.h"
+
+namespace {
+    std::filesystem::path findModuleLibrary(
+        const std::filesystem::path &directory, const std::string &name)
+    {
+        for (const auto &entry : std::filesystem::directory_iterator(directory)) {
+            const auto filename = entry.path().filename().string();
+            if (entry.is_regular_file() &&
+                filename.find(name) != std::string::npos)
+                return entry.path();
+        }
+        throw std::runtime_error("Could not find test module library '" +
+            name + "' in " + directory.string());
+    }
+}
 
 TEST_CASE("PluginManager loads providers and dependencies in dependency order",
           "[plugins]") {
@@ -46,6 +62,26 @@ TEST_CASE("PluginManager blocks dependency unload and safely unloads plugins",
     REQUIRE(manager.unload("test_dependency"));
     REQUIRE_THROWS_AS(registry.getComponents<TestDependencyComponent>(), std::out_of_range);
     REQUIRE_FALSE(manager.unload("unknown_plugin"));
+}
+
+TEST_CASE("PluginManager loads ModuleDescriptor dependencies before the module",
+          "[plugins][modules]") {
+    PluginManager manager;
+    RType::Registry registry;
+
+    manager.loadModule(findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"),
+        registry);
+
+    REQUIRE(manager.isLoaded("test_dependency_module"));
+    REQUIRE(manager.isLoaded("test_module"));
+    REQUIRE(registry.getComponents<TestDependencyComponent>().size() == 0);
+    REQUIRE(registry.getComponents<TestPluginComponent>().size() == 0);
+
+    const auto entity = registry.spawnEntity();
+    registry.emplaceComponent<TestPluginComponent>(entity, 41);
+    registry.runSystems();
+
+    REQUIRE(registry.getComponents<TestPluginComponent>()[entity]->value == 42);
 }
 
 TEST_CASE("PluginManager rolls back plugins when initialization throws",

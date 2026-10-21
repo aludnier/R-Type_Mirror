@@ -1,4 +1,5 @@
 #include "library/PluginManager.h"
+#include "ecs/SparseArray.h"
 #include "TestFailingComponent.h"
 
 #include <stdexcept>
