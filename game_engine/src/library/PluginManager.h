@@ -205,7 +205,7 @@ private:
         std::string name;
         std::vector<std::string> components;
         std::vector<std::string> systems;
-        std::vector<std::string> dependencies
+        std::vector<std::string> dependencies;
         Engine::Plugin::InitializeFunction initialize = nullptr;
         Engine::Plugin::ShutdownFunction shutdown = nullptr;
     };
