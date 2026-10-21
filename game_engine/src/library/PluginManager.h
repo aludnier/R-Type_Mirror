@@ -431,6 +431,7 @@ private:
      */
     void shutdownPlugin(LoadedPlugin &plugin) noexcept;
 
+    std::vector<Library> _retiredLibraries;
     std::vector<LoadedPlugin> _loadedPlugins;
     std::vector<LoadedModule> _loadedModules;
     RType::Registry *_registry = nullptr;

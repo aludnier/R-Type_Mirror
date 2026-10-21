@@ -316,10 +316,14 @@ void PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
         }
     } catch (...) {
         while (_loadedPlugins.size() > firstNewPlugin) {
-            shutdownPlugin(_loadedPlugins.back());
+            auto &plugin = _loadedPlugins.back();
+            shutdownPlugin(plugin);
+            // Do not dlclose here: the exception being propagated (and any
+            // leftover registry callback) may still reference this code.
+            _retiredLibraries.push_back(std::move(plugin.library));
             _loadedPlugins.pop_back();
         }
-        if (_loadedPlugins.empty())
+        if (_loadedPlugins.empty() && _loadedModules.empty())
             _registry = nullptr;
         throw;
     }
@@ -332,7 +336,11 @@ void PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
     try {
         plugin.shutdown(_registry);
     } catch (const std::exception &error) {
-        throw ;
+        std::cerr << "Plugin '" << plugin.name
+                  << "' threw during shutdown: " << error.what() << '\n';
+    } catch (...) {
+        std::cerr << "Plugin '" << plugin.name
+                  << "' threw during shutdown\n";
     }
 }
 
