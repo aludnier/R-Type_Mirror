@@ -15,10 +15,6 @@
 
 using namespace Engine::Plugin;
 
-// ---------------------------------------------------------------------------
-// Library (RAII handle)
-// ---------------------------------------------------------------------------
-
 PluginManager::Library::Library(void *handle) :
     _handle(handle)
 {
@@ -58,10 +54,6 @@ void PluginManager::Library::reset(void *handle)
         closeLibrary(_handle);
     _handle = handle;
 }
-
-// ---------------------------------------------------------------------------
-// Platform layer
-// ---------------------------------------------------------------------------
 
 void PluginManager::closeLibrary(void *handle)
 {
@@ -111,11 +103,6 @@ bool PluginManager::isSharedLibrary(const std::filesystem::path &path)
     return path.extension() == ".so";
 #endif
 }
-
-// ---------------------------------------------------------------------------
-// Discovery and validation
-// ---------------------------------------------------------------------------
-
 
 std::vector<std::filesystem::path> PluginManager::listLibraries(const std::filesystem::path &directory) const
 {
@@ -225,10 +212,6 @@ std::vector<PluginManager::Candidate> PluginManager::loadCandidates(const std::f
     return candidates;
 }
 
-// ---------------------------------------------------------------------------
-// Selection and ordering
-// ---------------------------------------------------------------------------
-
 void PluginManager::addOwners(OwnerMap &owners, const std::vector<std::string> &names,
     std::size_t pluginIndex, std::string_view kind,
     std::string_view pluginName)
@@ -315,10 +298,6 @@ std::vector<std::size_t> PluginManager::resolveLoadOrder(const std::vector<Candi
 
     return order;
 }
-
-// ---------------------------------------------------------------------------
-// Activation / deactivation
-// ---------------------------------------------------------------------------
 
 void PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
     const std::vector<std::size_t> &order, RType::Registry &registry)
@@ -437,32 +416,117 @@ void PluginManager::loadModule(const std::filesystem::path &path,
         throw std::logic_error(
             "PluginManager cannot load into multiple registries");
 
-    Library library(openLibrary(path));
+    const auto rootPath = std::filesystem::canonical(path);
+    const auto paths = listLibraries(rootPath.parent_path());
+    std::vector<ModuleCandidate> candidates;
+    std::unordered_map<std::string, std::size_t> nameIndex;
+    std::optional<std::size_t> rootIndex;
+
     using ModuleEntryPoint = const RType::ModuleDescriptor *(*)();
-    auto entryPoint = reinterpret_cast<ModuleEntryPoint>(
-        findSymbol(library.get(), "RTypeLibEntryPoint"));
-    if (entryPoint == nullptr)
+    for (const auto &candidatePath : paths) {
+        Library library(openLibrary(candidatePath));
+        auto entryPoint = reinterpret_cast<ModuleEntryPoint>(
+            findSymbol(library.get(), "RTypeLibEntryPoint"));
+        if (entryPoint == nullptr)
+            continue;
+
+        const auto *descriptor = entryPoint();
+        if (descriptor == nullptr || descriptor->name.empty() ||
+            descriptor->apiVersion.major != RType::MODULE_API_MAJOR ||
+            !descriptor->registerModule)
+            throw std::runtime_error(
+                "Module has an invalid descriptor or incompatible API: " +
+                candidatePath.string());
+
+        ModuleCandidate candidate;
+        candidate.name = descriptor->name;
+        candidate.apiVersion = descriptor->apiVersion;
+        candidate.dependencies = descriptor->dependencies;
+        candidate.registerModule = descriptor->registerModule;
+        candidate.library = std::move(library);
+
+        if (!nameIndex.emplace(candidate.name, candidates.size()).second)
+            throw std::runtime_error(
+                "Duplicate module name: " + candidate.name);
+        if (std::filesystem::canonical(candidatePath) == rootPath)
+            rootIndex = candidates.size();
+        candidates.push_back(std::move(candidate));
+    }
+
+    if (!rootIndex)
         throw std::runtime_error(
             "Module is missing RTypeLibEntryPoint: " + path.string());
-
-    const auto *descriptor = entryPoint();
-    if (descriptor == nullptr || descriptor->name.empty() ||
-        descriptor->apiVersion.major != RType::MODULE_API_MAJOR ||
-        !descriptor->registerModule)
-        throw std::runtime_error(
-            "Module has an invalid descriptor or incompatible API: " +
-            path.string());
-    if (isLoaded(descriptor->name))
+    if (isLoaded(candidates[*rootIndex].name))
         throw std::logic_error(
-            "Module is already loaded: " + descriptor->name);
+            "Module is already loaded: " + candidates[*rootIndex].name);
+
+    const auto isApiCompatible = [](RType::ModuleApiVersion actual,
+                                     RType::ModuleApiVersion required) {
+        return actual.major == required.major &&
+            actual.minor >= required.minor;
+    };
+    std::unordered_map<std::string, RType::ModuleApiVersion> loadedVersions;
+    for (const auto &module : _loadedModules)
+        loadedVersions.emplace(module.name, module.apiVersion);
+
+    std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
+    std::vector<std::size_t> order;
+    const auto visit = [&](const auto &self, std::size_t index) -> void {
+        auto &candidate = candidates[index];
+        if (state[index] == VisitState::Done)
+            return;
+        if (state[index] == VisitState::Visiting)
+            throw std::runtime_error(
+                "Module dependency cycle detected at '" + candidate.name +
+                "'");
+
+        state[index] = VisitState::Visiting;
+        for (const auto &dependency : candidate.dependencies) {
+            if (const auto loaded = loadedVersions.find(dependency.name);
+                loaded != loadedVersions.end()) {
+                if (!isApiCompatible(loaded->second, dependency.compatible_api))
+                    throw std::runtime_error(
+                        "Module '" + candidate.name +
+                        "' requires an incompatible version of dependency '" +
+                        dependency.name + "'");
+                continue;
+            }
+
+            const auto found = nameIndex.find(dependency.name);
+            if (found == nameIndex.end())
+                throw std::runtime_error("Module '" + candidate.name +
+                    "' requires missing dependency '" + dependency.name +
+                    "'");
+            const auto &dependencyCandidate = candidates[found->second];
+            if (!isApiCompatible(dependencyCandidate.apiVersion,
+                    dependency.compatible_api))
+                throw std::runtime_error("Module '" + candidate.name +
+                    "' requires an incompatible version of dependency '" +
+                    dependency.name + "'");
+            self(self, found->second);
+        }
+        state[index] = VisitState::Done;
+        order.push_back(index);
+    };
+    visit(visit, *rootIndex);
 
     _registry = &registry;
-    _loadedModules.push_back(
-        {std::move(library), descriptor->name});
-    const auto status = descriptor->registerModule(registry);
-    if (status != RType::ModuleStatus::Success)
-        throw std::runtime_error(
-            "Module '" + descriptor->name + "' failed to initialize");
+    for (const auto index : order) {
+        auto &candidate = candidates[index];
+        _loadedModules.push_back({
+            std::move(candidate.library),
+            candidate.name,
+            candidate.apiVersion,
+            candidate.dependencies,
+            std::move(candidate.registerModule)
+        });
+        auto &module = _loadedModules.back();
+        const auto status = module.registerModule(registry);
+        if (status != RType::ModuleStatus::Success)
+            throw std::runtime_error(
+                "Module '" + module.name + "' failed to initialize");
+        loadedVersions.emplace(module.name, module.apiVersion);
+    }
 }
 
 void PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, const std::vector<std::string> &components,

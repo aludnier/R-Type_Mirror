@@ -12,6 +12,7 @@
 #include <vector>
 
 #include "ecs/Registry.h"
+#include "Module.h"
 
 #ifdef _WIN32
 #define ENGINE_PLUGIN_EXPORT extern "C" __declspec(dllexport)
@@ -103,6 +104,17 @@ private:
     struct LoadedModule {
         Library library;
         std::string name;
+        RType::ModuleApiVersion apiVersion{};
+        std::vector<RType::ModuleDependency> dependencies;
+        RType::RegisterModuleFn registerModule;
+    };
+
+    struct ModuleCandidate {
+        Library library;
+        std::string name;
+        RType::ModuleApiVersion apiVersion{};
+        std::vector<RType::ModuleDependency> dependencies;
+        RType::RegisterModuleFn registerModule;
     };
 
     enum class VisitState : char {
@@ -125,7 +137,6 @@ private:
     std::optional<Candidate> tryLoadCandidate(const std::filesystem::path &path) const;
     std::vector<Candidate> loadCandidates(const std::filesystem::path &directory) const;
 
-    // Selection and ordering
     static void addOwners(OwnerMap &owners, const std::vector<std::string> &names, std::size_t pluginIndex, std::string_view kind,
         std::string_view pluginName);
     static OwnerMap buildOwners(const std::vector<Candidate> &candidates, std::vector<std::string> Candidate::*names, std::string_view kind);
