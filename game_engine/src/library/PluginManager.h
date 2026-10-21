@@ -1,3 +1,54 @@
+/*
+** EPITECH PROJECT, 2026
+** Rtype
+** File description:
+** pluginManager
+*/
+
+#ifndef PLUGINMANAGER_H_
+    #define PLUGINMANAGER_H_
+
+#include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <functional>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
+
+#include "ecs/Registry.h"
+#include "Module.h"
+
+#ifdef _WIN32
+#define ENGINE_PLUGIN_EXPORT extern "C" __declspec(dllexport)
+#else
+#define ENGINE_PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
+#endif
+
+namespace Engine::Plugin {
+    constexpr std::uint32_t ABI_VERSION = 2;
+    constexpr const char *DESCRIPTOR_SYMBOL = "engine_plugin_descriptor";
+
+    using InitializeFunction = void (*)(RType::Registry *);
+    using ShutdownFunction = void (*)(RType::Registry *);
+
+    struct Descriptor {
+        std::uint32_t abiVersion;
+        const char *name;
+        const char *const *components;
+        std::size_t componentCount;
+        const char *const *systems;
+        std::size_t systemCount;
+        const char *const *dependencies; // names of plugins required first
+        std::size_t dependencyCount;
+        InitializeFunction initialize;   // mandatory
+        ShutdownFunction shutdown;       // optional (may be nullptr)
+    };
+
+    using DescriptorFunction = const Descriptor *(*)();
+}
 class PluginManager
 {
 public:
@@ -152,9 +203,9 @@ private:
     struct Candidate {
         Library library;
         std::string name;
-        std::vector<std::string> components;   ///< Components it provides.
-        std::vector<std::string> systems;      ///< Systems it provides.
-        std::vector<std::string> dependencies; ///< Plugins required first.
+        std::vector<std::string> components;
+        std::vector<std::string> systems;
+        std::vector<std::string> dependencies
         Engine::Plugin::InitializeFunction initialize = nullptr;
         Engine::Plugin::ShutdownFunction shutdown = nullptr;
     };
@@ -385,3 +436,5 @@ private:
     RType::Registry *_registry = nullptr;
     bool _configured = false;
 };
+
+#endif
