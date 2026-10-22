@@ -58,7 +58,7 @@ public:
     /**
      * @brief Constructs an empty plugin manager with no plugin or module loaded.
      */
-    explicit PluginManager();
+    explicit PluginManager() = default;
 
     /**
      * @brief Shuts down every loaded plugin in reverse load order and
@@ -225,9 +225,8 @@ private:
         Done
     };
 
-    std::vector<ModuleCandidate> loadModuleCandidates(
-        const std::filesystem::path &rootPath,
-        OwnerMap &nameIndex, std::optional<std::size_t> &rootIndex) const;
+    static std::vector<ModuleCandidate> loadModuleCandidates(const std::filesystem::path &rootPath,
+        OwnerMap &nameIndex, std::optional<std::size_t> &rootIndex);
     std::vector<std::size_t> resolveModuleLoadOrder(
         const std::vector<ModuleCandidate> &candidates,
         const OwnerMap &nameIndex, std::size_t rootIndex) const;
@@ -252,7 +251,7 @@ private:
      * @return Sorted list of library paths.
      * @throws std::runtime_error If @p directory is not a directory.
      */
-    std::vector<std::filesystem::path> listLibraries(const std::filesystem::path &directory) const;
+    static std::vector<std::filesystem::path> listLibraries(const std::filesystem::path &directory);
 
     /**
      * @brief Retrieves and validates the plugin descriptor of a library.
@@ -303,7 +302,7 @@ private:
      * @note Currently every error is propagated, so std::nullopt is never
      *       returned.
      */
-    std::optional<Candidate> tryLoadCandidate(const std::filesystem::path &path) const;
+    static std::optional<Candidate> tryLoadCandidate(const std::filesystem::path &path);
 
     /**
      * @brief Loads every plugin library of a directory as a candidate.
@@ -312,7 +311,7 @@ private:
      * @throws std::runtime_error If a library is invalid or two plugins
      *         share the same name.
      */
-    std::vector<Candidate> loadCandidates(const std::filesystem::path &directory) const;
+    static std::vector<Candidate> loadCandidates(const std::filesystem::path &directory);
 
     /**
      * @brief Registers the owner of each name in an OwnerMap.

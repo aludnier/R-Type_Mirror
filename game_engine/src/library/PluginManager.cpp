@@ -137,9 +137,6 @@ void RType::PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
     }
 }
 
-RType::PluginManager::PluginManager()
-{
-}
 
 RType::PluginManager::~PluginManager()
 {
@@ -160,11 +157,9 @@ bool RType::PluginManager::isLoaded(const std::string &name) const
             return true;
         }
     }
-    for (const auto &loaded : _loadedModules) {
-        if (loaded.name == name)
-            return true;
-    }
-    return false;
+    return std::ranges::any_of(_loadedModules, [name](auto &module) {
+        return module.name == name;
+    });
 }
 
 bool RType::PluginManager::unload(const std::string &name)

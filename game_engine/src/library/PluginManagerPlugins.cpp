@@ -105,7 +105,7 @@ bool RType::PluginManager::isSharedLibrary(const std::filesystem::path &path)
 }
 
 std::vector<std::filesystem::path> RType::PluginManager::listLibraries(
-    const std::filesystem::path &directory) const
+    const std::filesystem::path &directory)
 {
     if (!std::filesystem::is_directory(directory))
         throw std::runtime_error(
@@ -187,13 +187,13 @@ RType::PluginManager::Candidate RType::PluginManager::loadCandidate(
 }
 
 std::optional<RType::PluginManager::Candidate> RType::PluginManager::tryLoadCandidate(
-    const std::filesystem::path &path) const
+    const std::filesystem::path &path)
 {
     return loadCandidate(path);
 }
 
 std::vector<RType::PluginManager::Candidate> RType::PluginManager::loadCandidates(
-    const std::filesystem::path &directory) const
+    const std::filesystem::path &directory)
 {
     const auto paths = listLibraries(directory);
     std::vector<Candidate> candidates;
