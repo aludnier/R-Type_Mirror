@@ -24,6 +24,8 @@ set(CORE_SRC
         src/library/RessourceManager.cpp
         src/library/RessourceManager.h
         src/library/PluginManager.cpp
+        src/library/PluginManagerPlugins.cpp
+        src/library/PluginManagerModules.cpp
         src/library/PluginManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
