@@ -14,9 +14,14 @@ namespace {
 
     void initialize(RType::Registry *registry)
     {
-        registry->registerComponent<TestPluginComponent>();
-    }
-
+    registry->registerComponent<TestPluginComponent>();
+    registry->addSystem<TestPluginComponent>([](auto &values) {
+        for (auto &value : values) {
+            if (value)
+                ++value->value;
+        }
+    });
+}
     void shutdown(RType::Registry *registry)
     {
     }

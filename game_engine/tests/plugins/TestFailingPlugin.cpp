@@ -16,6 +16,7 @@ namespace {
 
     void shutdown(RType::Registry *registry)
     {
+        throw std::runtime_error("test plugin initialization failed");
     }
 
     const Engine::Plugin::Descriptor descriptor{
