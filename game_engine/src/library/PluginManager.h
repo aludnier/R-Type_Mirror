@@ -49,6 +49,14 @@ namespace Engine::Plugin {
 
     using DescriptorFunction = const Descriptor *(*)();
 }
+
+/**
+ * @warning Lifetime contract: the PluginManager calls plugin shutdown
+ *          callbacks with the registry it was given, including from its
+ *          destructor. The registry must therefore outlive the manager
+ *          (declare the registry before the manager in the owning class
+ *          so it is destroyed after it).
+ */
 class PluginManager
 {
 public:
@@ -61,7 +69,8 @@ public:
      * @brief Shuts down every loaded plugin in reverse load order and
      *        releases their libraries.
      * @note Loaded modules have no shutdown callback and are simply
-     *       released with their libraries.
+     *       released with their libraries, in reverse load order.
+     *       Retired libraries are released last, also in reverse order.
      */
     ~PluginManager();
 
@@ -80,7 +89,8 @@ public:
      * @param components Names of the components that must be provided.
      * @param systems    Names of the systems that must be provided.
      * @param registry   Registry passed to each plugin's initialize callback.
-     * @throws std::logic_error   If called more than once.
+     * @throws std::logic_error   If called more than once, or if the manager
+     *         is already bound to another registry.
      * @throws std::runtime_error If the directory does not exist, a library
      *         cannot be loaded or has an invalid descriptor/ABI, two plugins
      *         share a name or provide the same component/system, a required
@@ -90,6 +100,9 @@ public:
      *       (in which case nothing is loaded).
      * @note If a plugin's initialize callback throws, every plugin loaded
      *       by this call is shut down in reverse order before rethrowing.
+     *       The shutdown callback is also called on the plugin whose
+     *       initialize threw, so it must tolerate a partially initialized
+     *       state.
      */
     void loadRequiredPlugins(const std::filesystem::path &directory,
         const std::vector<std::string> &components,
@@ -113,7 +126,9 @@ public:
      *         has no entry point, a dependency is missing or incompatible,
      *         a cycle is detected, or a module fails to initialize.
      * @note Modules already registered before a failure are kept loaded;
-     *       no rollback is performed.
+     *       no rollback is performed. The module that failed is removed
+     *       from the loaded list (so a retry is possible) but its library
+     *       stays mapped until the manager is destroyed.
      */
     void loadModule(const std::filesystem::path &path,
         RType::Registry &registry);
@@ -126,6 +141,9 @@ public:
      * @throws std::logic_error   If @p name refers to a module (modules
      *         cannot be unloaded individually).
      * @throws std::runtime_error If another loaded plugin depends on it.
+     * @note The plugin's library is not closed immediately: it is retired
+     *       and stays mapped until the manager is destroyed, because the
+     *       registry may still reference its code.
      */
     bool unload(const std::string &name);
 
@@ -333,7 +351,7 @@ private:
      *        unloadable libraries.
      * @param path Path to the plugin library.
      * @return The candidate, or std::nullopt if the library is skipped.
-     * @note Currently every error is rethrown, so std::nullopt is never
+     * @note Currently every error is propagated, so std::nullopt is never
      *       returned.
      */
     std::optional<Candidate> tryLoadCandidate(const std::filesystem::path &path) const;
@@ -414,6 +432,9 @@ private:
      * @param candidates Candidates to take libraries from (moved out).
      * @param order      Initialization order from resolveLoadOrder().
      * @param registry   Registry passed to each initialize callback.
+     * @note Storage for the loaded and retired plugins is reserved before
+     *       any callback runs, so the loading loop and the rollback do not
+     *       allocate.
      * @note If an initialize callback throws, all plugins added by this
      *       call are shut down in reverse order, then the exception is
      *       rethrown.
@@ -425,9 +446,8 @@ private:
      * @brief Calls a plugin's shutdown callback, if it has one.
      * @param plugin Plugin to shut down.
      * @note Does nothing if the plugin has no shutdown callback or no
-     *       registry is set.
-     * @warning Declared `noexcept`, but a `std::exception` thrown by the
-     *          callback is rethrown, which leads to `std::terminate`.
+     *       registry is set. Any exception thrown by the callback is
+     *       caught and reported on std::cerr.
      */
     void shutdownPlugin(LoadedPlugin &plugin) noexcept;
 

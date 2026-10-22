@@ -74,7 +74,7 @@ void *PluginManager::openLibrary(const std::filesystem::path &path)
             std::to_string(GetLastError()) + ")");
     return handle;
 #else
-    auto handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    auto handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
     if (handle == nullptr) {
         const char *error = dlerror();
         throw std::runtime_error("Could not load plugin library: " +
@@ -186,11 +186,7 @@ PluginManager::Candidate PluginManager::loadCandidate(const std::filesystem::pat
 
 std::optional<PluginManager::Candidate> PluginManager::tryLoadCandidate(const std::filesystem::path &path) const
 {
-    try {
-        return loadCandidate(path);
-    } catch (const std::runtime_error &error) {
-        throw;
-    }
+    return loadCandidate(path);
 }
 
 std::vector<PluginManager::Candidate> PluginManager::loadCandidates(const std::filesystem::path &directory) const
@@ -302,6 +298,9 @@ std::vector<std::size_t> PluginManager::resolveLoadOrder(const std::vector<Candi
 void PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
     const std::vector<std::size_t> &order, RType::Registry &registry)
 {
+    _loadedPlugins.reserve(_loadedPlugins.size() + order.size());
+    _retiredLibraries.reserve(_retiredLibraries.size() + order.size());
+
     _registry = &registry;
     const auto firstNewPlugin = _loadedPlugins.size();
     try {
@@ -358,6 +357,10 @@ PluginManager::~PluginManager()
         shutdownPlugin(_loadedPlugins.back());
         _loadedPlugins.pop_back();
     }
+    while (!_loadedModules.empty())
+        _loadedModules.pop_back();
+    while (!_retiredLibraries.empty())
+        _retiredLibraries.pop_back();
 }
 
 bool PluginManager::isLoaded(const std::string &name) const
@@ -401,7 +404,9 @@ bool PluginManager::unload(const std::string &name)
         throw std::runtime_error("Cannot unload plugin '" + name +
             "' because plugin '" + dependent->name + "' depends on it");
 
+    _retiredLibraries.reserve(_retiredLibraries.size() + 1);
     shutdownPlugin(*found);
+    _retiredLibraries.push_back(std::move(found->library));
     _loadedPlugins.erase(found);
     return true;
 }
@@ -411,8 +416,10 @@ void PluginManager::unloadAll()
     if (!_loadedModules.empty())
         throw std::logic_error(
             "Cannot unload modules without shutdown callbacks");
+    _retiredLibraries.reserve(_retiredLibraries.size() + _loadedPlugins.size());
     while (!_loadedPlugins.empty()) {
         shutdownPlugin(_loadedPlugins.back());
+        _retiredLibraries.push_back(std::move(_loadedPlugins.back().library));
         _loadedPlugins.pop_back();
     }
 }
@@ -518,6 +525,9 @@ void PluginManager::loadModule(const std::filesystem::path &path,
     };
     visit(visit, *rootIndex);
 
+    _loadedModules.reserve(_loadedModules.size() + order.size());
+    _retiredLibraries.reserve(_retiredLibraries.size() + 1);
+
     _registry = &registry;
     for (const auto index : order) {
         auto &candidate = candidates[index];
@@ -530,9 +540,15 @@ void PluginManager::loadModule(const std::filesystem::path &path,
         });
         auto &module = _loadedModules.back();
         const auto status = module.registerModule(registry);
-        if (status != RType::ModuleStatus::Success)
+        if (status != RType::ModuleStatus::Success) {
+            const auto failedName = module.name;
+            _retiredLibraries.push_back(std::move(module.library));
+            _loadedModules.pop_back();
+            if (_loadedPlugins.empty() && _loadedModules.empty())
+                _registry = nullptr;
             throw std::runtime_error(
-                "Module '" + module.name + "' failed to initialize");
+                "Module '" + failedName + "' failed to initialize");
+        }
         loadedVersions.emplace(module.name, module.apiVersion);
     }
 }
@@ -543,6 +559,9 @@ void PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, 
     if (_configured)
         throw std::logic_error(
             "Plugin requirements have already been configured");
+    if (_registry != nullptr && _registry != &registry)
+        throw std::logic_error(
+            "PluginManager cannot load into multiple registries");
     _configured = true;
 
     if (components.empty() && systems.empty())
