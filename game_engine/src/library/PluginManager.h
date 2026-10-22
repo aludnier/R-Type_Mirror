@@ -161,65 +161,34 @@ public:
     bool isLoaded(const std::string &name) const;
 
 private:
-    /**
-     * @brief RAII wrapper around a native shared library handle.
-     * @note Move-only. The library is closed when the wrapper is destroyed
-     *       or reassigned.
-     */
     class Library
     {
     public:
-        /** @brief Creates an empty wrapper that owns no library. */
         Library() = default;
-
-        /**
-         * @brief Takes ownership of a native library handle.
-         * @param handle Handle returned by openLibrary().
-         */
         explicit Library(void *handle);
         Library(const Library &) = delete;
         Library &operator=(const Library &) = delete;
-
-        /** @brief Transfers ownership from @p other, leaving it empty. */
         Library(Library &&other) noexcept;
-
-        /**
-         * @brief Closes the current library, then takes ownership from
-         *        @p other.
-         */
         Library &operator=(Library &&other) noexcept;
-
-        /** @brief Closes the owned library, if any. */
         ~Library();
 
-        /**
-         * @brief Gives access to the native handle without releasing it.
-         * @return The handle, or nullptr if empty.
-         */
         void *get() const;
-
-        /**
-         * @brief Gives up ownership of the handle without closing it.
-         * @return The previously owned handle, or nullptr if empty.
-         */
         void *release();
 
     private:
-        /**
-         * @brief Closes the current handle (if any) and stores a new one.
-         * @param handle New handle to own (nullptr by default).
-         */
         void reset(void *handle = nullptr);
 
         void *_handle = nullptr;
     };
+
+    using Loader = Library;
 
     /** @brief Maps a name to the index of a candidate in a vector. */
     using OwnerMap = std::unordered_map<std::string, std::size_t>;
 
     /** @brief A plugin library that has been read but not yet initialized. */
     struct Candidate {
-        Library library;
+        Loader library;
         std::string name;
         std::vector<std::string> components;
         std::vector<std::string> systems;
@@ -230,7 +199,7 @@ private:
 
     /** @brief A plugin that has been initialized and is currently active. */
     struct LoadedPlugin {
-        Library library;
+        Loader library;
         std::string name;
         std::vector<std::string> dependencies;
         Engine::Plugin::ShutdownFunction shutdown;
@@ -238,7 +207,7 @@ private:
 
     /** @brief A module that has been registered and is currently active. */
     struct LoadedModule {
-        Library library;
+        Loader library;
         std::string name;
         RType::ModuleApiVersion apiVersion{};
         std::vector<RType::ModuleDependency> dependencies;
@@ -247,7 +216,7 @@ private:
 
     /** @brief A module library that has been read but not yet registered. */
     struct ModuleCandidate {
-        Library library;
+        Loader library;
         std::string name;
         RType::ModuleApiVersion apiVersion{};
         std::vector<RType::ModuleDependency> dependencies;
@@ -261,28 +230,8 @@ private:
         Done
     };
 
-    /**
-     * @brief Closes a native library handle (FreeLibrary / dlclose).
-     * @param handle Handle to close.
-     */
     static void closeLibrary(void *handle);
-
-    /**
-     * @brief Opens a shared library (LoadLibraryW / dlopen with
-     *        RTLD_NOW | RTLD_LOCAL).
-     * @param path Path to the library.
-     * @return The native handle (never nullptr).
-     * @throws std::runtime_error If the library cannot be loaded; the message
-     *         includes the OS error.
-     */
     static void *openLibrary(const std::filesystem::path &path);
-
-    /**
-     * @brief Looks up an exported symbol in a library.
-     * @param handle Native library handle.
-     * @param name   Symbol name.
-     * @return The symbol address, or nullptr if it is not exported.
-     */
     static void *findSymbol(void *handle, const char *name);
 
     /**
@@ -304,12 +253,12 @@ private:
     /**
      * @brief Retrieves and validates the plugin descriptor of a library.
      * @param library Opened library.
-     * @param path    Library path, used for error messages.
+     * @param path    Loader path, used for error messages.
      * @return Pointer to the descriptor owned by the library.
      * @throws std::runtime_error If the descriptor symbol is missing or the
      *         descriptor is invalid or has an incompatible ABI.
      */
-    static const Engine::Plugin::Descriptor *readDescriptor(const Library &library, const std::filesystem::path &path);
+    static const Engine::Plugin::Descriptor *readDescriptor(const Loader &library, const std::filesystem::path &path);
 
     /**
      * @brief Checks a descriptor's ABI version, name and mandatory
@@ -443,7 +392,7 @@ private:
      */
     void shutdownPlugin(LoadedPlugin &plugin) noexcept;
 
-    std::vector<Library> _retiredLibraries;
+    std::vector<Loader> _retiredLibraries;
     std::vector<LoadedPlugin> _loadedPlugins;
     std::vector<LoadedModule> _loadedModules;
     RType::Registry *_registry = nullptr;
