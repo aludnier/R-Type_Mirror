@@ -72,6 +72,10 @@ void *PluginManager::openLibrary(const std::filesystem::path &path)
         throw std::runtime_error("Could not load plugin library: " +
             path.string() + " (Windows error " +
             std::to_string(GetLastError()) + ")");
+    HMODULE pinned = nullptr;
+    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN |
+            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+        reinterpret_cast<LPCWSTR>(handle), &pinned);
     return handle;
 #else
     auto handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
