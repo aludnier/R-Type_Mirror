@@ -115,8 +115,8 @@ if (BUILD_TESTS)
     foreach(plugin_target IN ITEMS
             test_plugin test_dependency_plugin test_failing_plugin)
         set_target_properties(${plugin_target} PROPERTIES
-                LIBRARY_OUTPUT_DIRECTORY "${PLUGIN_TEST_DIRECTORY}"
-                RUNTIME_OUTPUT_DIRECTORY "${PLUGIN_TEST_DIRECTORY}")
+                LIBRARY_OUTPUT_DIRECTORY "$<1:${PLUGIN_TEST_DIRECTORY}>"
+                RUNTIME_OUTPUT_DIRECTORY "$<1:${PLUGIN_TEST_DIRECTORY}>")
         target_include_directories(${plugin_target} PRIVATE
                 src tests/plugins)
         target_link_libraries(${plugin_target} PRIVATE engine_core)
