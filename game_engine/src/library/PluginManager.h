@@ -41,10 +41,10 @@ namespace Engine::Plugin {
         std::size_t componentCount;
         const char *const *systems;
         std::size_t systemCount;
-        const char *const *dependencies; // names of plugins required first
+        const char *const *dependencies;
         std::size_t dependencyCount;
-        InitializeFunction initialize;   // mandatory
-        ShutdownFunction shutdown;       // optional (may be nullptr)
+        InitializeFunction initialize;
+        ShutdownFunction shutdown;
     };
 
     using DescriptorFunction = const Descriptor *(*)();
@@ -256,12 +256,10 @@ private:
 
     /** @brief Node state used by the depth-first dependency traversal. */
     enum class VisitState : char {
-        Unvisited, ///< Not reached yet.
-        Visiting,  ///< Currently on the DFS stack (reaching it again means a cycle).
-        Done       ///< Fully processed and already in the load order.
+        Unvisited,
+        Visiting,
+        Done
     };
-
-    // ----- Platform layer -----
 
     /**
      * @brief Closes a native library handle (FreeLibrary / dlclose).
@@ -294,8 +292,6 @@ private:
      * @return true if the extension matches.
      */
     static bool isSharedLibrary(const std::filesystem::path &path);
-
-    // ----- Discovery and validation -----
 
     /**
      * @brief Lists the shared libraries directly inside a directory.
@@ -365,8 +361,6 @@ private:
      */
     std::vector<Candidate> loadCandidates(const std::filesystem::path &directory) const;
 
-    // ----- Selection and ordering -----
-
     /**
      * @brief Registers the owner of each name in an OwnerMap.
      * @param owners      Map to fill.
@@ -423,8 +417,6 @@ private:
      */
     static std::vector<std::size_t> resolveLoadOrder(const std::vector<Candidate> &candidates, const std::vector<std::string> &components,
         const std::vector<std::string> &systems);
-
-    // ----- Activation / deactivation -----
 
     /**
      * @brief Initializes the candidates following the given order and
