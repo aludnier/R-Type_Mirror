@@ -27,7 +27,7 @@
 #define ENGINE_PLUGIN_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
 
-namespace Engine::Plugin {
+namespace RType::Plugin {
     constexpr std::uint32_t ABI_VERSION = 2;
     constexpr const char *DESCRIPTOR_SYMBOL = "engine_plugin_descriptor";
 
@@ -50,13 +50,8 @@ namespace Engine::Plugin {
     using DescriptorFunction = const Descriptor *(*)();
 }
 
-/**
- * @warning Lifetime contract: the PluginManager calls plugin shutdown
- *          callbacks with the registry it was given, including from its
- *          destructor. The registry must therefore outlive the manager
- *          (declare the registry before the manager in the owning class
- *          so it is destroyed after it).
- */
+namespace RType
+{
 class PluginManager
 {
 public:
@@ -193,8 +188,8 @@ private:
         std::vector<std::string> components;
         std::vector<std::string> systems;
         std::vector<std::string> dependencies;
-        Engine::Plugin::InitializeFunction initialize = nullptr;
-        Engine::Plugin::ShutdownFunction shutdown = nullptr;
+        RType::Plugin::InitializeFunction initialize = nullptr;
+        RType::Plugin::ShutdownFunction shutdown = nullptr;
     };
 
     /** @brief A plugin that has been initialized and is currently active. */
@@ -202,7 +197,7 @@ private:
         Loader library;
         std::string name;
         std::vector<std::string> dependencies;
-        Engine::Plugin::ShutdownFunction shutdown;
+        RType::Plugin::ShutdownFunction shutdown;
     };
 
     /** @brief A module that has been registered and is currently active. */
@@ -229,6 +224,15 @@ private:
         Visiting,
         Done
     };
+
+    std::vector<ModuleCandidate> loadModuleCandidates(
+        const std::filesystem::path &rootPath,
+        OwnerMap &nameIndex, std::optional<std::size_t> &rootIndex) const;
+    std::vector<std::size_t> resolveModuleLoadOrder(
+        const std::vector<ModuleCandidate> &candidates,
+        const OwnerMap &nameIndex, std::size_t rootIndex) const;
+    void registerModules(std::vector<ModuleCandidate> &candidates,
+        const std::vector<std::size_t> &order, RType::Registry &registry);
 
     static void closeLibrary(void *handle);
     static void *openLibrary(const std::filesystem::path &path);
@@ -258,7 +262,7 @@ private:
      * @throws std::runtime_error If the descriptor symbol is missing or the
      *         descriptor is invalid or has an incompatible ABI.
      */
-    static const Engine::Plugin::Descriptor *readDescriptor(const Loader &library, const std::filesystem::path &path);
+    static const RType::Plugin::Descriptor *readDescriptor(const Loader &library, const std::filesystem::path &path);
 
     /**
      * @brief Checks a descriptor's ABI version, name and mandatory
@@ -266,7 +270,7 @@ private:
      * @param descriptor Descriptor to check (may be nullptr).
      * @return true if the descriptor is usable.
      */
-    static bool isValidDescriptor(const Engine::Plugin::Descriptor *descriptor);
+    static bool isValidDescriptor(const RType::Plugin::Descriptor *descriptor);
 
     /**
      * @brief Copies a C array of names into a vector of strings.
@@ -395,8 +399,11 @@ private:
     std::vector<Loader> _retiredLibraries;
     std::vector<LoadedPlugin> _loadedPlugins;
     std::vector<LoadedModule> _loadedModules;
-    RType::Registry *_registry = nullptr;
+    std::optional<std::reference_wrapper<RType::Registry>> _registry;
     bool _configured = false;
 };
+
+}
+
 
 #endif

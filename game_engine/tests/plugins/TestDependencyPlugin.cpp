@@ -13,8 +13,8 @@ namespace {
     {
     }
 
-    const Engine::Plugin::Descriptor descriptor{
-        .abiVersion = Engine::Plugin::ABI_VERSION,
+    const RType::Plugin::Descriptor descriptor{
+        .abiVersion = RType::Plugin::ABI_VERSION,
         .name = "test_dependency",
         .components = nullptr,
         .componentCount = 0,
@@ -40,7 +40,7 @@ namespace {
     };
 }
 
-ENGINE_PLUGIN_EXPORT const Engine::Plugin::Descriptor *
+ENGINE_PLUGIN_EXPORT const RType::Plugin::Descriptor *
 engine_plugin_descriptor()
 {
     return &descriptor;

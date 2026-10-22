@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <utility>
 
-void PluginManager::addOwners(OwnerMap &owners, const std::vector<std::string> &names,
+void RType::PluginManager::addOwners(OwnerMap &owners, const std::vector<std::string> &names,
     std::size_t pluginIndex, std::string_view kind,
     std::string_view pluginName)
 {
@@ -16,7 +16,7 @@ void PluginManager::addOwners(OwnerMap &owners, const std::vector<std::string> &
     }
 }
 
-PluginManager::OwnerMap PluginManager::buildOwners(const std::vector<Candidate> &candidates, std::vector<std::string> Candidate::*names,
+RType::PluginManager::OwnerMap RType::PluginManager::buildOwners(const std::vector<Candidate> &candidates, std::vector<std::string> Candidate::*names,
     std::string_view kind)
 {
     OwnerMap owners;
@@ -26,7 +26,7 @@ PluginManager::OwnerMap PluginManager::buildOwners(const std::vector<Candidate> 
     return owners;
 }
 
-PluginManager::OwnerMap PluginManager::buildNameIndex(const std::vector<Candidate> &candidates)
+RType::PluginManager::OwnerMap RType::PluginManager::buildNameIndex(const std::vector<Candidate> &candidates)
 {
     OwnerMap index;
 
@@ -35,7 +35,7 @@ PluginManager::OwnerMap PluginManager::buildNameIndex(const std::vector<Candidat
     return index;
 }
 
-std::vector<std::size_t> PluginManager::findOwners(const OwnerMap &owners,
+std::vector<std::size_t> RType::PluginManager::findOwners(const OwnerMap &owners,
     const std::vector<std::string> &required, std::string_view kind)
 {
     std::vector<std::size_t> result;
@@ -50,7 +50,7 @@ std::vector<std::size_t> PluginManager::findOwners(const OwnerMap &owners,
     return result;
 }
 
-std::vector<std::size_t> PluginManager::resolveLoadOrder(const std::vector<Candidate> &candidates,
+std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(const std::vector<Candidate> &candidates,
     const std::vector<std::string> &components, const std::vector<std::string> &systems)
 {
     const auto nameIndex = buildNameIndex(candidates);
@@ -91,13 +91,13 @@ std::vector<std::size_t> PluginManager::resolveLoadOrder(const std::vector<Candi
     return order;
 }
 
-void PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
+void RType::PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
     const std::vector<std::size_t> &order, RType::Registry &registry)
 {
     _loadedPlugins.reserve(_loadedPlugins.size() + order.size());
     _retiredLibraries.reserve(_retiredLibraries.size() + order.size());
 
-    _registry = &registry;
+    _registry = std::ref(registry);
     const auto firstNewPlugin = _loadedPlugins.size();
     try {
         for (const auto index : order) {
@@ -117,17 +117,17 @@ void PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
             _loadedPlugins.pop_back();
         }
         if (_loadedPlugins.empty() && _loadedModules.empty())
-            _registry = nullptr;
+            _registry.reset();
         throw;
     }
 }
 
-void PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
+void RType::PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
 {
-    if (plugin.shutdown == nullptr || _registry == nullptr)
+    if (plugin.shutdown == nullptr || !_registry)
         return;
     try {
-        plugin.shutdown(_registry);
+        plugin.shutdown(&_registry->get());
     } catch (const std::exception &error) {
         std::cerr << "Plugin '" << plugin.name
                   << "' threw during shutdown: " << error.what() << '\n';
@@ -137,11 +137,11 @@ void PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
     }
 }
 
-PluginManager::PluginManager()
+RType::PluginManager::PluginManager()
 {
 }
 
-PluginManager::~PluginManager()
+RType::PluginManager::~PluginManager()
 {
     while (!_loadedPlugins.empty()) {
         shutdownPlugin(_loadedPlugins.back());
@@ -153,7 +153,7 @@ PluginManager::~PluginManager()
         _retiredLibraries.pop_back();
 }
 
-bool PluginManager::isLoaded(const std::string &name) const
+bool RType::PluginManager::isLoaded(const std::string &name) const
 {
     for (const auto &loaded : _loadedPlugins) {
         if (loaded.name == name) {
@@ -167,7 +167,7 @@ bool PluginManager::isLoaded(const std::string &name) const
     return false;
 }
 
-bool PluginManager::unload(const std::string &name)
+bool RType::PluginManager::unload(const std::string &name)
 {
     const auto module = std::find_if(_loadedModules.begin(),
         _loadedModules.end(),
@@ -201,7 +201,7 @@ bool PluginManager::unload(const std::string &name)
     return true;
 }
 
-void PluginManager::unloadAll()
+void RType::PluginManager::unloadAll()
 {
     if (!_loadedModules.empty())
         throw std::logic_error(
@@ -214,13 +214,13 @@ void PluginManager::unloadAll()
     }
 }
 
-void PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, const std::vector<std::string> &components,
+void RType::PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, const std::vector<std::string> &components,
     const std::vector<std::string> &systems, RType::Registry &registry)
 {
     if (_configured)
         throw std::logic_error(
             "Plugin requirements have already been configured");
-    if (_registry != nullptr && _registry != &registry)
+    if (_registry && &_registry->get() != &registry)
         throw std::logic_error(
             "PluginManager cannot load into multiple registries");
     _configured = true;

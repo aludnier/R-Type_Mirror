@@ -4,18 +4,23 @@
 #include <unordered_map>
 #include <utility>
 
-void PluginManager::loadModule(const std::filesystem::path &path,
-    RType::Registry &registry)
+namespace
 {
-    if (_registry != nullptr && _registry != &registry)
-        throw std::logic_error(
-            "PluginManager cannot load into multiple registries");
+bool isApiCompatible(RType::ModuleApiVersion actual,
+    RType::ModuleApiVersion required)
+{
+    return actual.major == required.major &&
+        actual.minor >= required.minor;
+}
+}
 
-    const auto rootPath = std::filesystem::canonical(path);
+std::vector<RType::PluginManager::ModuleCandidate>
+RType::PluginManager::loadModuleCandidates(
+    const std::filesystem::path &rootPath, OwnerMap &nameIndex,
+    std::optional<std::size_t> &rootIndex) const
+{
     const auto paths = listLibraries(rootPath.parent_path());
     std::vector<ModuleCandidate> candidates;
-    std::unordered_map<std::string, std::size_t> nameIndex;
-    std::optional<std::size_t> rootIndex;
 
     using ModuleEntryPoint = const RType::ModuleDescriptor *(*)();
     for (const auto &candidatePath : paths) {
@@ -48,18 +53,13 @@ void PluginManager::loadModule(const std::filesystem::path &path,
         candidates.push_back(std::move(candidate));
     }
 
-    if (!rootIndex)
-        throw std::runtime_error(
-            "Module is missing RTypeLibEntryPoint: " + path.string());
-    if (isLoaded(candidates[*rootIndex].name))
-        throw std::logic_error(
-            "Module is already loaded: " + candidates[*rootIndex].name);
+    return candidates;
+}
 
-    const auto isApiCompatible = [](RType::ModuleApiVersion actual,
-                                     RType::ModuleApiVersion required) {
-        return actual.major == required.major &&
-            actual.minor >= required.minor;
-    };
+std::vector<std::size_t> RType::PluginManager::resolveModuleLoadOrder(
+    const std::vector<ModuleCandidate> &candidates,
+    const OwnerMap &nameIndex, std::size_t rootIndex) const
+{
     std::unordered_map<std::string, RType::ModuleApiVersion> loadedVersions;
     for (const auto &module : _loadedModules)
         loadedVersions.emplace(module.name, module.apiVersion);
@@ -67,7 +67,7 @@ void PluginManager::loadModule(const std::filesystem::path &path,
     std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
     std::vector<std::size_t> order;
     const auto visit = [&](const auto &self, std::size_t index) -> void {
-        auto &candidate = candidates[index];
+        const auto &candidate = candidates[index];
         if (state[index] == VisitState::Done)
             return;
         if (state[index] == VisitState::Visiting)
@@ -103,12 +103,18 @@ void PluginManager::loadModule(const std::filesystem::path &path,
         state[index] = VisitState::Done;
         order.push_back(index);
     };
-    visit(visit, *rootIndex);
+    visit(visit, rootIndex);
+    return order;
+}
 
+void RType::PluginManager::registerModules(
+    std::vector<ModuleCandidate> &candidates,
+    const std::vector<std::size_t> &order, RType::Registry &registry)
+{
     _loadedModules.reserve(_loadedModules.size() + order.size());
     _retiredLibraries.reserve(_retiredLibraries.size() + 1);
 
-    _registry = &registry;
+    _registry = std::ref(registry);
     for (const auto index : order) {
         auto &candidate = candidates[index];
         _loadedModules.push_back({
@@ -125,10 +131,32 @@ void PluginManager::loadModule(const std::filesystem::path &path,
             _retiredLibraries.push_back(std::move(module.library));
             _loadedModules.pop_back();
             if (_loadedPlugins.empty() && _loadedModules.empty())
-                _registry = nullptr;
+                _registry.reset();
             throw std::runtime_error(
                 "Module '" + failedName + "' failed to initialize");
         }
-        loadedVersions.emplace(module.name, module.apiVersion);
     }
+}
+
+void RType::PluginManager::loadModule(const std::filesystem::path &path,
+    RType::Registry &registry)
+{
+    if (_registry && &_registry->get() != &registry)
+        throw std::logic_error(
+            "PluginManager cannot load into multiple registries");
+
+    const auto rootPath = std::filesystem::canonical(path);
+    OwnerMap nameIndex;
+    std::optional<std::size_t> rootIndex;
+    auto candidates = loadModuleCandidates(rootPath, nameIndex, rootIndex);
+
+    if (!rootIndex)
+        throw std::runtime_error(
+            "Module is missing RTypeLibEntryPoint: " + path.string());
+    if (isLoaded(candidates[*rootIndex].name))
+        throw std::logic_error(
+            "Module is already loaded: " + candidates[*rootIndex].name);
+
+    const auto order = resolveModuleLoadOrder(candidates, nameIndex, *rootIndex);
+    registerModules(candidates, order, registry);
 }

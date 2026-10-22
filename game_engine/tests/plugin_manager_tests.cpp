@@ -29,7 +29,7 @@ namespace {
 TEST_CASE("PluginManager loads providers and dependencies in dependency order",
           "[plugins]") {
     RType::Registry registry;
-    PluginManager manager;
+    RType::PluginManager manager;
 
     manager.loadRequiredPlugins(TEST_PLUGIN_DIRECTORY,
         {"TestPluginComponent"}, {"TestPluginSystem"}, registry);
@@ -48,7 +48,7 @@ TEST_CASE("PluginManager loads providers and dependencies in dependency order",
 TEST_CASE("PluginManager blocks dependency unload and safely unloads plugins",
           "[plugins]") {
     RType::Registry registry;
-    PluginManager manager;
+    RType::PluginManager manager;
     manager.loadRequiredPlugins(TEST_PLUGIN_DIRECTORY,
         {"TestPluginComponent"}, {}, registry);
 
@@ -63,7 +63,7 @@ TEST_CASE("PluginManager blocks dependency unload and safely unloads plugins",
 
 TEST_CASE("PluginManager loads ModuleDescriptor dependencies before the module",
           "[plugins][modules]") {
-    PluginManager manager;
+    RType::PluginManager manager;
     RType::Registry registry;
 
     manager.loadModule(findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"),
@@ -84,7 +84,7 @@ TEST_CASE("PluginManager loads ModuleDescriptor dependencies before the module",
 TEST_CASE("PluginManager rolls back plugins when initialization throws",
           "[plugins]") {
     RType::Registry registry;
-    PluginManager manager;
+    RType::PluginManager manager;
 
     REQUIRE_THROWS_WITH(manager.loadRequiredPlugins(TEST_PLUGIN_DIRECTORY,
             {"TestFailingComponent"}, {}, registry),
@@ -96,7 +96,7 @@ TEST_CASE("PluginManager rolls back plugins when initialization throws",
 TEST_CASE("PluginManager unloads all plugins and their ECS registrations",
           "[plugins]") {
     RType::Registry registry;
-    PluginManager manager;
+    RType::PluginManager manager;
     manager.loadRequiredPlugins(TEST_PLUGIN_DIRECTORY,
         {"TestPluginComponent"}, {}, registry);
 
@@ -110,13 +110,13 @@ TEST_CASE("PluginManager unloads all plugins and their ECS registrations",
 TEST_CASE("PluginManager rejects missing requirements and repeat configuration",
           "[plugins]") {
     RType::Registry registry;
-    PluginManager missingRequirement;
+    RType::PluginManager missingRequirement;
 
     REQUIRE_THROWS_WITH(missingRequirement.loadRequiredPlugins(TEST_PLUGIN_DIRECTORY,
             {"MissingComponent"}, {}, registry),
         "No plugin provides required component 'MissingComponent'");
 
-    PluginManager configured;
+    RType::PluginManager configured;
     configured.loadRequiredPlugins(
         std::filesystem::path("does-not-need-to-exist"), {}, {}, registry);
     REQUIRE_THROWS_AS(configured.loadRequiredPlugins(TEST_PLUGIN_DIRECTORY, {}, {}, registry),
@@ -125,7 +125,7 @@ TEST_CASE("PluginManager rejects missing requirements and repeat configuration",
 
 TEST_CASE("PluginManager reports an invalid plugin directory", "[plugins]") {
     RType::Registry registry;
-    PluginManager manager;
+    RType::PluginManager manager;
 
     REQUIRE_THROWS_AS(manager.loadRequiredPlugins(
             std::filesystem::path("missing_plugin_directory"),

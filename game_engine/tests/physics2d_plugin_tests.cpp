@@ -12,7 +12,7 @@
 
 TEST_CASE("PluginManager loads and runs the production Physics2D module",
           "[plugins][physics2d]") {
-    PluginManager manager;
+    RType::PluginManager manager;
     RType::Registry registry;
 
     registry.registerComponent<RType::Transform2D>();

@@ -11,19 +11,17 @@
     #include <dlfcn.h>
 #endif
 
-using namespace Engine::Plugin;
-
-PluginManager::Library::Library(void *handle) :
+RType::PluginManager::Library::Library(void *handle) :
     _handle(handle)
 {
 }
 
-PluginManager::Library::Library(Library &&other) noexcept :
+RType::PluginManager::Library::Library(Library &&other) noexcept :
     _handle(other.release())
 {
 }
 
-PluginManager::Library &PluginManager::Library::operator=(
+RType::PluginManager::Library &RType::PluginManager::Library::operator=(
     Library &&other) noexcept
 {
     if (this != &other)
@@ -31,29 +29,29 @@ PluginManager::Library &PluginManager::Library::operator=(
     return *this;
 }
 
-PluginManager::Library::~Library()
+RType::PluginManager::Library::~Library()
 {
     reset();
 }
 
-void *PluginManager::Library::get() const
+void *RType::PluginManager::Library::get() const
 {
     return _handle;
 }
 
-void *PluginManager::Library::release()
+void *RType::PluginManager::Library::release()
 {
     return std::exchange(_handle, nullptr);
 }
 
-void PluginManager::Library::reset(void *handle)
+void RType::PluginManager::Library::reset(void *handle)
 {
     if (_handle != nullptr)
         closeLibrary(_handle);
     _handle = handle;
 }
 
-void PluginManager::closeLibrary(void *handle)
+void RType::PluginManager::closeLibrary(void *handle)
 {
 #ifdef _WIN32
     FreeLibrary(static_cast<HMODULE>(handle));
@@ -62,7 +60,7 @@ void PluginManager::closeLibrary(void *handle)
 #endif
 }
 
-void *PluginManager::openLibrary(const std::filesystem::path &path)
+void *RType::PluginManager::openLibrary(const std::filesystem::path &path)
 {
 #ifdef _WIN32
     auto handle = LoadLibraryW(path.c_str());
@@ -87,7 +85,7 @@ void *PluginManager::openLibrary(const std::filesystem::path &path)
 #endif
 }
 
-void *PluginManager::findSymbol(void *handle, const char *name)
+void *RType::PluginManager::findSymbol(void *handle, const char *name)
 {
 #ifdef _WIN32
     return reinterpret_cast<void *>(
@@ -97,7 +95,7 @@ void *PluginManager::findSymbol(void *handle, const char *name)
 #endif
 }
 
-bool PluginManager::isSharedLibrary(const std::filesystem::path &path)
+bool RType::PluginManager::isSharedLibrary(const std::filesystem::path &path)
 {
 #ifdef _WIN32
     return path.extension() == ".dll";
@@ -106,7 +104,7 @@ bool PluginManager::isSharedLibrary(const std::filesystem::path &path)
 #endif
 }
 
-std::vector<std::filesystem::path> PluginManager::listLibraries(
+std::vector<std::filesystem::path> RType::PluginManager::listLibraries(
     const std::filesystem::path &directory) const
 {
     if (!std::filesystem::is_directory(directory))
@@ -124,23 +122,23 @@ std::vector<std::filesystem::path> PluginManager::listLibraries(
     return paths;
 }
 
-bool PluginManager::isValidDescriptor(const Descriptor *descriptor)
+bool RType::PluginManager::isValidDescriptor(const RType::Plugin::Descriptor *descriptor)
 {
-    return descriptor != nullptr && descriptor->abiVersion == ABI_VERSION &&
+    return descriptor != nullptr && descriptor->abiVersion == RType::Plugin::ABI_VERSION &&
         descriptor->name != nullptr && descriptor->name[0] != '\0' &&
         descriptor->initialize != nullptr;
 }
 
-const Descriptor *PluginManager::readDescriptor(
+const RType::Plugin::Descriptor *RType::PluginManager::readDescriptor(
     const Loader &library, const std::filesystem::path &path)
 {
-    const auto descriptorFunction = reinterpret_cast<DescriptorFunction>(
-        findSymbol(library.get(), DESCRIPTOR_SYMBOL));
+    const auto descriptorFunction = reinterpret_cast<RType::Plugin::DescriptorFunction>(
+        findSymbol(library.get(), RType::Plugin::DESCRIPTOR_SYMBOL));
     if (descriptorFunction == nullptr)
         throw std::runtime_error("Plugin library is missing " +
-            std::string(DESCRIPTOR_SYMBOL) + ": " + path.string());
+            std::string(RType::Plugin::DESCRIPTOR_SYMBOL) + ": " + path.string());
 
-    const Descriptor *descriptor = descriptorFunction();
+    const RType::Plugin::Descriptor *descriptor = descriptorFunction();
     if (!isValidDescriptor(descriptor))
         throw std::runtime_error(
             "Plugin has an invalid descriptor or incompatible ABI: " +
@@ -148,7 +146,7 @@ const Descriptor *PluginManager::readDescriptor(
     return descriptor;
 }
 
-std::vector<std::string> PluginManager::copyNames(const char *const *names,
+std::vector<std::string> RType::PluginManager::copyNames(const char *const *names,
     std::size_t count, std::string_view pluginName, std::string_view kind)
 {
     if (count == 0)
@@ -168,11 +166,11 @@ std::vector<std::string> PluginManager::copyNames(const char *const *names,
     return result;
 }
 
-PluginManager::Candidate PluginManager::loadCandidate(
+RType::PluginManager::Candidate RType::PluginManager::loadCandidate(
     const std::filesystem::path &path)
 {
     Loader library(openLibrary(path));
-    const Descriptor *descriptor = readDescriptor(library, path);
+    const RType::Plugin::Descriptor *descriptor = readDescriptor(library, path);
 
     Candidate candidate;
     candidate.name = descriptor->name;
@@ -188,13 +186,13 @@ PluginManager::Candidate PluginManager::loadCandidate(
     return candidate;
 }
 
-std::optional<PluginManager::Candidate> PluginManager::tryLoadCandidate(
+std::optional<RType::PluginManager::Candidate> RType::PluginManager::tryLoadCandidate(
     const std::filesystem::path &path) const
 {
     return loadCandidate(path);
 }
 
-std::vector<PluginManager::Candidate> PluginManager::loadCandidates(
+std::vector<RType::PluginManager::Candidate> RType::PluginManager::loadCandidates(
     const std::filesystem::path &directory) const
 {
     const auto paths = listLibraries(directory);
