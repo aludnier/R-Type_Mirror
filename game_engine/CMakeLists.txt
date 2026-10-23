@@ -83,6 +83,7 @@ set(SERVER_SRC
         src/server/ClientSession.h
         src/server/GameServer.cpp
         src/server/GameServer.h
+        src/DLLoader.hpp
 )
 
 add_library(engine_server STATIC ${SERVER_SRC})

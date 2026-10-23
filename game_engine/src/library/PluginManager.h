@@ -17,6 +17,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+#include "DLLoader.hpp"
 
 #include "ecs/Registry.h"
 #include "Module.h"
@@ -156,27 +157,7 @@ public:
     bool isLoaded(const std::string &name) const;
 
 private:
-    class Library
-    {
-    public:
-        Library() = default;
-        explicit Library(void *handle);
-        Library(const Library &) = delete;
-        Library &operator=(const Library &) = delete;
-        Library(Library &&other) noexcept;
-        Library &operator=(Library &&other) noexcept;
-        ~Library();
-
-        void *get() const;
-        void *release();
-
-    private:
-        void reset(void *handle = nullptr);
-
-        void *_handle = nullptr;
-    };
-
-    using Loader = Library;
+   using Loader = RType::DLLoader<RType::ModuleDescriptor>;
 
     /** @brief Maps a name to the index of a candidate in a vector. */
     using OwnerMap = std::unordered_map<std::string, std::size_t>;
@@ -233,11 +214,9 @@ private:
     void registerModules(std::vector<ModuleCandidate> &candidates,
         const std::vector<std::size_t> &order, RType::Registry &registry);
 
-    static void closeLibrary(void *handle);
-    static void *openLibrary(const std::filesystem::path &path);
-    static void *findSymbol(void *handle, const char *name);
+   static Loader openLibrary(const std::filesystem::path &path);
 
-    /**
+   /**
      * @brief Tells whether a path has the platform's shared library
      *        extension (`.dll` on Windows, `.so` elsewhere).
      * @param path Path to test.

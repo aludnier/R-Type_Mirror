@@ -7,8 +7,8 @@
 #include <utility>
 #include <vector>
 
-namespace {
-
+namespace
+{
 using NameIndex = std::unordered_map<std::string, std::size_t>;
 using VersionMap = std::unordered_map<std::string, RType::ModuleApiVersion>;
 using ModuleEntryPoint = const RType::ModuleDescriptor *(*)();
@@ -41,9 +41,9 @@ void validateDescriptor(const RType::ModuleDescriptor *descriptor,
             path.string());
 }
 
-template <typename Candidate, typename Library>
+template <typename Candidate, typename Loader>
 Candidate makeCandidate(const RType::ModuleDescriptor &descriptor,
-    Library &&library)
+    Loader &&library)
 {
     Candidate candidate;
 
@@ -51,7 +51,7 @@ Candidate makeCandidate(const RType::ModuleDescriptor &descriptor,
     candidate.apiVersion = descriptor.apiVersion;
     candidate.dependencies = descriptor.dependencies;
     candidate.registerModule = descriptor.registerModule;
-    candidate.library = std::forward<Library>(library);
+    candidate.library = std::forward<Loader>(library);
     return candidate;
 }
 
@@ -84,6 +84,8 @@ Loaded toLoadedModule(Candidate &candidate)
     };
 }
 
+// Returns the index of the dependency candidate that still has to be
+// visited, or std::nullopt if an already loaded module satisfies it.
 template <typename Candidate>
 std::optional<std::size_t> resolveDependency(const Candidate &candidate,
     const RType::ModuleDependency &dependency,
@@ -115,9 +117,9 @@ RType::PluginManager::loadModuleCandidates(
     std::vector<ModuleCandidate> candidates;
 
     for (const auto &candidatePath : paths) {
-        Library library(openLibrary(candidatePath));
-        const auto entryPoint = reinterpret_cast<ModuleEntryPoint>(
-            findSymbol(library.get(), "RTypeLibEntryPoint"));
+        auto library = openLibrary(candidatePath);
+        const auto entryPoint =
+            library.getFunction<ModuleEntryPoint>("RTypeLibEntryPoint");
         if (entryPoint == nullptr)
             continue;
 

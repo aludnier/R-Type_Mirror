@@ -5,94 +5,20 @@
 #include <unordered_set>
 #include <utility>
 
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #include <dlfcn.h>
-#endif
-
-RType::PluginManager::Library::Library(void *handle) :
-    _handle(handle)
+RType::PluginManager::Loader RType::PluginManager::openLibrary(
+    const std::filesystem::path &path)
 {
-}
+    Loader library;
 
-RType::PluginManager::Library::Library(Library &&other) noexcept :
-    _handle(other.release())
-{
-}
-
-RType::PluginManager::Library &RType::PluginManager::Library::operator=(
-    Library &&other) noexcept
-{
-    if (this != &other)
-        reset(other.release());
-    return *this;
-}
-
-RType::PluginManager::Library::~Library()
-{
-    reset();
-}
-
-void *RType::PluginManager::Library::get() const
-{
-    return _handle;
-}
-
-void *RType::PluginManager::Library::release()
-{
-    return std::exchange(_handle, nullptr);
-}
-
-void RType::PluginManager::Library::reset(void *handle)
-{
-    if (_handle != nullptr)
-        closeLibrary(_handle);
-    _handle = handle;
-}
-
-void RType::PluginManager::closeLibrary(void *handle)
-{
-#ifdef _WIN32
-    FreeLibrary(static_cast<HMODULE>(handle));
-#else
-    dlclose(handle);
-#endif
-}
-
-void *RType::PluginManager::openLibrary(const std::filesystem::path &path)
-{
-#ifdef _WIN32
-    auto handle = LoadLibraryW(path.c_str());
-    if (handle == nullptr)
+    try {
+        // Persistent: the code must stay mapped even after the Loader is
+        // destroyed, because the registry may still reference it.
+        library.loadFile(path.string(), true);
+    } catch (const Loader::LibraryLoadException &error) {
         throw std::runtime_error("Could not load plugin library: " +
-            path.string() + " (Windows error " +
-            std::to_string(GetLastError()) + ")");
-    HMODULE pinned = nullptr;
-    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_PIN |
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-        reinterpret_cast<LPCWSTR>(handle), &pinned);
-    return handle;
-#else
-    auto handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE);
-    if (handle == nullptr) {
-        const char *error = dlerror();
-        throw std::runtime_error("Could not load plugin library: " +
-            path.string() +
-            (error == nullptr ? "" : " (" + std::string(error) + ")"));
+            path.string() + " (" + error.what() + ")");
     }
-    return handle;
-#endif
-}
-
-void *RType::PluginManager::findSymbol(void *handle, const char *name)
-{
-#ifdef _WIN32
-    return reinterpret_cast<void *>(
-        GetProcAddress(static_cast<HMODULE>(handle), name));
-#else
-    return dlsym(handle, name);
-#endif
+    return library;
 }
 
 bool RType::PluginManager::isSharedLibrary(const std::filesystem::path &path)
@@ -132,8 +58,9 @@ bool RType::PluginManager::isValidDescriptor(const RType::Plugin::Descriptor *de
 const RType::Plugin::Descriptor *RType::PluginManager::readDescriptor(
     const Loader &library, const std::filesystem::path &path)
 {
-    const auto descriptorFunction = reinterpret_cast<RType::Plugin::DescriptorFunction>(
-        findSymbol(library.get(), RType::Plugin::DESCRIPTOR_SYMBOL));
+    const auto descriptorFunction =
+        library.getFunction<RType::Plugin::DescriptorFunction>(
+            RType::Plugin::DESCRIPTOR_SYMBOL);
     if (descriptorFunction == nullptr)
         throw std::runtime_error("Plugin library is missing " +
             std::string(RType::Plugin::DESCRIPTOR_SYMBOL) + ": " + path.string());
@@ -169,7 +96,7 @@ std::vector<std::string> RType::PluginManager::copyNames(const char *const *name
 RType::PluginManager::Candidate RType::PluginManager::loadCandidate(
     const std::filesystem::path &path)
 {
-    Loader library(openLibrary(path));
+    auto library = openLibrary(path);
     const RType::Plugin::Descriptor *descriptor = readDescriptor(library, path);
 
     Candidate candidate;
