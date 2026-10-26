@@ -58,8 +58,8 @@ public:
         _resources.addAsset(assetName, assetPath);
     }
 
-    void applyAsset(
-        RType::Entity entity, const std::string &assetName, const std::string &assetPath = "")
+    void applyAsset(RType::Entity entity, const std::string &assetName,
+        const std::string &assetPath = "")
     {
         if (!_resources.hasAsset(assetName))
             _resources.addAsset(assetName, assetPath);

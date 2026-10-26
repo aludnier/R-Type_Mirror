@@ -17,13 +17,12 @@ enum class CollisionKind { Enter, Exit };
 struct CollisionEvent2D {
     Entity other;
     bool isTrigger = false;
-    Vector2 normal{};
+    Vector2 normal {};
     CollisionKind kind = CollisionKind::Enter;
 
-    explicit CollisionEvent2D(Entity other, bool isTrigger, Vector2 normal,
-                              CollisionKind kind) : other(other),
-                                                    isTrigger(isTrigger),
-                                                    normal(normal), kind(kind)
+    explicit CollisionEvent2D(
+        Entity other, bool isTrigger, Vector2 normal, CollisionKind kind) :
+        other(other), isTrigger(isTrigger), normal(normal), kind(kind)
     {
     }
 };
