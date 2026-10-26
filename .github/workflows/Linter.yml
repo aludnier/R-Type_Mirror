@@ -1,0 +1,34 @@
+name: "Linter"
+on:
+  workflow_call:
+  pull_request:
+    paths: [ '**.c', '**.cpp', '**.h', '**.hpp', '**CMakeLists.txt' ]
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: "Generate compilation_command.json"
+        run: |
+          cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=1 . -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+      - uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: 'file'
+          tidy-checks: ''
+          database: 'build'
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          extra-args: '-std=c++23 -Wall'
+          step-summary: 'true'
+          tidy-review: 'true'
+          ignore: '.github|build'
+          version: '22'
+      - name: Fail fast?! # Needed as cpp-linter/cpp-linter-action@v2 does not fail the job when checks fail
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1
