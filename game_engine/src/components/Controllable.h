@@ -4,15 +4,19 @@
 #include <cstdint>
 
 namespace RType {
-    /** @brief Input actions currently active for an entity. */
-    struct Controllable {
-        std::uint8_t actionMask = 0;
+/** @brief Input actions currently active for an entity. */
+struct Controllable {
+    std::uint8_t actionMask = 0;
 
-        constexpr Controllable() = default;
-        constexpr explicit Controllable(std::uint8_t actionMask) : actionMask(actionMask) {}
+    constexpr Controllable() = default;
 
-        constexpr bool operator==(const Controllable &o) const = default;
-    };
-}
+    constexpr explicit Controllable(std::uint8_t actionMask) :
+        actionMask(actionMask)
+    {
+    }
+
+    constexpr bool operator==(const Controllable &o) const = default;
+};
+} // namespace RType
 
 #endif

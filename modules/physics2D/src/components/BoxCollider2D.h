@@ -12,13 +12,13 @@
 #include "math/Vector2.h"
 
 namespace RType::Physics2D {
-    struct BoxCollider2D {
-        Vector2 size{1.f, 1.f};
-        Vector2 offset{};
-        bool isTrigger = false;
-        std::uint32_t layer = 1;
-        std::uint32_t mask = 0xFFFFFFFFu;
-    };
-}
+struct BoxCollider2D {
+    Vector2 size {1.f, 1.f};
+    Vector2 offset {};
+    bool isTrigger = false;
+    std::uint32_t layer = 1;
+    std::uint32_t mask = 0xFFFFFFFFu;
+};
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_BOXCOLLIDER2D_H

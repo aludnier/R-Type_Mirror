@@ -9,8 +9,8 @@
 
 int main(int argc, char **argv)
 {
-    (void)argc;
-    (void)argv;
+    (void) argc;
+    (void) argv;
     Game::GameApp app;
     return app.run();
 }

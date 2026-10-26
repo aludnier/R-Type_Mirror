@@ -12,24 +12,27 @@
 #include <set>
 #include <stdexcept>
 
-#include "library/InputManager.h"
-#include "library/RessourceManager.h"
+#include <SFML/Graphics.hpp>
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "library/InputManager.h"
+#include "library/RessourceManager.h"
 #include "systems/RenderSystem.h"
-#include <SFML/Graphics.hpp>
 
 #include "catch2/internal/catch_getenv.hpp"
 
 namespace {
-constexpr std::uint8_t bit(Action action) {
+constexpr std::uint8_t bit(Action action)
+{
     return static_cast<std::uint8_t>(1u << static_cast<std::size_t>(action));
 }
-}
+} // namespace
 
-TEST_CASE("InputManager starts with no active action and an empty mask", "[input][manager]") {
+TEST_CASE("InputManager starts with no active action and an empty mask",
+    "[input][manager]")
+{
     InputManager manager;
 
     for (std::size_t i = 0; i < static_cast<std::size_t>(Action::Count); ++i) {
@@ -38,7 +41,9 @@ TEST_CASE("InputManager starts with no active action and an empty mask", "[input
     REQUIRE(manager.actionMask() == 0);
 }
 
-TEST_CASE("InputManager ignores keys that are not bound to any action", "[input][manager]") {
+TEST_CASE("InputManager ignores keys that are not bound to any action",
+    "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::Shoot, 30);
@@ -48,7 +53,9 @@ TEST_CASE("InputManager ignores keys that are not bound to any action", "[input]
     REQUIRE(manager.actionMask() == 0);
 }
 
-TEST_CASE("InputManager activates an action when any of its keys is down", "[input][manager]") {
+TEST_CASE("InputManager activates an action when any of its keys is down",
+    "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::MoveUp, 1);
@@ -65,7 +72,9 @@ TEST_CASE("InputManager activates an action when any of its keys is down", "[inp
     REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
 }
 
-TEST_CASE("InputManager treats repeated key states as idempotent", "[input][manager]") {
+TEST_CASE(
+    "InputManager treats repeated key states as idempotent", "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::MoveRight, 5);
@@ -79,7 +88,9 @@ TEST_CASE("InputManager treats repeated key states as idempotent", "[input][mana
     REQUIRE_FALSE(manager.isActionDown(Action::MoveRight));
 }
 
-TEST_CASE("InputManager lets one key trigger several actions", "[input][manager]") {
+TEST_CASE(
+    "InputManager lets one key trigger several actions", "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::Shoot, 9);
@@ -88,10 +99,13 @@ TEST_CASE("InputManager lets one key trigger several actions", "[input][manager]
 
     REQUIRE(manager.isActionDown(Action::Shoot));
     REQUIRE(manager.isActionDown(Action::MoveDown));
-    REQUIRE(manager.actionMask() == (bit(Action::Shoot) | bit(Action::MoveDown)));
+    REQUIRE(
+        manager.actionMask() == (bit(Action::Shoot) | bit(Action::MoveDown)));
 }
 
-TEST_CASE("InputManager actionMask combines every active action", "[input][manager]") {
+TEST_CASE(
+    "InputManager actionMask combines every active action", "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::MoveUp, 1);
@@ -103,8 +117,8 @@ TEST_CASE("InputManager actionMask combines every active action", "[input][manag
     REQUIRE(manager.actionMask() == (bit(Action::MoveUp) | bit(Action::Shoot)));
 
     manager.setKeyState(2, true);
-    REQUIRE(manager.actionMask()
-            == (bit(Action::MoveUp) | bit(Action::MoveLeft) | bit(Action::Shoot)));
+    REQUIRE(manager.actionMask() ==
+        (bit(Action::MoveUp) | bit(Action::MoveLeft) | bit(Action::Shoot)));
 
     manager.setKeyState(1, false);
     manager.setKeyState(2, false);
@@ -112,7 +126,9 @@ TEST_CASE("InputManager actionMask combines every active action", "[input][manag
     REQUIRE(manager.actionMask() == 0);
 }
 
-TEST_CASE("InputManager clearBindings removes every key of one action only", "[input][manager]") {
+TEST_CASE("InputManager clearBindings removes every key of one action only",
+    "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::MoveUp, 1);
@@ -128,7 +144,9 @@ TEST_CASE("InputManager clearBindings removes every key of one action only", "[i
     REQUIRE(manager.isActionDown(Action::Shoot));
 }
 
-TEST_CASE("InputManager supports remapping an action to a new key", "[input][manager]") {
+TEST_CASE("InputManager supports remapping an action to a new key",
+    "[input][manager]")
+{
     InputManager manager;
 
     manager.bind(Action::Shoot, 32);
@@ -144,7 +162,10 @@ TEST_CASE("InputManager supports remapping an action to a new key", "[input][man
     REQUIRE(manager.isActionDown(Action::Shoot));
 }
 
-TEST_CASE("InputManager uses the new bindings for keys that are already pressed", "[input][manager]") {
+TEST_CASE(
+    "InputManager uses the new bindings for keys that are already pressed",
+    "[input][manager]")
+{
     InputManager manager;
 
     manager.setKeyState(15, true);
@@ -158,20 +179,25 @@ TEST_CASE("InputManager uses the new bindings for keys that are already pressed"
 // ResourceManager
 // ---------------------------------------------------------------------------
 
-TEST_CASE("ResourceManager gives a different non-zero id to each asset", "[resource][manager]") {
+TEST_CASE("ResourceManager gives a different non-zero id to each asset",
+    "[resource][manager]")
+{
     ResourceManager manager;
 
     const auto a = manager.addAsset("a", "assets/a.png");
     const auto b = manager.addAsset("b", "assets/b.png");
-    const auto c = manager.addAsset("c", "assets/c.wav", ResourceManager::AssetType::Sound);
+    const auto c = manager.addAsset(
+        "c", "assets/c.wav", ResourceManager::AssetType::Sound);
 
     REQUIRE(a != 0);
     REQUIRE(b != 0);
     REQUIRE(c != 0);
-    REQUIRE(std::set<std::uint32_t>{a, b, c}.size() == 3);
+    REQUIRE(std::set<std::uint32_t> {a, b, c}.size() == 3);
 }
 
-TEST_CASE("ResourceManager defaults the asset type to Texture", "[resource][manager]") {
+TEST_CASE(
+    "ResourceManager defaults the asset type to Texture", "[resource][manager]")
+{
     ResourceManager manager;
 
     manager.addAsset("bg", "assets/bg.png");
@@ -179,7 +205,8 @@ TEST_CASE("ResourceManager defaults the asset type to Texture", "[resource][mana
     REQUIRE(manager.getAsset("bg").type == ResourceManager::AssetType::Texture);
 }
 
-TEST_CASE("ResourceManager stores every asset type", "[resource][manager]") {
+TEST_CASE("ResourceManager stores every asset type", "[resource][manager]")
+{
     ResourceManager manager;
 
     manager.addAsset("t", "t.png", ResourceManager::AssetType::Texture);
@@ -193,7 +220,9 @@ TEST_CASE("ResourceManager stores every asset type", "[resource][manager]") {
     REQUIRE(manager.getAsset("f").type == ResourceManager::AssetType::Font);
 }
 
-TEST_CASE("ResourceManager reports unknown names without creating them", "[resource][manager]") {
+TEST_CASE("ResourceManager reports unknown names without creating them",
+    "[resource][manager]")
+{
     ResourceManager manager;
 
     REQUIRE_FALSE(manager.hasAsset("ghost"));
@@ -203,7 +232,8 @@ TEST_CASE("ResourceManager reports unknown names without creating them", "[resou
     REQUIRE_FALSE(manager.hasAsset("ghost"));
 }
 
-TEST_CASE("ResourceManager never resolves id 0", "[resource][manager]") {
+TEST_CASE("ResourceManager never resolves id 0", "[resource][manager]")
+{
     ResourceManager manager;
 
     manager.addAsset("ship", "assets/ship.png");
@@ -211,7 +241,9 @@ TEST_CASE("ResourceManager never resolves id 0", "[resource][manager]") {
     REQUIRE_FALSE(manager.getAssetById(0).has_value());
 }
 
-TEST_CASE("ResourceManager removing an unknown asset does nothing", "[resource][manager]") {
+TEST_CASE("ResourceManager removing an unknown asset does nothing",
+    "[resource][manager]")
+{
     ResourceManager manager;
 
     const auto id = manager.addAsset("ship", "assets/ship.png");
@@ -221,7 +253,9 @@ TEST_CASE("ResourceManager removing an unknown asset does nothing", "[resource][
     REQUIRE(manager.getAssetById(id).has_value());
 }
 
-TEST_CASE("ResourceManager removing one asset keeps the others", "[resource][manager]") {
+TEST_CASE("ResourceManager removing one asset keeps the others",
+    "[resource][manager]")
+{
     ResourceManager manager;
 
     const auto keepId = manager.addAsset("keep", "assets/keep.png");
@@ -236,7 +270,9 @@ TEST_CASE("ResourceManager removing one asset keeps the others", "[resource][man
     REQUIRE(manager.getAssetById(keepId)->get().path == "assets/keep.png");
 }
 
-TEST_CASE("ResourceManager does not reuse the id of a removed asset", "[resource][manager]") {
+TEST_CASE("ResourceManager does not reuse the id of a removed asset",
+    "[resource][manager]")
+{
     ResourceManager manager;
 
     const auto oldId = manager.addAsset("cursor", "assets/cursor.png");
@@ -249,11 +285,16 @@ TEST_CASE("ResourceManager does not reuse the id of a removed asset", "[resource
     REQUIRE(manager.getAssetById(newId)->get().path == "assets/cursor2.png");
 }
 
-TEST_CASE("ResourceManager keeps lookups by name and by id consistent after an update", "[resource][manager]") {
+TEST_CASE("ResourceManager keeps lookups by name and by id consistent after an "
+          "update",
+    "[resource][manager]")
+{
     ResourceManager manager;
 
-    const auto id = manager.addAsset("music", "assets/old.ogg", ResourceManager::AssetType::Music);
-    manager.addAsset("music", "assets/new.ogg", ResourceManager::AssetType::Music);
+    const auto id = manager.addAsset(
+        "music", "assets/old.ogg", ResourceManager::AssetType::Music);
+    manager.addAsset(
+        "music", "assets/new.ogg", ResourceManager::AssetType::Music);
 
     REQUIRE(manager.getAsset("music").path == "assets/new.ogg");
     REQUIRE(manager.getAssetById(id)->get().path == "assets/new.ogg");
@@ -264,7 +305,9 @@ TEST_CASE("ResourceManager keeps lookups by name and by id consistent after an u
 // RenderSystem & Sprite
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Sprite component initializes with defaults and custom parameters", "[render][sprite]") {
+TEST_CASE("Sprite component initializes with defaults and custom parameters",
+    "[render][sprite]")
+{
     RType::Sprite defaultSprite;
     REQUIRE(defaultSprite.assetId == 0);
     REQUIRE(defaultSprite.zIndex == 0);
@@ -280,7 +323,9 @@ TEST_CASE("Sprite component initializes with defaults and custom parameters", "[
     REQUIRE(customSprite.zIndex == 5);
 }
 
-TEST_CASE("RenderSystem manages texture cache and renders entities safely", "[render][system]") {
+TEST_CASE("RenderSystem manages texture cache and renders entities safely",
+    "[render][system]")
+{
 
     if (Catch::Detail::getEnv("DISPLAY") == nullptr) {
         SUCCEED("Skipping render system test in headless environment.");
@@ -291,18 +336,22 @@ TEST_CASE("RenderSystem manages texture cache and renders entities safely", "[re
     registry.registerComponent<RType::Sprite>();
 
     ResourceManager resources;
-    const auto textureId = resources.addAsset("non_existing_test_sprite", "assets/does_not_exist.png");
+    const auto textureId = resources.addAsset(
+        "non_existing_test_sprite", "assets/does_not_exist.png");
 
     auto entity1 = registry.spawnEntity();
-    registry.addComponent(entity1, RType::Transform2D({100.0f, 200.0f}, {1.0f, 1.0f}, 0.0f));
+    registry.addComponent(
+        entity1, RType::Transform2D({100.0f, 200.0f}, {1.0f, 1.0f}, 0.0f));
     registry.addComponent(entity1, RType::Sprite(textureId, 1));
 
     auto entity2 = registry.spawnEntity();
-    registry.addComponent(entity2, RType::Transform2D({300.0f, 400.0f}, {2.0f, 2.0f}, 1.57f));
+    registry.addComponent(
+        entity2, RType::Transform2D({300.0f, 400.0f}, {2.0f, 2.0f}, 1.57f));
     registry.addComponent(entity2, RType::Sprite(0, 2));
 
     RType::RenderSystem renderSystem;
-    REQUIRE_FALSE(renderSystem.getTexture("assets/does_not_exist.png").has_value());
+    REQUIRE_FALSE(
+        renderSystem.getTexture("assets/does_not_exist.png").has_value());
 
     sf::RenderTexture renderTexture(sf::Vector2u(800, 600));
     // RenderSystem rendering with fallback for missing assets
@@ -311,10 +360,13 @@ TEST_CASE("RenderSystem manages texture cache and renders entities safely", "[re
     renderSystem.clearTextureCache();
 }
 
-TEST_CASE("addRenderSystem registers rendering system into ECS registry", "[render][system]") {
+TEST_CASE("addRenderSystem registers rendering system into ECS registry",
+    "[render][system]")
+{
 
     if (Catch::Detail::getEnv("DISPLAY") == nullptr) {
-        SUCCEED("Skipping render system registration test in headless environment.");
+        SUCCEED("Skipping render system registration test in headless "
+                "environment.");
         return;
     }
     RType::Registry registry;

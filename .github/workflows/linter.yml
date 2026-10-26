@@ -1,0 +1,57 @@
+name: "Linter"
+on:
+  workflow_call:
+
+jobs:
+  linter:
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: 'true'
+
+      # Dependencies are only rebuilt when vcpkg.json changes.
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libudev-dev \
+            libgl1-mesa-dev
+
+      - name: "Generate compilation_command.json"
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          cmake --preset release
+          cmake --build --preset release -j
+      - uses: cpp-linter/cpp-linter-action@v2
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: 'file'
+          tidy-checks: ''
+          database: 'build/release'
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          extra-args: '-std=c++23 -Wall'
+          step-summary: 'true'
+          ignore: '.github|build'
+          version: '22'
+      - name: Fail fast?! # Needed as cpp-linter/cpp-linter-action@v2 does not fail the job when checks fail
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1

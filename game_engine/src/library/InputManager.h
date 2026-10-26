@@ -16,8 +16,7 @@
 
 #include "components/Action.h"
 
-class InputManager
-{
+class InputManager {
 public:
     using KeyCode = int;
 
@@ -72,9 +71,10 @@ public:
     std::uint8_t actionMask() const;
 
 private:
-    static constexpr std::size_t actionCount = static_cast<std::size_t>(Action::Count);
+    static constexpr std::size_t actionCount =
+        static_cast<std::size_t>(Action::Count);
 
-    std::array<std::vector<KeyCode>, actionCount > _bindings;
+    std::array<std::vector<KeyCode>, actionCount> _bindings;
     std::unordered_set<KeyCode> _pressed;
 };
 

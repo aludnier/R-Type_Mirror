@@ -12,23 +12,31 @@
 
 namespace RType {
 
-    /**
-     * @brief Simple 2D bounding box for collision detection.
-     */
-    struct Hitbox {
-        Vector2 size{32.0f, 32.0f};
+/**
+ * @brief Simple 2D bounding box for collision detection.
+ */
+struct Hitbox {
+    Vector2 size {32.0f, 32.0f};
 
-        constexpr Hitbox() = default;
-        constexpr explicit Hitbox(Vector2 size) : size(size) {}
-        constexpr Hitbox(float width, float height) : size{width, height} {}
+    constexpr Hitbox() = default;
 
-        constexpr bool operator==(const Hitbox &o) const = default;
-    };
+    constexpr explicit Hitbox(Vector2 size) :
+        size(size)
+    {
+    }
+
+    constexpr Hitbox(float width, float height) :
+        size {width, height}
+    {
+    }
+
+    constexpr bool operator==(const Hitbox &o) const = default;
+};
 
 } // namespace RType
 
 namespace Game {
-    using Hitbox = RType::Hitbox;
+using Hitbox = RType::Hitbox;
 }
 
 #endif // HITBOX_H

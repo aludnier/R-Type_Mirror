@@ -8,12 +8,13 @@
 #ifndef PHYSICS2D_COLLISIONRESPONSESYSTEM_H
     #define PHYSICS2D_COLLISIONRESPONSESYSTEM_H
 
-#include "ecs/Registry.h"
 #include "Contact.h"
+#include "ecs/Registry.h"
 
 namespace RType::Physics2D {
-    /** Separates and bounces solid contacts, then writes Enter/Exit events. */
-    void addCollisionResponseSystem(Registry &registry, const SharedContacts &contacts);
-}
+/** Separates and bounces solid contacts, then writes Enter/Exit events. */
+void addCollisionResponseSystem(
+    Registry &registry, const SharedContacts &contacts);
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_COLLISIONRESPONSESYSTEM_H

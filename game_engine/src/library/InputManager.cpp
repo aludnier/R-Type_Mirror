@@ -11,7 +11,7 @@
 void InputManager::bind(Action action, KeyCode key)
 {
     auto &keys = _bindings[static_cast<std::size_t>(action)];
-    if (std::find(keys.begin(), keys.end(), key) == keys.end()) {
+    if (std::ranges::find(keys, key) == keys.end()) {
         keys.push_back(key);
     }
 }
@@ -19,7 +19,7 @@ void InputManager::bind(Action action, KeyCode key)
 void InputManager::unbind(Action action, KeyCode key)
 {
     auto &keys = _bindings[static_cast<std::size_t>(action)];
-    keys.erase(std::remove(keys.begin(), keys.end(), key), keys.end());
+    std::erase(keys, key);
 }
 
 void InputManager::clearBindings(Action action)
@@ -39,8 +39,8 @@ void InputManager::setKeyState(KeyCode key, bool pressed)
 bool InputManager::isActionDown(Action action) const
 {
     const auto &keys = _bindings[static_cast<std::size_t>(action)];
-    return std::any_of(keys.begin(), keys.end(),
-                       [this](KeyCode key) { return _pressed.count(key) > 0; });
+    return std::ranges::any_of(
+        keys, [this](KeyCode key) { return _pressed.contains(key); });
 }
 
 std::uint8_t InputManager::actionMask() const
@@ -48,7 +48,7 @@ std::uint8_t InputManager::actionMask() const
     std::uint8_t mask = 0;
     for (std::size_t i = 0; i < actionCount; ++i) {
         if (isActionDown(static_cast<Action>(i))) {
-            mask |= (1u << i);
+            mask |= 1u << i;
         }
     }
     return mask;

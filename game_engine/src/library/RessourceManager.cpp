@@ -8,8 +8,8 @@
 #include "RessourceManager.h"
 #include <stdexcept>
 
-std::uint32_t ResourceManager::addAsset(const std::string &name, const std::string &path,
-                                        AssetType type)
+std::uint32_t ResourceManager::addAsset(
+    const std::string &name, const std::string &path, AssetType type)
 {
     auto it = _assets.find(name);
     if (it != _assets.end()) {
@@ -18,7 +18,7 @@ std::uint32_t ResourceManager::addAsset(const std::string &name, const std::stri
         return it->second.id;
     }
     const std::uint32_t id = _nextId++;
-    _assets.emplace(name, Asset{id, type, path});
+    _assets.emplace(name, Asset {id, type, path});
     _namesById.emplace(id, name);
     return id;
 }
@@ -35,19 +35,22 @@ void ResourceManager::removeAsset(const std::string &name)
 
 bool ResourceManager::hasAsset(const std::string &name) const
 {
-    return _assets.find(name) != _assets.end();
+    return _assets.contains(name);
 }
 
-const ResourceManager::Asset &ResourceManager::getAsset(const std::string &name) const
+const ResourceManager::Asset &ResourceManager::getAsset(
+    const std::string &name) const
 {
     auto it = _assets.find(name);
     if (it == _assets.end()) {
-        throw std::out_of_range("ResourceManager: unknown asset '" + name + "'");
+        throw std::out_of_range(
+            "ResourceManager: unknown asset '" + name + "'");
     }
     return it->second;
 }
 
-std::optional<std::reference_wrapper<const ResourceManager::Asset>> ResourceManager::getAssetById(std::uint32_t id) const
+std::optional<std::reference_wrapper<const ResourceManager::Asset>>
+ResourceManager::getAssetById(std::uint32_t id) const
 {
     auto nameIt = _namesById.find(id);
     if (nameIt == _namesById.end()) {
