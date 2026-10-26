@@ -19,6 +19,8 @@ struct CollisionEvent2D {
     bool isTrigger = false;
     Vector2 normal {};
     CollisionKind kind = CollisionKind::Enter;
+
+    explicit CollisionEvent2D(Entity other) : other(other) {}
 };
 } // namespace RType::Physics2D
 

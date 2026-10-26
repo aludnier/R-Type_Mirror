@@ -53,19 +53,16 @@ public:
         _isRunning = false;
     }
 
-    void importAsset(std::string assetName, std::string assetPath)
+    void importAsset(const std::string &assetName, const std::string &assetPath)
     {
         _resources.addAsset(assetName, assetPath);
     }
 
     void applyAsset(
-        RType::Entity entity, std::string assetName, std::string assetPath = "")
+        RType::Entity entity, const std::string &assetName, const std::string &assetPath = "")
     {
-        try {
-            _resources.getAsset(assetName);
-        } catch (const std::exception &) {
+        if (!_resources.hasAsset(assetName))
             _resources.addAsset(assetName, assetPath);
-        }
         _registry.addComponent<RType::Sprite>(
             entity, RType::Sprite {_resources.getAsset(assetName).id});
     }

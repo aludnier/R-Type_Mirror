@@ -6,7 +6,7 @@
 */
 
 #ifndef MODULE_H
-    #define MODULE_H
+#define MODULE_H
 
 #include <cstdint>
 #include <functional>
@@ -16,11 +16,11 @@
 #include "ecs/Registry.h"
 
 #if defined(_WIN32)
-    #define MODULE_EXPORT __declspec(dllexport)
-    #define MODULE_CALL __cdecl
+#define MODULE_EXPORT __declspec(dllexport)
+#define MODULE_CALL __cdecl
 #else
-    #define MODULE_EXPORT __attribute__((visibility("default")))
-    #define MODULE_CALL
+#define MODULE_EXPORT __attribute__((visibility("default")))
+#define MODULE_CALL
 #endif
 
 namespace RType {
