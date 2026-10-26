@@ -33,22 +33,22 @@ enum class ModuleStatus {
 };
 
 struct ModuleApiVersion {
-    std::uint32_t major{};
-    std::uint32_t minor{};
+    std::uint32_t major {};
+    std::uint32_t minor {};
 };
 
 struct ModuleDependency {
-    std::string name{};
-    ModuleApiVersion compatible_api{};
+    std::string name {};
+    ModuleApiVersion compatible_api {};
 };
 
 using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
 
 struct ModuleDescriptor {
-    std::string name{};
-    ModuleApiVersion apiVersion{};
-    std::vector<ModuleDependency> dependencies{};
-    RegisterModuleFn registerModule{};
+    std::string name {};
+    ModuleApiVersion apiVersion {};
+    std::vector<ModuleDependency> dependencies {};
+    RegisterModuleFn registerModule {};
 };
 } // namespace RType
 

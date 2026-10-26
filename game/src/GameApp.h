@@ -64,19 +64,19 @@ private:
     void handleEvent(const sf::Event &event);
     void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
     void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
-    RType::Registry _registry{};
-    InputManager _inputManager{};
-    ResourceManager _resourceManager{};
-    NetworkClient _networkClient{};
-    ConnectionDialog _connectionDialog{};
-    NetworkSyncSystem _networkSyncSystem{};
-    std::unique_ptr<sf::RenderWindow> _window{nullptr};
+    RType::Registry _registry {};
+    InputManager _inputManager {};
+    ResourceManager _resourceManager {};
+    NetworkClient _networkClient {};
+    ConnectionDialog _connectionDialog {};
+    NetworkSyncSystem _networkSyncSystem {};
+    std::unique_ptr<sf::RenderWindow> _window {nullptr};
     ScreenState _screenState = ScreenState::Connection;
     bool _running = false;
     float _frameRate = 60.0f;
     float _fixedDeltaTime = 1.0f / 60.0f;
-    RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader{};
-    RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader{};
+    RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader {};
+    RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader {};
 };
 
 } // namespace Game
