@@ -24,8 +24,6 @@ set(CORE_SRC
         src/library/RessourceManager.cpp
         src/library/RessourceManager.h
         src/library/PluginManager.cpp
-        src/library/PluginManagerPlugins.cpp
-        src/library/PluginManagerModules.cpp
         src/library/PluginManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
@@ -41,17 +39,13 @@ add_library(engine_core STATIC ${CORE_SRC})
 
 target_include_directories(engine_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# Linked into the modules, which are shared libraries.
 set_target_properties(engine_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# Asio is installed by vcpkg (vcpkg.json). PRIVATE: only UdpSocket.cpp
-# includes it, the users of the engine never see it.
 find_package(asio CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 target_link_libraries(engine_core PRIVATE asio::asio PUBLIC Threads::Threads)
 target_link_libraries(engine_core PUBLIC ${CMAKE_DL_LIBS})
 if (WIN32)
-    # Windows 10 API, otherwise Asio warns about a missing _WIN32_WINNT.
     target_compile_definitions(engine_core PRIVATE _WIN32_WINNT=0x0A00)
 endif ()
 
