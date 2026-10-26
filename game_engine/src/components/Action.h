@@ -10,8 +10,7 @@
 
 #include <cstdint>
 
-enum class Action : std::uint8_t
-{
+enum class Action : std::uint8_t {
     MoveUp,
     MoveDown,
     MoveLeft,

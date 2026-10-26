@@ -1,44 +1,45 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cstdint>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
-#include <stdexcept>
-#include <cstdint>
 
+#include "components/Controllable.h"
+#include "components/Health.h"
+#include "components/Hitbox.h"
+#include "components/Transform2D.h"
 #include "ecs/Component.h"
 #include "ecs/Entity.h"
 #include "ecs/IndexedZipper.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
 #include "ecs/Zipper.h"
-#include "components/Controllable.h"
-#include "components/Transform2D.h"
-#include "components/Health.h"
-#include "components/Hitbox.h"
 #include "library/InputManager.h"
 #include "systems/ControllableSystem.h"
 
 namespace {
-    struct Position {
-        int x;
-        int y;
-    };
+struct Position {
+    int x;
+    int y;
+};
 
-    struct Velocity {
-        int dx;
-        int dy;
-    };
+struct Velocity {
+    int dx;
+    int dy;
+};
 
-    struct Health {
-        int hp;
-    };
-}
+struct Health {
+    int hp;
+};
+} // namespace
 
-TEST_CASE("SparseArray stores inserted values", "[ecs][sparse-array]") {
+TEST_CASE("SparseArray stores inserted values", "[ecs][sparse-array]")
+{
     RType::SparseArray<Position> array;
 
-    array.insert_at(2, Position{10, 20});
-    array.insert_at(5, Position{30, 40});
+    array.insert_at(2, Position {10, 20});
+    array.insert_at(5, Position {30, 40});
 
     REQUIRE(array[2].has_value());
     REQUIRE(array[5].has_value());
@@ -48,7 +49,8 @@ TEST_CASE("SparseArray stores inserted values", "[ecs][sparse-array]") {
     REQUIRE(array[5]->y == 40);
 }
 
-TEST_CASE("SparseArray emplaces components", "[ecs][sparse-array]") {
+TEST_CASE("SparseArray emplaces components", "[ecs][sparse-array]")
+{
     RType::SparseArray<Velocity> array;
 
     array.emplace(4, 7, 8);
@@ -59,11 +61,12 @@ TEST_CASE("SparseArray emplaces components", "[ecs][sparse-array]") {
     REQUIRE(array.size() == 5u);
 }
 
-TEST_CASE("SparseArray erases components", "[ecs][sparse-array]") {
+TEST_CASE("SparseArray erases components", "[ecs][sparse-array]")
+{
     RType::SparseArray<Health> array;
 
-    array.insert_at(0, Health{99});
-    array.insert_at(3, Health{11});
+    array.insert_at(0, Health {99});
+    array.insert_at(3, Health {11});
 
     array.erase(0);
 
@@ -74,23 +77,28 @@ TEST_CASE("SparseArray erases components", "[ecs][sparse-array]") {
     REQUIRE(array.count() == 1u);
 }
 
-TEST_CASE("SparseArray getIndex returns stored optional position", "[ecs][sparse-array]") {
+TEST_CASE("SparseArray getIndex returns stored optional position",
+    "[ecs][sparse-array]")
+{
     RType::SparseArray<Position> array;
 
-    array.insert_at(9, Position{1, 2});
+    array.insert_at(9, Position {1, 2});
     auto &slot = array[9];
 
     REQUIRE(array.getIndex(slot) == 9u);
 }
 
-TEST_CASE("SparseArray getIndex throws for unknown optional", "[ecs][sparse-array]") {
+TEST_CASE(
+    "SparseArray getIndex throws for unknown optional", "[ecs][sparse-array]")
+{
     RType::SparseArray<Position> array;
     std::optional<Position> missing = std::nullopt;
 
     REQUIRE_THROWS_AS(array.getIndex(missing), std::out_of_range);
 }
 
-TEST_CASE("Registry spawns entities", "[ecs][registry]") {
+TEST_CASE("Registry spawns entities", "[ecs][registry]")
+{
     RType::Registry registry;
 
     auto first = registry.spawnEntity();
@@ -101,55 +109,67 @@ TEST_CASE("Registry spawns entities", "[ecs][registry]") {
     REQUIRE(static_cast<RType::entity_id_type>(second) == 1u);
 }
 
-TEST_CASE("Registry registers components", "[ecs][registry]") {
+TEST_CASE("Registry registers components", "[ecs][registry]")
+{
     RType::Registry registry;
 
     auto &positions = registry.registerComponent<Position>();
     auto entity = registry.spawnEntity();
 
-    registry.addComponent<Position>(entity, Position{5, 6});
+    registry.addComponent<Position>(entity, Position {5, 6});
 
     REQUIRE(positions[static_cast<RType::entity_id_type>(entity)].has_value());
     REQUIRE(positions[static_cast<RType::entity_id_type>(entity)]->x == 5);
     REQUIRE(positions[static_cast<RType::entity_id_type>(entity)]->y == 6);
 }
 
-TEST_CASE("Registry removes components", "[ecs][registry]") {
+TEST_CASE("Registry removes components", "[ecs][registry]")
+{
     RType::Registry registry;
     auto entity = registry.spawnEntity();
 
     registry.registerComponent<Position>();
-    registry.addComponent<Position>(entity, Position{8, 9});
+    registry.addComponent<Position>(entity, Position {8, 9});
     registry.removeComponent<Position>(entity);
 
-    REQUIRE_FALSE(registry.getComponents<Position>()[static_cast<RType::entity_id_type>(entity)].has_value());
+    REQUIRE_FALSE(registry
+            .getComponents<Position>()[static_cast<RType::entity_id_type>(
+                entity)]
+            .has_value());
 }
 
-TEST_CASE("Registry systems see components before pending entities are removed", "[ecs][registry]") {
+TEST_CASE("Registry systems see components before pending entities are removed",
+    "[ecs][registry]")
+{
     RType::Registry registry;
     registry.registerComponent<Position>();
 
     auto entity = registry.spawnEntity();
-    registry.addComponent<Position>(entity, Position{12, 13});
+    registry.addComponent<Position>(entity, Position {12, 13});
 
     bool systemSawEntity = false;
     registry.addSystem<Position>([&](RType::storage_t<Position> &positions) {
-        systemSawEntity = positions[static_cast<RType::entity_id_type>(entity)].has_value();
+        systemSawEntity =
+            positions[static_cast<RType::entity_id_type>(entity)].has_value();
     });
 
     registry.killEntity(entity);
     registry.runSystems();
 
     REQUIRE(systemSawEntity);
-    REQUIRE_FALSE(registry.getComponents<Position>()[static_cast<RType::entity_id_type>(entity)].has_value());
+    REQUIRE_FALSE(registry
+            .getComponents<Position>()[static_cast<RType::entity_id_type>(
+                entity)]
+            .has_value());
 }
 
-TEST_CASE("Registry systems can mutate values in storage", "[ecs][registry]") {
+TEST_CASE("Registry systems can mutate values in storage", "[ecs][registry]")
+{
     RType::Registry registry;
     registry.registerComponent<Position>();
 
     auto entity = registry.spawnEntity();
-    registry.addComponent<Position>(entity, Position{1, 1});
+    registry.addComponent<Position>(entity, Position {1, 1});
 
     registry.addSystem<Position>([](RType::storage_t<Position> &positions) {
         auto &component = positions[0];
@@ -164,46 +184,53 @@ TEST_CASE("Registry systems can mutate values in storage", "[ecs][registry]") {
     REQUIRE(registry.getComponents<Position>()[0]->y == 8);
 }
 
-TEST_CASE("Controllable system moves entities from their action mask", "[systems][controllable]") {
+TEST_CASE("Controllable system moves entities from their action mask",
+    "[systems][controllable]")
+{
     RType::Registry registry;
     registry.registerComponent<RType::Transform2D>();
     registry.registerComponent<RType::Controllable>();
 
     const auto entity = registry.spawnEntity();
-    registry.addComponent<RType::Transform2D>(entity, RType::Transform2D{});
-    registry.addComponent<RType::Controllable>(entity, RType::Controllable{
-        static_cast<std::uint8_t>((1u << static_cast<std::uint8_t>(Action::MoveRight)) |
-                                   (1u << static_cast<std::uint8_t>(Action::MoveDown)))
-    });
+    registry.addComponent<RType::Transform2D>(entity, RType::Transform2D {});
+    registry.addComponent<RType::Controllable>(entity,
+        RType::Controllable {static_cast<std::uint8_t>(
+            (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
+            (1u << static_cast<std::uint8_t>(Action::MoveDown)))});
     RType::addControllableSystem(registry, 10.f, 0.5f);
 
     registry.runSystems();
 
-    const auto &transform = registry.getComponents<RType::Transform2D>()[static_cast<RType::entity_id_type>(entity)];
-    REQUIRE(transform->position == RType::Vector2{5.f, 5.f});
+    const auto &transform = registry.getComponents<
+        RType::Transform2D>()[static_cast<RType::entity_id_type>(entity)];
+    REQUIRE(transform->position == RType::Vector2 {5.f, 5.f});
 }
 
-TEST_CASE("Controllable system cancels opposing actions and ignores shooting", "[systems][controllable]") {
+TEST_CASE("Controllable system cancels opposing actions and ignores shooting",
+    "[systems][controllable]")
+{
     RType::Registry registry;
     registry.registerComponent<RType::Transform2D>();
     registry.registerComponent<RType::Controllable>();
 
     const auto entity = registry.spawnEntity();
-    registry.addComponent<RType::Transform2D>(entity, RType::Transform2D{});
-    registry.addComponent<RType::Controllable>(entity, RType::Controllable{
-        static_cast<std::uint8_t>((1u << static_cast<std::uint8_t>(Action::MoveLeft)) |
-                                   (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
-                                   (1u << static_cast<std::uint8_t>(Action::Shoot)))
-    });
+    registry.addComponent<RType::Transform2D>(entity, RType::Transform2D {});
+    registry.addComponent<RType::Controllable>(entity,
+        RType::Controllable {static_cast<std::uint8_t>(
+            (1u << static_cast<std::uint8_t>(Action::MoveLeft)) |
+            (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
+            (1u << static_cast<std::uint8_t>(Action::Shoot)))});
     RType::addControllableSystem(registry, 10.f, 1.f);
 
     registry.runSystems();
 
-    const auto &transform = registry.getComponents<RType::Transform2D>()[static_cast<RType::entity_id_type>(entity)];
-    REQUIRE(transform->position == RType::Vector2{});
+    const auto &transform = registry.getComponents<
+        RType::Transform2D>()[static_cast<RType::entity_id_type>(entity)];
+    REQUIRE(transform->position == RType::Vector2 {});
 }
 
-TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]") {
+TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]")
+{
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -226,7 +253,8 @@ TEST_CASE("Zipper iterates values present in all containers", "[ecs][zipper]") {
     REQUIRE(seen[1] == std::make_pair(50, 3));
 }
 
-TEST_CASE("Zipper over storages with no common value is empty", "[ecs][zipper]") {
+TEST_CASE("Zipper over storages with no common value is empty", "[ecs][zipper]")
+{
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -238,7 +266,8 @@ TEST_CASE("Zipper over storages with no common value is empty", "[ecs][zipper]")
     REQUIRE(zipper.begin() == zipper.end());
 }
 
-TEST_CASE("Zipper shorter container limits iteration range", "[ecs][zipper]") {
+TEST_CASE("Zipper shorter container limits iteration range", "[ecs][zipper]")
+{
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -260,7 +289,8 @@ TEST_CASE("Zipper shorter container limits iteration range", "[ecs][zipper]") {
     REQUIRE(seen[0] == 11);
 }
 
-TEST_CASE("Zipper skips leading unset optionals", "[ecs][zipper]") {
+TEST_CASE("Zipper skips leading unset optionals", "[ecs][zipper]")
+{
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -283,7 +313,9 @@ TEST_CASE("Zipper skips leading unset optionals", "[ecs][zipper]") {
     REQUIRE(seen[1] == std::make_pair(70, 5));
 }
 
-TEST_CASE("IndexedZipper includes current entity index", "[ecs][indexed-zipper]") {
+TEST_CASE(
+    "IndexedZipper includes current entity index", "[ecs][indexed-zipper]")
+{
     RType::SparseArray<Position> positions;
 
     positions.emplace(0, 5, 6);
@@ -303,7 +335,9 @@ TEST_CASE("IndexedZipper includes current entity index", "[ecs][indexed-zipper]"
     REQUIRE((seen[2] == std::make_tuple(4u, 9, 10)));
 }
 
-TEST_CASE("IndexedZipper skips missing values before reporting index", "[ecs][indexed-zipper]") {
+TEST_CASE("IndexedZipper skips missing values before reporting index",
+    "[ecs][indexed-zipper]")
+{
     RType::SparseArray<Position> positions;
     RType::SparseArray<Velocity> velocities;
 
@@ -326,7 +360,8 @@ TEST_CASE("IndexedZipper skips missing values before reporting index", "[ecs][in
     REQUIRE(seen[0] == 0u);
 }
 
-TEST_CASE("Health component behaves correctly", "[ecs][components][health]") {
+TEST_CASE("Health component behaves correctly", "[ecs][components][health]")
+{
     RType::Health health(10, 20);
 
     REQUIRE(health.current == 10);
@@ -342,7 +377,9 @@ TEST_CASE("Health component behaves correctly", "[ecs][components][health]") {
     REQUIRE(health.isDead());
 }
 
-TEST_CASE("Hitbox component initializes dimensions", "[ecs][components][hitbox]") {
+TEST_CASE(
+    "Hitbox component initializes dimensions", "[ecs][components][hitbox]")
+{
     RType::Hitbox defaultBox;
     REQUIRE(defaultBox.size.x == 32.0f);
     REQUIRE(defaultBox.size.y == 32.0f);

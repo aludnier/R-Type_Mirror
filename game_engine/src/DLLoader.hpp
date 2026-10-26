@@ -21,12 +21,14 @@ namespace RType {
 template<typename T>
 class DLLoader {
 public:
-    explicit DLLoader(const std::string &libFile) : _handle(nullptr)
+    explicit DLLoader(const std::string &libFile) :
+        _handle(nullptr)
     {
         this->loadFile(libFile);
     }
 
-    explicit DLLoader() : _handle(nullptr)
+    explicit DLLoader() :
+        _handle(nullptr)
     {
     }
 
@@ -39,7 +41,8 @@ public:
 
     DLLoader &operator=(const DLLoader &) = delete;
 
-    DLLoader(DLLoader &&other) noexcept : _handle(other._handle)
+    DLLoader(DLLoader &&other) noexcept :
+        _handle(other._handle)
     {
         other._handle = nullptr;
     }
@@ -58,11 +61,10 @@ public:
     {
         void *entryPoint = this->getLibraryFunction(ENTRY_POINT_SYMBOL);
         if (!entryPoint)
-            throw NoEntrypointException(
-                std::string("Failed to open ") + ENTRY_POINT_SYMBOL.data() +
-                ": " + getLibraryError());
+            throw NoEntrypointException(std::string("Failed to open ") +
+                ENTRY_POINT_SYMBOL.data() + ": " + getLibraryError());
 
-        using EntryPointFn = T*(*)();
+        using EntryPointFn = T *(*) ();
         T *instance = reinterpret_cast<EntryPointFn>(entryPoint)();
         if (!instance)
             throw InstanceCreationException(
@@ -97,8 +99,8 @@ public:
 
     class LibraryLoadException : public DLLoaderException {
     public:
-        explicit LibraryLoadException(std::string msg) : _libFile(std::move(
-            msg))
+        explicit LibraryLoadException(std::string msg) :
+            _libFile(std::move(msg))
         {
         }
 
@@ -113,7 +115,8 @@ public:
 
     class NoEntrypointException : public DLLoaderException {
     public:
-        explicit NoEntrypointException(std::string msg) : _msg(std::move(msg))
+        explicit NoEntrypointException(std::string msg) :
+            _msg(std::move(msg))
         {
         }
 
@@ -128,8 +131,8 @@ public:
 
     class InstanceCreationException : public DLLoaderException {
     public:
-        explicit InstanceCreationException(std::string msg) : _msg(std::move(
-            msg))
+        explicit InstanceCreationException(std::string msg) :
+            _msg(std::move(msg))
         {
         }
 
@@ -143,8 +146,7 @@ public:
     };
 
 private:
-    static constexpr std::string_view ENTRY_POINT_SYMBOL =
-        "RTypeLibEntryPoint";
+    static constexpr std::string_view ENTRY_POINT_SYMBOL = "RTypeLibEntryPoint";
     void *_handle;
 
     void *openLibrary(const std::string &libFile)
@@ -173,12 +175,12 @@ private:
             return "Unknown error";
         char buffer[1024];
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM,
-                       NULL,
-                       dw,
-                       MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-                       buffer,
-                       sizeof(buffer),
-                       NULL);
+            NULL,
+            dw,
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            buffer,
+            sizeof(buffer),
+            NULL);
         return std::string(buffer);
 #else
         return dlerror();
@@ -188,14 +190,13 @@ private:
     void *getLibraryFunction(std::string_view funcName)
     {
 #if defined(_WIN32) || defined(_WIN64)
-        return (void *) GetProcAddress((HMODULE) this->_handle,
-                                       funcName.data());
+        return (void *) GetProcAddress(
+            (HMODULE) this->_handle, funcName.data());
 #else
         return dlsym(this->_handle, funcName.data());
 #endif
     }
 };
-}
-
+} // namespace RType
 
 #endif

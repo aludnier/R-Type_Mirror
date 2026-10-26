@@ -19,56 +19,56 @@
 using namespace RType::Network;
 
 namespace {
-    using Bytes = std::vector<std::uint8_t>;
+using Bytes = std::vector<std::uint8_t>;
 
-    template<PacketPayload P>
-    std::optional<P> roundTrip(const P &payload)
-    {
-        auto datagram = makePacket(payload).serialize();
-        auto packet = Packet::deserialize(datagram);
+template<PacketPayload P>
+std::optional<P> roundTrip(const P &payload)
+{
+    auto datagram = makePacket(payload).serialize();
+    auto packet = Packet::deserialize(datagram);
 
-        if (!packet) {
-            return std::nullopt;
-        }
-        return readPayload<P>(*packet);
+    if (!packet) {
+        return std::nullopt;
     }
+    return readPayload<P>(*packet);
+}
 
-    template<PacketPayload P>
-    std::optional<P> decodeRaw(const Bytes &payload)
-    {
-        Packet packet;
+template<PacketPayload P>
+std::optional<P> decodeRaw(const Bytes &payload)
+{
+    Packet packet;
 
-        packet.header.type = P::TYPE;
-        packet.payload = payload;
-        return readPayload<P>(packet);
-    }
+    packet.header.type = P::TYPE;
+    packet.payload = payload;
+    return readPayload<P>(packet);
+}
 
-    template<PacketPayload P>
-    void decodeAs(Packet packet)
-    {
-        packet.header.type = P::TYPE;
-        (void) readPayload<P>(packet);
-    }
+template<PacketPayload P>
+void decodeAs(Packet packet)
+{
+    packet.header.type = P::TYPE;
+    (void) readPayload<P>(packet);
+}
 
-    void decodeAsEveryPayload(const Packet &packet)
-    {
-        decodeAs<AskConnectPacket>(packet);
-        decodeAs<AskDisconnectPacket>(packet);
-        decodeAs<ControllablePacket>(packet);
-        decodeAs<HeartbeatPacket>(packet);
-        decodeAs<AcceptConnectPacket>(packet);
-        decodeAs<ForceDisconnectPacket>(packet);
-        decodeAs<PlayerConnectedPacket>(packet);
-        decodeAs<PlayerDisconnectedPacket>(packet);
-        decodeAs<EntitySpawnPacket>(packet);
-        decodeAs<EntityDespawnPacket>(packet);
-        decodeAs<ComponentUpdatePacket>(packet);
-        decodeAs<HeartbeatReplyPacket>(packet);
-    }
+void decodeAsEveryPayload(const Packet &packet)
+{
+    decodeAs<AskConnectPacket>(packet);
+    decodeAs<AskDisconnectPacket>(packet);
+    decodeAs<ControllablePacket>(packet);
+    decodeAs<HeartbeatPacket>(packet);
+    decodeAs<AcceptConnectPacket>(packet);
+    decodeAs<ForceDisconnectPacket>(packet);
+    decodeAs<PlayerConnectedPacket>(packet);
+    decodeAs<PlayerDisconnectedPacket>(packet);
+    decodeAs<EntitySpawnPacket>(packet);
+    decodeAs<EntityDespawnPacket>(packet);
+    decodeAs<ComponentUpdatePacket>(packet);
+    decodeAs<HeartbeatReplyPacket>(packet);
+}
 } // namespace
 
-TEST_CASE("ByteWriter writes integers in little endian",
-    "[network][byte-writer]")
+TEST_CASE(
+    "ByteWriter writes integers in little endian", "[network][byte-writer]")
 {
     ByteWriter writer;
 
@@ -104,8 +104,8 @@ TEST_CASE("ByteWriter rejects strings longer than 255 bytes",
         writer.writeString(std::string(256, 'x')), std::length_error);
 }
 
-TEST_CASE("ByteWriter release leaves the writer empty",
-    "[network][byte-writer]")
+TEST_CASE(
+    "ByteWriter release leaves the writer empty", "[network][byte-writer]")
 {
     ByteWriter writer;
 
@@ -152,8 +152,8 @@ TEST_CASE("ByteReader fails without throwing when out of bounds",
     REQUIRE(reader.read<std::uint8_t>() == 0);
 }
 
-TEST_CASE("ByteReader fails on truncated string or bytes",
-    "[network][byte-reader]")
+TEST_CASE(
+    "ByteReader fails on truncated string or bytes", "[network][byte-reader]")
 {
     Bytes truncatedString {5, 'a', 'b'};
     Bytes truncatedBytes {4, 0, 1};
@@ -166,8 +166,8 @@ TEST_CASE("ByteReader fails on truncated string or bytes",
     REQUIRE_FALSE(bytesReader.ok());
 }
 
-TEST_CASE("Protocol compares sequences across wrap around",
-    "[network][protocol]")
+TEST_CASE(
+    "Protocol compares sequences across wrap around", "[network][protocol]")
 {
     REQUIRE(isSequenceMoreRecent(2, 1));
     REQUIRE_FALSE(isSequenceMoreRecent(1, 2));
@@ -185,8 +185,8 @@ TEST_CASE("Protocol classifies game message types", "[network][protocol]")
     REQUIRE(isGameMessageType(static_cast<MessageType>(0xFF)));
 }
 
-TEST_CASE("PacketHeader round trips in fifteen bytes",
-    "[network][packet-header]")
+TEST_CASE(
+    "PacketHeader round trips in fifteen bytes", "[network][packet-header]")
 {
     PacketHeader header;
     ByteWriter writer;
@@ -303,8 +303,8 @@ TEST_CASE("Packet enforces the maximum payload size", "[network][packet]")
     REQUIRE_THROWS_AS((void) tooLarge.serialize(), std::length_error);
 }
 
-TEST_CASE("ClientPackets round trip through a datagram",
-    "[network][client-packets]")
+TEST_CASE(
+    "ClientPackets round trip through a datagram", "[network][client-packets]")
 {
     AskConnectPacket askConnect {.playerName = "player one"};
     ControllablePacket controllable {
@@ -317,8 +317,8 @@ TEST_CASE("ClientPackets round trip through a datagram",
     REQUIRE(roundTrip(heartbeat) == heartbeat);
 }
 
-TEST_CASE("ServerPackets round trip through a datagram",
-    "[network][server-packets]")
+TEST_CASE(
+    "ServerPackets round trip through a datagram", "[network][server-packets]")
 {
     AcceptConnectPacket accept {
         .clientId = 3, .linkedEntity = 17, .tickRate = 60};
@@ -385,11 +385,11 @@ TEST_CASE("Payloads fits sixty entity positions in one datagram",
     REQUIRE(roundTrip(update) == update);
 }
 
-TEST_CASE("Payloads accepts every controllable action bit",
-    "[network][payloads]")
+TEST_CASE(
+    "Payloads accepts every controllable action bit", "[network][payloads]")
 {
-    auto controls = decodeRaw<ControllablePacket>(
-        {0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF});
+    auto controls =
+        decodeRaw<ControllablePacket>({0, 0, 0, 0, 0xFF, 0xFF, 0xFF, 0xFF});
 
     REQUIRE(controls.has_value());
     REQUIRE(controls->actions == 0xFFFFFFFFu);
@@ -428,8 +428,8 @@ TEST_CASE("Payloads rejects component count larger than the data",
     REQUIRE(decodeRaw<EntitySpawnPacket>(payload).has_value());
 }
 
-TEST_CASE("Payloads refuses to send more than 255 components",
-    "[network][payloads]")
+TEST_CASE(
+    "Payloads refuses to send more than 255 components", "[network][payloads]")
 {
     EntitySpawnPacket spawn;
 
@@ -437,8 +437,8 @@ TEST_CASE("Payloads refuses to send more than 255 components",
     REQUIRE_THROWS_AS((void) makePacket(spawn), std::length_error);
 }
 
-TEST_CASE("Payloads refuses to send more than 255 entities",
-    "[network][payloads]")
+TEST_CASE(
+    "Payloads refuses to send more than 255 entities", "[network][payloads]")
 {
     ComponentUpdatePacket update;
 
@@ -476,51 +476,52 @@ TEST_CASE("Robustness random datagrams never crash the decoder",
 }
 
 namespace {
-    EntityComponents positionUpdate(NetworkId id)
-    {
-        return {.networkId = id,
-            .components = {{.typeId = 1, .data = Bytes(8, 0)}}};
-    }
+EntityComponents positionUpdate(NetworkId id)
+{
+    return {
+        .networkId = id, .components = {{.typeId = 1, .data = Bytes(8, 0)}}};
+}
 
-    /**
-     * @brief Puts the split entities back together: an entity continued in
-     *        the next packet is merged with its first part.
-     */
-    std::vector<EntityComponents> joinUpdates(
-        const std::vector<ComponentUpdatePacket> &packets)
-    {
-        std::vector<EntityComponents> entities;
+/**
+ * @brief Puts the split entities back together: an entity continued in
+ *        the next packet is merged with its first part.
+ */
+std::vector<EntityComponents> joinUpdates(
+    const std::vector<ComponentUpdatePacket> &packets)
+{
+    std::vector<EntityComponents> entities;
 
-        for (std::size_t i = 0; i < packets.size(); ++i) {
-            for (std::size_t j = 0; j < packets[i].entities.size(); ++j) {
-                const auto &entity = packets[i].entities[j];
+    for (std::size_t i = 0; i < packets.size(); ++i) {
+        for (std::size_t j = 0; j < packets[i].entities.size(); ++j) {
+            const auto &entity = packets[i].entities[j];
 
-                if (i > 0 && j == 0 &&
-                    entities.back().networkId == entity.networkId) {
-                    auto &components = entities.back().components;
+            if (i > 0 && j == 0 &&
+                entities.back().networkId == entity.networkId) {
+                auto &components = entities.back().components;
 
-                    components.insert(components.end(),
-                        entity.components.begin(), entity.components.end());
-                } else {
-                    entities.push_back(entity);
-                }
-            }
-        }
-        return entities;
-    }
-
-    void assertEveryPacketFits(
-        const std::vector<ComponentUpdatePacket> &packets, Tick tick)
-    {
-        for (const auto &packet : packets) {
-            REQUIRE(packet.tick == tick);
-            REQUIRE_FALSE(packet.entities.empty());
-            REQUIRE(makePacket(packet).serialize().size() <= MAX_PACKET_SIZE);
-            for (const auto &[networkId, components] : packet.entities) {
-                REQUIRE_FALSE(components.empty());
+                components.insert(components.end(),
+                    entity.components.begin(),
+                    entity.components.end());
+            } else {
+                entities.push_back(entity);
             }
         }
     }
+    return entities;
+}
+
+void assertEveryPacketFits(
+    const std::vector<ComponentUpdatePacket> &packets, Tick tick)
+{
+    for (const auto &packet : packets) {
+        REQUIRE(packet.tick == tick);
+        REQUIRE_FALSE(packet.entities.empty());
+        REQUIRE(makePacket(packet).serialize().size() <= MAX_PACKET_SIZE);
+        for (const auto &[networkId, components] : packet.entities) {
+            REQUIRE_FALSE(components.empty());
+        }
+    }
+}
 } // namespace
 
 TEST_CASE("splitComponentUpdate gives no packet when nothing changed",
@@ -565,11 +566,10 @@ TEST_CASE("splitComponentUpdate continues a large entity in the next packet",
     EntityComponents boss {.networkId = 9, .components = {}};
 
     for (ComponentTypeId type = 0; type < 300; ++type) {
-        boss.components.push_back(
-            {.typeId = type, .data = Bytes(8, static_cast<std::uint8_t>(type))});
+        boss.components.push_back({.typeId = type,
+            .data = Bytes(8, static_cast<std::uint8_t>(type))});
     }
-    std::vector entities = {
-        positionUpdate(1), boss, positionUpdate(2)};
+    std::vector entities = {positionUpdate(1), boss, positionUpdate(2)};
     auto packets = splitComponentUpdate(3, entities);
 
     REQUIRE(packets.size() > 1u);
@@ -587,8 +587,8 @@ TEST_CASE("splitComponentUpdate moves an entity that does not start to fit",
     for (NetworkId id = 1; id <= 69; ++id) {
         entities.push_back(positionUpdate(id));
     }
-    entities.push_back({.networkId = 70,
-        .components = {{.typeId = 1, .data = Bytes(1, 0)}}});
+    entities.push_back(
+        {.networkId = 70, .components = {{.typeId = 1, .data = Bytes(1, 0)}}});
     auto packets = splitComponentUpdate(0, entities);
 
     REQUIRE(packets.size() == 2u);

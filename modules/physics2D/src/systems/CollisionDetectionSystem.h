@@ -8,12 +8,13 @@
 #ifndef PHYSICS2D_COLLISIONDETECTIONSYSTEM_H
     #define PHYSICS2D_COLLISIONDETECTIONSYSTEM_H
 
-#include "ecs/Registry.h"
 #include "Contact.h"
+#include "ecs/Registry.h"
 
 namespace RType::Physics2D {
-    /** Overlap tests (layer/mask filtered); fills `contacts` every frame. */
-    void addCollisionDetectionSystem(Registry &registry, const SharedContacts &contacts);
-}
+/** Overlap tests (layer/mask filtered); fills `contacts` every frame. */
+void addCollisionDetectionSystem(
+    Registry &registry, const SharedContacts &contacts);
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_COLLISIONDETECTIONSYSTEM_H

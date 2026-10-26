@@ -10,19 +10,20 @@
 #include <cstddef>
 
 namespace RType {
-    using entity_id_type = size_t;
+using entity_id_type = size_t;
 
-    class Entity {
-    public:
-        operator entity_id_type() const;
-        bool operator==(const Entity &other) const;
-        bool operator!=(const Entity &other) const;
-    private:
-        entity_id_type _id;
+class Entity {
+public:
+    operator entity_id_type() const;
+    bool operator==(const Entity &other) const;
+    bool operator!=(const Entity &other) const;
 
-        friend class Registry;
-        explicit Entity(entity_id_type id);
-    };
-}
+private:
+    entity_id_type _id;
+
+    friend class Registry;
+    explicit Entity(entity_id_type id);
+};
+} // namespace RType
 
 #endif

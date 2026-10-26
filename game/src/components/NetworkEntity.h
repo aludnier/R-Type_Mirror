@@ -12,20 +12,25 @@
 
 namespace Game {
 
-    /**
-     * @brief Component associating an ECS entity with a replicated server NetworkId.
-     */
-    struct NetworkEntity {
-        RType::Network::NetworkId networkId = RType::Network::NO_ENTITY;
-        RType::Network::Tick lastUpdateTick = 0;
-        bool isLocalPlayer = false;
+/**
+ * @brief Component associating an ECS entity with a replicated server
+ * NetworkId.
+ */
+struct NetworkEntity {
+    RType::Network::NetworkId networkId = RType::Network::NO_ENTITY;
+    RType::Network::Tick lastUpdateTick = 0;
+    bool isLocalPlayer = false;
 
-        constexpr NetworkEntity() = default;
-        constexpr explicit NetworkEntity(RType::Network::NetworkId id, bool local = false, RType::Network::Tick tick = 0)
-            : networkId(id), lastUpdateTick(tick), isLocalPlayer(local) {}
+    constexpr NetworkEntity() = default;
 
-        constexpr bool operator==(const NetworkEntity &other) const = default;
-    };
+    constexpr explicit NetworkEntity(RType::Network::NetworkId id,
+        bool local = false, RType::Network::Tick tick = 0) :
+        networkId(id), lastUpdateTick(tick), isLocalPlayer(local)
+    {
+    }
+
+    constexpr bool operator==(const NetworkEntity &other) const = default;
+};
 
 } // namespace Game
 

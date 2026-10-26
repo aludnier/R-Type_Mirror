@@ -12,14 +12,14 @@
 #include "math/Vector2.h"
 
 namespace RType::Physics2D {
-    enum class CollisionKind { Enter, Exit };
+enum class CollisionKind { Enter, Exit };
 
-    struct CollisionEvent2D {
-        Entity other;
-        bool isTrigger = false;
-        Vector2 normal{};
-        CollisionKind kind = CollisionKind::Enter;
-    };
-}
+struct CollisionEvent2D {
+    Entity other;
+    bool isTrigger = false;
+    Vector2 normal {};
+    CollisionKind kind = CollisionKind::Enter;
+};
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_COLLISIONEVENT2D_H

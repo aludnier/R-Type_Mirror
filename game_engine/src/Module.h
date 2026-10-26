@@ -24,32 +24,32 @@
 #endif
 
 namespace RType {
-    inline constexpr std::uint32_t MODULE_API_MAJOR = 1;
-    inline constexpr std::uint32_t MODULE_API_MINOR = 0;
+inline constexpr std::uint32_t MODULE_API_MAJOR = 1;
+inline constexpr std::uint32_t MODULE_API_MINOR = 0;
 
-    enum class ModuleStatus {
-        Success,
-        InvalidRegistry,
-    };
+enum class ModuleStatus {
+    Success,
+    InvalidRegistry,
+};
 
-    struct ModuleApiVersion {
-        std::uint32_t major;
-        std::uint32_t minor;
-    };
+struct ModuleApiVersion {
+    std::uint32_t major;
+    std::uint32_t minor;
+};
 
-    struct ModuleDependency {
-        std::string name;
-        ModuleApiVersion compatible_api;
-    };
+struct ModuleDependency {
+    std::string name;
+    ModuleApiVersion compatible_api;
+};
 
-    using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
+using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
 
-    struct ModuleDescriptor {
-        std::string name;
-        ModuleApiVersion apiVersion;
-        std::vector<ModuleDependency> dependencies;
-        RegisterModuleFn registerModule;
-    };
-}
+struct ModuleDescriptor {
+    std::string name;
+    ModuleApiVersion apiVersion;
+    std::vector<ModuleDependency> dependencies;
+    RegisterModuleFn registerModule;
+};
+} // namespace RType
 
 #endif // MODULE_H

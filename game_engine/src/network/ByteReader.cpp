@@ -10,68 +10,68 @@
 #include <bit>
 
 namespace RType::Network {
-    ByteReader::ByteReader(std::span<const std::uint8_t> data) :
-        _data(data)
-    {
+ByteReader::ByteReader(std::span<const std::uint8_t> data) :
+    _data(data)
+{
+}
+
+float ByteReader::readFloat()
+{
+    return std::bit_cast<float>(read<std::uint32_t>());
+}
+
+std::string ByteReader::readString()
+{
+    auto size = read<std::uint8_t>();
+
+    if (!canRead(size)) {
+        return {};
     }
+    auto chars = _data.subspan(_offset, size);
 
-    float ByteReader::readFloat()
-    {
-        return std::bit_cast<float>(read<std::uint32_t>());
+    _offset += size;
+    return {chars.begin(), chars.end()};
+}
+
+std::vector<std::uint8_t> ByteReader::readBytes()
+{
+    auto size = read<std::uint16_t>();
+
+    if (!canRead(size)) {
+        return {};
     }
+    auto bytes = _data.subspan(_offset, size);
 
-    std::string ByteReader::readString()
-    {
-        auto size = read<std::uint8_t>();
+    _offset += size;
+    return {bytes.begin(), bytes.end()};
+}
 
-        if (!canRead(size)) {
-            return {};
-        }
-        auto chars = _data.subspan(_offset, size);
+void ByteReader::fail()
+{
+    _failed = true;
+}
 
-        _offset += size;
-        return {chars.begin(), chars.end()};
-    }
+bool ByteReader::ok() const
+{
+    return !_failed;
+}
 
-    std::vector<std::uint8_t> ByteReader::readBytes()
-    {
-        auto size = read<std::uint16_t>();
+std::size_t ByteReader::remaining() const
+{
+    return _data.size() - _offset;
+}
 
-        if (!canRead(size)) {
-            return {};
-        }
-        auto bytes = _data.subspan(_offset, size);
+bool ByteReader::atEnd() const
+{
+    return _offset == _data.size();
+}
 
-        _offset += size;
-        return {bytes.begin(), bytes.end()};
-    }
-
-    void ByteReader::fail()
-    {
+bool ByteReader::canRead(std::size_t size)
+{
+    if (_failed || size > remaining()) {
         _failed = true;
+        return false;
     }
-
-    bool ByteReader::ok() const
-    {
-        return !_failed;
-    }
-
-    std::size_t ByteReader::remaining() const
-    {
-        return _data.size() - _offset;
-    }
-
-    bool ByteReader::atEnd() const
-    {
-        return _offset == _data.size();
-    }
-
-    bool ByteReader::canRead(std::size_t size)
-    {
-        if (_failed || size > remaining()) {
-            _failed = true;
-            return false;
-        }
-        return true;
-    }
+    return true;
+}
 } // namespace RType::Network

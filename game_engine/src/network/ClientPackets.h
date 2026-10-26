@@ -20,64 +20,64 @@
  * @brief Payloads sent by the client (docs/protocol.md, section 6.1).
  */
 namespace RType::Network {
-    struct AskConnectPacket {
-        static constexpr auto TYPE = MessageType::AskConnect;
-        // Not acked: the client resends it until the server answers.
-        static constexpr bool RELIABLE = false;
+struct AskConnectPacket {
+    static constexpr auto TYPE = MessageType::AskConnect;
+    // Not acked: the client resends it until the server answers.
+    static constexpr bool RELIABLE = false;
 
-        std::string playerName;
+    std::string playerName;
 
-        void serialize(ByteWriter &writer) const;
-        static AskConnectPacket deserialize(ByteReader &reader);
-        bool operator==(const AskConnectPacket &other) const = default;
-    };
+    void serialize(ByteWriter &writer) const;
+    static AskConnectPacket deserialize(ByteReader &reader);
+    bool operator==(const AskConnectPacket &other) const = default;
+};
 
-    struct AskDisconnectPacket {
-        static constexpr auto TYPE = MessageType::AskDisconnect;
-        static constexpr bool RELIABLE = false;
+struct AskDisconnectPacket {
+    static constexpr auto TYPE = MessageType::AskDisconnect;
+    static constexpr bool RELIABLE = false;
 
-        static void serialize(ByteWriter & /* writer */)
-        {
-        }
+    static void serialize(ByteWriter & /* writer */)
+    {
+    }
 
-        static AskDisconnectPacket deserialize(ByteReader & /* reader */)
-        {
-            return {};
-        }
+    static AskDisconnectPacket deserialize(ByteReader & /* reader */)
+    {
+        return {};
+    }
 
-        bool operator==(const AskDisconnectPacket &other) const = default;
-    };
+    bool operator==(const AskDisconnectPacket &other) const = default;
+};
 
-    /**
-     * @brief State of the player's controls, never raw key events.
-     *
-     * Every control, moves included, is a game-defined action: the engine
-     * gives no meaning to the bits.
-     */
-    struct ControllablePacket {
-        static constexpr auto TYPE = MessageType::Controllable;
-        static constexpr bool RELIABLE = false;
+/**
+ * @brief State of the player's controls, never raw key events.
+ *
+ * Every control, moves included, is a game-defined action: the engine
+ * gives no meaning to the bits.
+ */
+struct ControllablePacket {
+    static constexpr auto TYPE = MessageType::Controllable;
+    static constexpr bool RELIABLE = false;
 
-        std::uint32_t inputSequence = 0;
-        /** @brief Bit i set: game action i is active (e.g. bit 0 = up). */
-        std::uint32_t actions = 0;
+    std::uint32_t inputSequence = 0;
+    /** @brief Bit i set: game action i is active (e.g. bit 0 = up). */
+    std::uint32_t actions = 0;
 
-        void serialize(ByteWriter &writer) const;
-        static ControllablePacket deserialize(ByteReader &reader);
-        bool operator==(const ControllablePacket &other) const = default;
-    };
+    void serialize(ByteWriter &writer) const;
+    static ControllablePacket deserialize(ByteReader &reader);
+    bool operator==(const ControllablePacket &other) const = default;
+};
 
-    struct HeartbeatPacket {
-        static constexpr auto TYPE = MessageType::Heartbeat;
-        static constexpr bool RELIABLE = false;
+struct HeartbeatPacket {
+    static constexpr auto TYPE = MessageType::Heartbeat;
+    static constexpr bool RELIABLE = false;
 
-        /** @brief Client clock in milliseconds, echoed by the server. */
-        std::uint32_t clientTime = 0;
+    /** @brief Client clock in milliseconds, echoed by the server. */
+    std::uint32_t clientTime = 0;
 
-        void serialize(ByteWriter &writer) const;
-        static HeartbeatPacket deserialize(ByteReader &reader);
-        bool operator==(const HeartbeatPacket &other) const = default;
-    };
+    void serialize(ByteWriter &writer) const;
+    static HeartbeatPacket deserialize(ByteReader &reader);
+    bool operator==(const HeartbeatPacket &other) const = default;
+};
 } // namespace RType::Network
 
 #endif // CLIENTPACKETS_H

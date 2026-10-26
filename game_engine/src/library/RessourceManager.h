@@ -14,19 +14,11 @@
 #include <string>
 #include <unordered_map>
 
-class ResourceManager
-{
+class ResourceManager {
 public:
-    enum class AssetType : std::uint8_t
-    {
-        Texture,
-        Sound,
-        Music,
-        Font
-    };
+    enum class AssetType : std::uint8_t { Texture, Sound, Music, Font };
 
-    struct Asset
-    {
+    struct Asset {
         std::uint32_t id;
         AssetType type;
         std::string path;
@@ -45,7 +37,7 @@ public:
      *       id, so components that already reference it stay valid.
      */
     std::uint32_t addAsset(const std::string &name, const std::string &path,
-                           AssetType type = AssetType::Texture);
+        AssetType type = AssetType::Texture);
 
     /**
      * @brief Removes an asset from the manager.
@@ -74,10 +66,12 @@ public:
     /**
      * @brief Gets an asset from its id.
      * @param id Id of the asset (as stored in components).
-     * @return Optional reference to the asset, or std::nullopt if the id is unknown.
+     * @return Optional reference to the asset, or std::nullopt if the id is
+     * unknown.
      * @note The reference is invalidated if the asset is removed.
      */
-    std::optional<std::reference_wrapper<const Asset>> getAssetById(std::uint32_t id) const;
+    std::optional<std::reference_wrapper<const Asset>> getAssetById(
+        std::uint32_t id) const;
 
 private:
     std::unordered_map<std::string, Asset> _assets;
