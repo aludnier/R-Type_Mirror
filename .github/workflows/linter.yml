@@ -7,6 +7,8 @@ on:
 jobs:
   linter:
     runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
     permissions:
       contents: write
       pull-requests: write
