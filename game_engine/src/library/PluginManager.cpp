@@ -1,84 +1,148 @@
 #include "PluginManager.h"
+
 #include <algorithm>
-#include <iostream>
 #include <stdexcept>
 #include <utility>
 
-void RType::PluginManager::addOwners(OwnerMap &owners, const std::vector<std::string> &names,
-    std::size_t pluginIndex, std::string_view kind,
-    std::string_view pluginName)
+namespace
 {
-    for (const auto &name : names) {
-        if (!owners.emplace(name, pluginIndex).second)
-            throw std::runtime_error("Plugin '" + std::string(pluginName) +
-                "' and another plugin both provide " + std::string(kind) +
-                " '" + name + "'");
+using ModuleEntryPoint = const RType::ModuleDescriptor *(*)();
+
+bool isApiCompatible(RType::ModuleApiVersion actual,
+    RType::ModuleApiVersion required)
+{
+    return actual.major == required.major &&
+        actual.minor >= required.minor;
+}
+
+void requireCompatible(const std::string &moduleName,
+    const RType::ModuleDependency &dependency,
+    RType::ModuleApiVersion actual)
+{
+    if (!isApiCompatible(actual, dependency.compatible_api))
+        throw std::runtime_error("Module '" + moduleName +
+            "' requires an incompatible version of dependency '" +
+            dependency.name + "'");
+}
+
+void validateDescriptor(const RType::ModuleDescriptor *descriptor,
+    const std::filesystem::path &path)
+{
+    if (descriptor == nullptr || descriptor->name.empty() ||
+        descriptor->apiVersion.major != RType::MODULE_API_MAJOR ||
+        !descriptor->registerModule)
+        throw std::runtime_error(
+            "Module has an invalid descriptor or incompatible API: " +
+            path.string());
+}
+}
+
+RType::PluginManager::Loader RType::PluginManager::openLibrary(
+    const std::filesystem::path &path)
+{
+    Loader library;
+
+    try {
+        library.loadFile(path.string(), true);
+    } catch (const Loader::LibraryLoadException &error) {
+        throw std::runtime_error("Could not load module library: " +
+            path.string() + " (" + error.what() + ")");
     }
+    return library;
 }
 
-RType::PluginManager::OwnerMap RType::PluginManager::buildOwners(const std::vector<Candidate> &candidates, std::vector<std::string> Candidate::*names,
-    std::string_view kind)
+bool RType::PluginManager::isSharedLibrary(const std::filesystem::path &path)
 {
-    OwnerMap owners;
-
-    for (std::size_t i = 0; i < candidates.size(); ++i)
-        addOwners(owners, candidates[i].*names, i, kind, candidates[i].name);
-    return owners;
+#ifdef _WIN32
+    return path.extension() == ".dll";
+#else
+    return path.extension() == ".so";
+#endif
 }
 
-RType::PluginManager::OwnerMap RType::PluginManager::buildNameIndex(const std::vector<Candidate> &candidates)
+std::vector<std::filesystem::path> RType::PluginManager::listLibraries(
+    const std::filesystem::path &directory)
 {
-    OwnerMap index;
+    if (!std::filesystem::is_directory(directory))
+        throw std::runtime_error(
+            "Plugin directory does not exist: " + directory.string());
 
-    for (std::size_t i = 0; i < candidates.size(); ++i)
-        index.emplace(candidates[i].name, i);
-    return index;
-}
-
-std::vector<std::size_t> RType::PluginManager::findOwners(const OwnerMap &owners,
-    const std::vector<std::string> &required, std::string_view kind)
-{
-    std::vector<std::size_t> result;
-
-    for (const auto &name : required) {
-        auto owner = owners.find(name);
-        if (owner == owners.end())
-            throw std::runtime_error("No plugin provides required " +
-                std::string(kind) + " '" + name + "'");
-        result.push_back(owner->second);
+    const auto root = std::filesystem::canonical(directory);
+    std::vector<std::filesystem::path> paths;
+    for (const auto &entry : std::filesystem::directory_iterator(root)) {
+        if (!entry.is_regular_file() || !isSharedLibrary(entry.path()))
+            continue;
+        paths.push_back(entry.path());
     }
-    return result;
+    std::sort(paths.begin(), paths.end());
+    return paths;
 }
 
-std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(const std::vector<Candidate> &candidates,
-    const std::vector<std::string> &components, const std::vector<std::string> &systems)
+RType::PluginManager::Scan RType::PluginManager::scanDirectory(
+    const std::filesystem::path &directory)
 {
-    const auto nameIndex = buildNameIndex(candidates);
-    auto roots = findOwners(
-        buildOwners(candidates, &Candidate::components, "component"),
-        components, "component");
-    const auto systemRoots = findOwners(
-        buildOwners(candidates, &Candidate::systems, "system"), systems,
-        "system");
+    Scan scan;
+
+    for (const auto &path : listLibraries(directory)) {
+        auto library = openLibrary(path);
+        const auto entryPoint =
+            library.getFunction<ModuleEntryPoint>("RTypeLibEntryPoint");
+        if (entryPoint == nullptr)
+            continue;
+
+        const auto *descriptor = entryPoint();
+        validateDescriptor(descriptor, path);
+        if (!scan.index.emplace(descriptor->name, scan.modules.size()).second)
+            throw std::runtime_error(
+                "Duplicate module name: " + descriptor->name);
+
+        Module module;
+        module.name = descriptor->name;
+        module.apiVersion = descriptor->apiVersion;
+        module.dependencies = descriptor->dependencies;
+        module.registerModule = descriptor->registerModule;
+        module.library = std::move(library);
+
+        scan.paths.push_back(std::filesystem::canonical(path));
+        scan.modules.push_back(std::move(module));
+    }
+    return scan;
+}
+
+std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
+    const std::vector<Module> &candidates, const NameIndex &nameIndex,
+    const std::vector<std::size_t> &roots) const
+{
+    std::unordered_map<std::string, RType::ModuleApiVersion> loadedVersions;
+    for (const auto &module : _loadedModules)
+        loadedVersions.emplace(module.name, module.apiVersion);
+
     std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
     std::vector<std::size_t> order;
 
-    roots.insert(roots.end(), systemRoots.begin(), systemRoots.end());
-
     const auto visit = [&](const auto &self, std::size_t index) -> void {
+        const auto &candidate = candidates[index];
+
         if (state[index] == VisitState::Done)
             return;
         if (state[index] == VisitState::Visiting)
             throw std::runtime_error(
-                "Plugin dependency cycle detected at '" +
-                candidates[index].name + "'");
-
+                "Module dependency cycle detected at '" + candidate.name +
+                "'");
         state[index] = VisitState::Visiting;
-        for (const auto &dependency : candidates[index].dependencies) {
-            const auto found = nameIndex.find(dependency);
+        for (const auto &dependency : candidate.dependencies) {
+            if (const auto loaded = loadedVersions.find(dependency.name);
+                loaded != loadedVersions.end()) {
+                requireCompatible(candidate.name, dependency, loaded->second);
+                continue;
+            }
+            const auto found = nameIndex.find(dependency.name);
             if (found == nameIndex.end())
-                throw std::runtime_error("Plugin '" + candidates[index].name +
-                    "' requires missing dependency '" + dependency + "'");
+                throw std::runtime_error("Module '" + candidate.name +
+                    "' requires missing dependency '" + dependency.name +
+                    "'");
+            requireCompatible(candidate.name, dependency,
+                candidates[found->second].apiVersion);
             self(self, found->second);
         }
         state[index] = VisitState::Done;
@@ -87,130 +151,52 @@ std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(const std::vecto
 
     for (const auto root : roots)
         visit(visit, root);
-
     return order;
 }
 
-void RType::PluginManager::initializeInOrder(std::vector<Candidate> &candidates,
+void RType::PluginManager::rollback(std::size_t firstNew) noexcept
+{
+    while (_loadedModules.size() > firstNew) {
+        _retiredLibraries.push_back(std::move(_loadedModules.back().library));
+        _loadedModules.pop_back();
+    }
+    if (_loadedModules.empty())
+        _registry.reset();
+}
+
+void RType::PluginManager::registerModules(std::vector<Module> &candidates,
     const std::vector<std::size_t> &order, RType::Registry &registry)
 {
-    _loadedPlugins.reserve(_loadedPlugins.size() + order.size());
+    _loadedModules.reserve(_loadedModules.size() + order.size());
     _retiredLibraries.reserve(_retiredLibraries.size() + order.size());
 
     _registry = std::ref(registry);
-    const auto firstNewPlugin = _loadedPlugins.size();
+    const auto firstNew = _loadedModules.size();
     try {
         for (const auto index : order) {
-            auto &candidate = candidates[index];
-            const auto initialize = candidate.initialize;
-            _loadedPlugins.push_back({std::move(candidate.library),
-                candidate.name,
-                candidate.dependencies,
-                candidate.shutdown});
-            initialize(&registry);
+            _loadedModules.push_back(std::move(candidates[index]));
+            auto &module = _loadedModules.back();
+            if (module.registerModule(registry) !=
+                RType::ModuleStatus::Success)
+                throw std::runtime_error(
+                    "Module '" + module.name + "' failed to initialize");
         }
     } catch (...) {
-        while (_loadedPlugins.size() > firstNewPlugin) {
-            auto &plugin = _loadedPlugins.back();
-            shutdownPlugin(plugin);
-            _retiredLibraries.push_back(std::move(plugin.library));
-            _loadedPlugins.pop_back();
-        }
-        if (_loadedPlugins.empty() && _loadedModules.empty())
-            _registry.reset();
+        rollback(firstNew);
         throw;
     }
 }
 
-void RType::PluginManager::shutdownPlugin(LoadedPlugin &plugin) noexcept
-{
-    if (plugin.shutdown == nullptr || !_registry)
-        return;
-    try {
-        plugin.shutdown(&_registry->get());
-    } catch (const std::exception &error) {
-        std::cerr << "Plugin '" << plugin.name
-                  << "' threw during shutdown: " << error.what() << '\n';
-    } catch (...) {
-        std::cerr << "Plugin '" << plugin.name
-                  << "' threw during shutdown\n";
-    }
-}
-
-
-RType::PluginManager::~PluginManager()
-{
-    while (!_loadedPlugins.empty()) {
-        shutdownPlugin(_loadedPlugins.back());
-        _loadedPlugins.pop_back();
-    }
-    while (!_loadedModules.empty())
-        _loadedModules.pop_back();
-    while (!_retiredLibraries.empty())
-        _retiredLibraries.pop_back();
-}
-
 bool RType::PluginManager::isLoaded(const std::string &name) const
 {
-    for (const auto &loaded : _loadedPlugins) {
-        if (loaded.name == name) {
-            return true;
-        }
-    }
-    return std::ranges::any_of(_loadedModules, [name](auto &module) {
+    return std::ranges::any_of(_loadedModules, [&name](const auto &module) {
         return module.name == name;
     });
 }
 
-bool RType::PluginManager::unload(const std::string &name)
-{
-    const auto module = std::find_if(_loadedModules.begin(),
-        _loadedModules.end(),
-        [&name](const LoadedModule &loaded) { return loaded.name == name; });
-    if (module != _loadedModules.end())
-        throw std::logic_error(
-            "Cannot unload module '" + name +
-            "' because its descriptor has no shutdown callback");
-
-    auto found = std::find_if(_loadedPlugins.begin(),
-        _loadedPlugins.end(),
-        [&name](const LoadedPlugin &plugin) { return plugin.name == name; });
-
-    if (found == _loadedPlugins.end())
-        return false;
-    const auto dependent = std::find_if(_loadedPlugins.begin(),
-        _loadedPlugins.end(),
-        [&name](const LoadedPlugin &plugin) {
-            return plugin.name != name &&
-                std::find(plugin.dependencies.begin(), plugin.dependencies.end(),
-                    name) != plugin.dependencies.end();
-        });
-    if (dependent != _loadedPlugins.end())
-        throw std::runtime_error("Cannot unload plugin '" + name +
-            "' because plugin '" + dependent->name + "' depends on it");
-
-    _retiredLibraries.reserve(_retiredLibraries.size() + 1);
-    shutdownPlugin(*found);
-    _retiredLibraries.push_back(std::move(found->library));
-    _loadedPlugins.erase(found);
-    return true;
-}
-
-void RType::PluginManager::unloadAll()
-{
-    if (!_loadedModules.empty())
-        throw std::logic_error(
-            "Cannot unload modules without shutdown callbacks");
-    _retiredLibraries.reserve(_retiredLibraries.size() + _loadedPlugins.size());
-    while (!_loadedPlugins.empty()) {
-        shutdownPlugin(_loadedPlugins.back());
-        _retiredLibraries.push_back(std::move(_loadedPlugins.back().library));
-        _loadedPlugins.pop_back();
-    }
-}
-
-void RType::PluginManager::loadRequiredPlugins(const std::filesystem::path &directory, const std::vector<std::string> &components,
-    const std::vector<std::string> &systems, RType::Registry &registry)
+void RType::PluginManager::loadRequiredModules(
+    const std::filesystem::path &directory,
+    const std::vector<std::string> &moduleNames, RType::Registry &registry)
 {
     if (_configured)
         throw std::logic_error(
@@ -220,10 +206,44 @@ void RType::PluginManager::loadRequiredPlugins(const std::filesystem::path &dire
             "PluginManager cannot load into multiple registries");
     _configured = true;
 
-    if (components.empty() && systems.empty())
+    if (moduleNames.empty())
         return;
 
-    auto candidates = loadCandidates(directory);
-    const auto order = resolveLoadOrder(candidates, components, systems);
-    initializeInOrder(candidates, order, registry);
+    auto scan = scanDirectory(directory);
+    std::vector<std::size_t> roots;
+    for (const auto &name : moduleNames) {
+        const auto found = scan.index.find(name);
+        if (found == scan.index.end())
+            throw std::runtime_error("No module named '" + name +
+                "' found in " + directory.string());
+        if (!isLoaded(name))
+            roots.push_back(found->second);
+    }
+    registerModules(scan.modules,
+        resolveLoadOrder(scan.modules, scan.index, roots), registry);
+}
+
+void RType::PluginManager::loadModule(const std::filesystem::path &path,
+    RType::Registry &registry)
+{
+    if (_registry && &_registry->get() != &registry)
+        throw std::logic_error(
+            "PluginManager cannot load into multiple registries");
+
+    const auto rootPath = std::filesystem::canonical(path);
+    auto scan = scanDirectory(rootPath.parent_path());
+
+    const auto rootIt = std::find(scan.paths.begin(), scan.paths.end(),
+        rootPath);
+    if (rootIt == scan.paths.end())
+        throw std::runtime_error(
+            "Module is missing RTypeLibEntryPoint: " + path.string());
+    const auto rootIndex =
+        static_cast<std::size_t>(rootIt - scan.paths.begin());
+    if (isLoaded(scan.modules[rootIndex].name))
+        throw std::logic_error(
+            "Module is already loaded: " + scan.modules[rootIndex].name);
+
+    registerModules(scan.modules,
+        resolveLoadOrder(scan.modules, scan.index, {rootIndex}), registry);
 }
