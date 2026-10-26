@@ -51,6 +51,8 @@ public:
         RType::Network::NetworkId id) const;
 
 private:
+    struct ServerMessageVisitor;
+
     void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet,
         RType::Registry &registry, const ResourceManager &resources);
 

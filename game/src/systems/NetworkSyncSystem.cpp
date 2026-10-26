@@ -47,56 +47,62 @@ void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
     sendLocalPlayerInput(input, client);
 }
 
-namespace {
-    struct SyncContext {
-        RType::Registry &registry;
-        ResourceManager &resources;
-        RType::Network::NetworkId localLinkedEntity{RType::Network::NO_ENTITY};
+struct NetworkSyncSystem::ServerMessageVisitor {
+    NetworkSyncSystem &system;
+    RType::Registry &registry;
+    ResourceManager &resources;
+    RType::Network::NetworkId localLinkedEntity;
 
-        SyncContext(RType::Registry &reg, ResourceManager &res,
-            RType::Network::NetworkId id)
-            : registry(reg), resources(res), localLinkedEntity(id)
-        {
-        }
-    };
+    void operator()(const RType::Network::AcceptConnectPacket &packet) const
+    {
+        system.handleAcceptConnect(packet, registry, resources);
+    }
 
-    template<class... Ts>
-    struct Overload : Ts... {
-        using Ts::operator()...;
-    };
-    template<class... Ts>
-    Overload(Ts...) -> Overload<Ts...>;
-} // namespace
+    void operator()(const RType::Network::PlayerConnectedPacket &packet) const
+    {
+        system.handlePlayerConnected(
+            packet, registry, resources, localLinkedEntity);
+    }
+
+    void operator()(
+        const RType::Network::PlayerDisconnectedPacket &packet) const
+    {
+        system.handlePlayerDisconnected(packet, registry);
+    }
+
+    void operator()(const RType::Network::EntitySpawnPacket &packet) const
+    {
+        system.handleEntitySpawn(
+            packet, registry, resources, localLinkedEntity);
+    }
+
+    void operator()(const RType::Network::EntityDespawnPacket &packet) const
+    {
+        system.handleEntityDespawn(packet, registry);
+    }
+
+    void operator()(const RType::Network::ComponentUpdatePacket &packet) const
+    {
+        system.handleComponentUpdate(packet, registry, localLinkedEntity);
+    }
+
+    void operator()(const auto & /* packet */) const
+    {
+        // Ignore unhandled packets
+    }
+};
 
 void NetworkSyncSystem::processServerMessages(
     const std::vector<NetworkClient::ServerMessage> &messages,
     RType::Registry &registry, ResourceManager &resources,
     RType::Network::NetworkId localLinkedEntity)
 {
-    SyncContext ctx {registry, resources, localLinkedEntity};
+    if (messages.empty()) {
+        return;
+    }
 
-    auto visitor =
-        Overload {[this, &ctx](const RType::Network::AcceptConnectPacket &p) {
-                      handleAcceptConnect(p, ctx.registry, ctx.resources);
-                  },
-            [this, &ctx](const RType::Network::PlayerConnectedPacket &p) {
-                handlePlayerConnected(
-                    p, ctx.registry, ctx.resources, ctx.localLinkedEntity);
-            },
-            [this, &ctx](const RType::Network::PlayerDisconnectedPacket &p) {
-                handlePlayerDisconnected(p, ctx.registry);
-            },
-            [this, &ctx](const RType::Network::EntitySpawnPacket &p) {
-                handleEntitySpawn(
-                    p, ctx.registry, ctx.resources, ctx.localLinkedEntity);
-            },
-            [this, &ctx](const RType::Network::EntityDespawnPacket &p) {
-                handleEntityDespawn(p, ctx.registry);
-            },
-            [this, &ctx](const RType::Network::ComponentUpdatePacket &p) {
-                handleComponentUpdate(p, ctx.registry, ctx.localLinkedEntity);
-            },
-            [](const auto &) { /* Default ignore */ }};
+    ServerMessageVisitor visitor {
+        *this, registry, resources, localLinkedEntity};
 
     for (const auto &msg : messages) {
         std::visit(visitor, msg);
