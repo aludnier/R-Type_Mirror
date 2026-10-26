@@ -38,7 +38,7 @@ jobs:
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
           cmake --preset release
-          cmake --build --preset release -j -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          cmake --build --preset release -j
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
@@ -46,7 +46,7 @@ jobs:
         with:
           style: 'file'
           tidy-checks: ''
-          database: 'build'
+          database: 'build/release'
           thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
           extra-args: '-std=c++23 -Wall'
           step-summary: 'true'

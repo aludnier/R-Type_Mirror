@@ -51,7 +51,13 @@ namespace {
     struct SyncContext {
         RType::Registry &registry;
         ResourceManager &resources;
-        RType::Network::NetworkId localLinkedEntity;
+        RType::Network::NetworkId localLinkedEntity{RType::Network::NO_ENTITY};
+
+        SyncContext(RType::Registry &reg, ResourceManager &res,
+            RType::Network::NetworkId id)
+            : registry(reg), resources(res), localLinkedEntity(id)
+        {
+        }
     };
 
     template<class... Ts>
