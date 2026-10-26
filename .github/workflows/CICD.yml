@@ -13,6 +13,10 @@ on:
 env:
   EPITECH_REPO: "git@github.com:EpitechPGE3-2026/G-ING-500-PAR-5-1-rtype-12.git"
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-project-Linux:
     runs-on: ubuntu-latest

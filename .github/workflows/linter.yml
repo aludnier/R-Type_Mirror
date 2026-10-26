@@ -1,13 +1,7 @@
 name: "Linter"
 on:
   workflow_call:
-  pull_request:
-    paths: [ '**.c', '**.cpp', '**.h', '**.hpp', '**CMakeLists.txt' ]
 
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
 jobs:
   linter:
     runs-on: ubuntu-latest
