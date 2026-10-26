@@ -77,8 +77,15 @@ jobs:
       - name: Test
         run: ctest --test-dir build/release -C Release --output-on-failure
 
+  linter:
+    name: "CPP Linter"
+    uses: ./.github/workflows/linter.yml
+    permissions:
+      contents: write
+      pull-requests: write
+
   push-to-mirror:
-    needs: [ build-project-Linux , build-project-Window ]
+    needs: [ build-project-Linux , build-project-Window , linter ]
     if: github.repository == 'aludnier/R-Type_Mirror'
     runs-on: ubuntu-latest
     steps:
