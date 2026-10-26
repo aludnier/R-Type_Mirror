@@ -22,8 +22,8 @@ namespace {
     {
         if (self >= events.size() || !events[self].has_value())
             return;
-        events[self]->events.push_back(
-            {Registry::entityFromIndex(other), trigger, normal, kind});
+        events[self]->events.emplace_back(
+            Registry::entityFromIndex(other), trigger, normal, kind);
     }
 
     void pushBoth(SparseArray<CollisionEvents2D> &events,
