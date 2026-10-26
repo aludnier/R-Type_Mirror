@@ -122,7 +122,7 @@ note bottom of entity_spawn
 end note
 
 ' ===============================================================
-' Transport (UDP abstraction)  -- FILLED: was missing
+' Transport (UDP abstraction) -- FILLED: was missing
 ' ===============================================================
 package "Transport (UDP)" <<filled>> {
     class udp_socket {

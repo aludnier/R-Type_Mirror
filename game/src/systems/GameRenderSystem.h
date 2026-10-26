@@ -23,7 +23,8 @@ namespace Game {
         /**
          * @brief Renders the current frame.
          */
-        static void renderFrame(RType::Registry &registry, ResourceManager &resources, sf::RenderWindow &window);
+        static void renderFrame(RType::Registry &registry,
+            const ResourceManager &resources, sf::RenderWindow &window);
 
     private:
         static void renderBackground(RType::Registry &registry, sf::RenderWindow &window);

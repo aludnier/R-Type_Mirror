@@ -35,7 +35,7 @@ void ResourceManager::removeAsset(const std::string &name)
 
 bool ResourceManager::hasAsset(const std::string &name) const
 {
-    return _assets.find(name) != _assets.end();
+    return _assets.contains(name);
 }
 
 const ResourceManager::Asset &ResourceManager::getAsset(const std::string &name) const

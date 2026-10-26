@@ -9,7 +9,7 @@
 
 namespace RType::Physics2D {
     const PhysicsSettings2D &settingsOf(SparseArray<PhysicsSettings2D> &storage) {
-        static const PhysicsSettings2D defaults{};
+        static constexpr PhysicsSettings2D defaults{};
         for (auto &value: storage)
             if (value.has_value())
                 return *value;

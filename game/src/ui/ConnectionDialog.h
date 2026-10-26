@@ -9,7 +9,6 @@
 #define GAME_CONNECTIONDIALOG_H
 
 #include <string>
-#include <array>
 #include "network/NetworkClient.h"
 
 namespace Game {

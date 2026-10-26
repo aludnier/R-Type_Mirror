@@ -55,19 +55,19 @@ namespace RType::Network {
          * Receive errors never stop the loop: a datagram that cannot be
          * received is skipped, and the socket keeps listening.
          */
-        void run(ReceiveHandler handler);
+        void run(ReceiveHandler handler) const;
 
         /**
          * @brief Queues @p datagram to be sent to @p to. Thread-safe. Send
          *        errors are ignored, as for any lost UDP datagram.
          */
-        void sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram);
+        void sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram) const;
 
         /**
          * @brief Closes the socket once the datagrams queued before this
          *        call are sent, then makes run() return. Thread-safe.
          */
-        void close();
+        void close() const;
 
         [[nodiscard]] std::uint16_t localPort() const;
 

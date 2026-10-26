@@ -65,12 +65,12 @@ namespace {
             _thread.join();
         }
 
-        void send(std::uint16_t port, Bytes datagram)
+        void send(std::uint16_t port, Bytes datagram) const
         {
             _socket.sendTo(loopback(port), std::move(datagram));
         }
 
-        std::uint16_t port() const
+        [[nodiscard]] std::uint16_t port() const
         {
             return _socket.localPort();
         }
@@ -261,11 +261,11 @@ TEST_CASE("NetworkThread drops packets when queue is full",
     "[network][network-thread]")
 {
     NetworkThread network(0, 1);
-    Sender sender;
     std::size_t dropped = 0;
 
     network.start();
     for (std::uint32_t i = 0; i < 3; ++i) {
+        Sender sender;
         sender.send(network.localPort(), heartbeatDatagram(i));
     }
     REQUIRE(

@@ -36,7 +36,7 @@ namespace RType::Network {
     }
 
     void NetworkThread::sendTo(
-        const Endpoint &to, std::vector<std::uint8_t> datagram)
+        const Endpoint &to, std::vector<std::uint8_t> datagram) const
     {
         _socket.sendTo(to, std::move(datagram));
     }

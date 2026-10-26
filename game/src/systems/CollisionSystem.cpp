@@ -42,8 +42,8 @@ namespace Game {
                             const auto &proj = projectiles[j].value();
 
                             // Player bullet hits enemy OR Enemy bullet hits player
-                            bool isEnemyTarget = (i < enemies.size() && enemies[i].has_value());
-                            bool isPlayerTarget = (i < players.size() && players[i].has_value());
+                            bool isEnemyTarget = i < enemies.size() && enemies[i].has_value();
+                            bool isPlayerTarget = i < players.size() && players[i].has_value();
 
                             if ((proj.isPlayerBullet && isEnemyTarget) || (!proj.isPlayerBullet && isPlayerTarget)) {
                                 const auto &posA = transforms[i]->position;
@@ -52,8 +52,8 @@ namespace Game {
                                 const auto &sizeB = hitboxes[j]->size;
 
                                 // AABB overlap check
-                                bool overlapX = std::abs(posA.x - posB.x) * 2 < (sizeA.x + sizeB.x);
-                                bool overlapY = std::abs(posA.y - posB.y) * 2 < (sizeA.y + sizeB.y);
+                                bool overlapX = std::abs(posA.x - posB.x) * 2 < sizeA.x + sizeB.x;
+                                bool overlapY = std::abs(posA.y - posB.y) * 2 < sizeA.y + sizeB.y;
 
                                 if (overlapX && overlapY) {
                                     healths[i]->takeDamage(static_cast<int>(proj.damage));

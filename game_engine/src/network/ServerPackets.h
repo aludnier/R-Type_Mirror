@@ -49,7 +49,7 @@ namespace RType::Network {
     };
 
     struct AcceptConnectPacket {
-        static constexpr MessageType TYPE = MessageType::AcceptConnect;
+        static constexpr auto TYPE = MessageType::AcceptConnect;
         static constexpr bool RELIABLE = true;
 
         ClientId clientId = SERVER_CLIENT_ID;
@@ -62,7 +62,7 @@ namespace RType::Network {
     };
 
     struct ForceDisconnectPacket {
-        static constexpr MessageType TYPE = MessageType::ForceDisconnect;
+        static constexpr auto TYPE = MessageType::ForceDisconnect;
         // Not acked: the session is closed right after it is sent.
         static constexpr bool RELIABLE = false;
 
@@ -75,7 +75,7 @@ namespace RType::Network {
     };
 
     struct PlayerConnectedPacket {
-        static constexpr MessageType TYPE = MessageType::PlayerConnected;
+        static constexpr auto TYPE = MessageType::PlayerConnected;
         static constexpr bool RELIABLE = true;
 
         ClientId clientId = SERVER_CLIENT_ID;
@@ -88,7 +88,7 @@ namespace RType::Network {
     };
 
     struct PlayerDisconnectedPacket {
-        static constexpr MessageType TYPE = MessageType::PlayerDisconnected;
+        static constexpr auto TYPE = MessageType::PlayerDisconnected;
         static constexpr bool RELIABLE = true;
 
         ClientId clientId = SERVER_CLIENT_ID;
@@ -100,7 +100,7 @@ namespace RType::Network {
     };
 
     struct EntitySpawnPacket {
-        static constexpr MessageType TYPE = MessageType::EntitySpawn;
+        static constexpr auto TYPE = MessageType::EntitySpawn;
         static constexpr bool RELIABLE = true;
 
         NetworkId networkId = NO_ENTITY;
@@ -114,7 +114,7 @@ namespace RType::Network {
     };
 
     struct EntityDespawnPacket {
-        static constexpr MessageType TYPE = MessageType::EntityDespawn;
+        static constexpr auto TYPE = MessageType::EntityDespawn;
         static constexpr bool RELIABLE = true;
 
         NetworkId networkId = NO_ENTITY;
@@ -130,7 +130,7 @@ namespace RType::Network {
      *        The sender splits larger updates into several packets.
      */
     struct ComponentUpdatePacket {
-        static constexpr MessageType TYPE = MessageType::ComponentUpdate;
+        static constexpr auto TYPE = MessageType::ComponentUpdate;
         static constexpr bool RELIABLE = false;
 
         Tick tick = 0;
@@ -160,7 +160,7 @@ namespace RType::Network {
         Tick tick, const std::vector<EntityComponents> &entities);
 
     struct HeartbeatReplyPacket {
-        static constexpr MessageType TYPE = MessageType::HeartbeatReply;
+        static constexpr auto TYPE = MessageType::HeartbeatReply;
         static constexpr bool RELIABLE = false;
 
         /** @brief Copied from the HEARTBEAT being answered. */

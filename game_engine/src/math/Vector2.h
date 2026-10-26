@@ -25,9 +25,9 @@ namespace RType {
 
         constexpr bool operator==(const Vector2 &o) const = default;
 
-        constexpr float dot(const Vector2 &o) const { return x * o.x + y * o.y; }
-        constexpr float lengthSquared() const { return dot(*this); }
-        float length() const { return std::sqrt(lengthSquared()); }
+        [[nodiscard]] constexpr float dot(const Vector2 &o) const { return x * o.x + y * o.y; }
+        [[nodiscard]] constexpr float lengthSquared() const { return dot(*this); }
+        [[nodiscard]] float length() const { return std::sqrt(lengthSquared()); }
     };
 
     constexpr Vector2 operator*(float s, const Vector2 &v) { return v * s; }

@@ -21,7 +21,7 @@
  */
 namespace RType::Network {
     struct AskConnectPacket {
-        static constexpr MessageType TYPE = MessageType::AskConnect;
+        static constexpr auto TYPE = MessageType::AskConnect;
         // Not acked: the client resends it until the server answers.
         static constexpr bool RELIABLE = false;
 
@@ -33,7 +33,7 @@ namespace RType::Network {
     };
 
     struct AskDisconnectPacket {
-        static constexpr MessageType TYPE = MessageType::AskDisconnect;
+        static constexpr auto TYPE = MessageType::AskDisconnect;
         static constexpr bool RELIABLE = false;
 
         static void serialize(ByteWriter & /* writer */)
@@ -55,7 +55,7 @@ namespace RType::Network {
      * gives no meaning to the bits.
      */
     struct ControllablePacket {
-        static constexpr MessageType TYPE = MessageType::Controllable;
+        static constexpr auto TYPE = MessageType::Controllable;
         static constexpr bool RELIABLE = false;
 
         std::uint32_t inputSequence = 0;
@@ -68,7 +68,7 @@ namespace RType::Network {
     };
 
     struct HeartbeatPacket {
-        static constexpr MessageType TYPE = MessageType::Heartbeat;
+        static constexpr auto TYPE = MessageType::Heartbeat;
         static constexpr bool RELIABLE = false;
 
         /** @brief Client clock in milliseconds, echoed by the server. */

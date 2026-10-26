@@ -46,7 +46,7 @@ namespace RType {
 
         IndexedZipperIterator operator++(int) {
             IndexedZipperIterator tmp = *this;
-            ++(*this);
+            ++*this;
             return tmp;
         }
 

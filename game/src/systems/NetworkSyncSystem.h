@@ -12,7 +12,6 @@
 #include "library/InputManager.h"
 #include "library/RessourceManager.h"
 #include "network/NetworkClient.h"
-#include "components/NetworkEntity.h"
 #include "network/ByteReader.h"
 #include <unordered_map>
 
@@ -36,7 +35,7 @@ namespace Game {
          */
         void syncWithServer(
             RType::Registry &registry,
-            InputManager &input,
+            const InputManager &input,
             ResourceManager &resources,
             NetworkClient &client
         );
@@ -54,14 +53,12 @@ namespace Game {
     private:
         void handleAcceptConnect(
             const RType::Network::AcceptConnectPacket &packet,
-            RType::Registry &registry,
-            ResourceManager &resources
+            RType::Registry &registry, const ResourceManager &resources
         );
 
         void handlePlayerConnected(
             const RType::Network::PlayerConnectedPacket &packet,
-            RType::Registry &registry,
-            ResourceManager &resources,
+            RType::Registry &registry, const ResourceManager &resources,
             RType::Network::NetworkId localLinkedEntity
         );
 
@@ -72,8 +69,7 @@ namespace Game {
 
         void handleEntitySpawn(
             const RType::Network::EntitySpawnPacket &packet,
-            RType::Registry &registry,
-            ResourceManager &resources,
+            RType::Registry &registry, const ResourceManager &resources,
             RType::Network::NetworkId localLinkedEntity
         );
 
@@ -88,7 +84,7 @@ namespace Game {
             RType::Network::NetworkId localLinkedEntity
         );
 
-        void applyComponentData(
+        static void applyComponentData(
             RType::Entity entity,
             const RType::Network::ComponentData &compData,
             RType::Registry &registry,
@@ -96,7 +92,7 @@ namespace Game {
         );
 
         /** @brief Adds the game component matching an ENTITY_KIND component. */
-        void applyEntityKind(
+        static void applyEntityKind(
             RType::Entity entity,
             RType::Network::ByteReader &reader,
             RType::Registry &registry
@@ -109,8 +105,8 @@ namespace Game {
             RType::Network::NetworkId localLinkedEntity
         );
 
-        void sendLocalPlayerInput(
-            InputManager &input,
+        static void sendLocalPlayerInput(
+            const InputManager &input,
             NetworkClient &client
         );
 

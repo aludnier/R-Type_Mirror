@@ -22,7 +22,7 @@ namespace Game {
         int level = 1;
 
         ForcePod() = default;
-        ForcePod(size_t ownerId, float offsetX = 50.0f, float offsetY = 0.0f, int level = 1);
+        explicit ForcePod(size_t ownerId, float offsetX = 50.0f, float offsetY = 0.0f, int level = 1);
     };
 
 } // namespace Game

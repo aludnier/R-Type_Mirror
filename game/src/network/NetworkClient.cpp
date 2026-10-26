@@ -10,10 +10,7 @@
 
 namespace Game {
 
-    NetworkClient::NetworkClient()
-        : _status(ConnectionStatus::Disconnected)
-    {
-    }
+    NetworkClient::NetworkClient() = default;
 
     NetworkClient::~NetworkClient()
     {

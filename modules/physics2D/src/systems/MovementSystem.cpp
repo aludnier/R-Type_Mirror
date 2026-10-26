@@ -23,7 +23,8 @@ namespace RType::Physics2D {
             rb.velocity *= std::max(0.f, 1.f - rb.drag * dt);
         }
 
-        void integrateVelocity(Rigidbody2D &rb, Transform2D &transform, float dt) {
+        void integrateVelocity(
+            const Rigidbody2D &rb, Transform2D &transform, float dt) {
             transform.position += rb.velocity * dt;
         }
 

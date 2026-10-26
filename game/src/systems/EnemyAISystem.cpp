@@ -37,7 +37,7 @@ namespace Game {
                         registry.addComponent<RType::Transform2D>(bullet, RType::Transform2D({transform.position.x - 20.0f, transform.position.y}));
                         RType::Physics2D::Rigidbody2D body;
                         body.velocity = {-450.0f, 0.0f};
-                        registry.addComponent<RType::Physics2D::Rigidbody2D>(bullet, std::move(body));
+                        registry.emplaceComponent<RType::Physics2D::Rigidbody2D>(bullet, body);
                         registry.addComponent<Projectile>(bullet, Projectile(false, 1, false, 450.0f));
                         registry.addComponent<Hitbox>(bullet, Hitbox(RType::Vector2{12.0f, 12.0f}));
 

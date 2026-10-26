@@ -136,11 +136,11 @@ namespace {
                 if (!update) {
                     continue;
                 }
-                for (const auto &entity : update->entities) {
-                    if (entity.networkId != networkId) {
+                for (const auto &[entityNetworkId, components] : update->entities) {
+                    if (entityNetworkId != networkId) {
                         continue;
                     }
-                    if (auto position = decodePosition(entity.components)) {
+                    if (auto position = decodePosition(components)) {
                         return position;
                     }
                 }
@@ -152,13 +152,13 @@ namespace {
         static std::optional<std::pair<float, float>> decodePosition(
             const std::vector<ComponentData> &components)
         {
-            for (const auto &component : components) {
-                if (component.typeId !=
+            for (const auto &[typeId, data] : components) {
+                if (typeId !=
                     static_cast<ComponentTypeId>(
                         EngineComponentType::Position)) {
                     continue;
                 }
-                ByteReader reader(component.data);
+                ByteReader reader(data);
                 float x = reader.readFloat();
                 float y = reader.readFloat();
 
@@ -184,7 +184,7 @@ namespace {
         }
 
         /** @brief Sequences of every packet received so far, in order. */
-        const std::vector<Sequence> &sequences() const
+        [[nodiscard]] const std::vector<Sequence> &sequences() const
         {
             return _sequences;
         }

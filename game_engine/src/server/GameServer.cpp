@@ -54,7 +54,7 @@ namespace RType {
         }
     } // namespace
 
-    GameServer::GameServer(ServerConfig config) :
+    GameServer::GameServer(const ServerConfig &config) :
         _config(config), _network(config.port, INCOMING_QUEUE_SIZE)
     {
         setupRegistry();
@@ -420,9 +420,9 @@ namespace RType {
         Entity entity)
     {
         std::vector<Network::ComponentData> components;
-        const auto &transform = _registry.getComponents<Transform2D>()[entity];
 
-        if (transform) {
+        if (const auto &transform =
+                _registry.getComponents<Transform2D>()[entity]) {
             components.push_back(encodePosition(transform->position));
         }
         return components;
@@ -449,7 +449,7 @@ namespace RType {
     }
 
     void GameServer::sendPacket(
-        ClientSession &session, Network::Packet &packet)
+        ClientSession &session, Network::Packet &packet) const
     {
         // Overwrites sequence and acks: the same packet can be stamped again
         // for the next client.

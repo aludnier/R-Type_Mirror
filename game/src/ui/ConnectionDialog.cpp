@@ -38,7 +38,8 @@ namespace Game {
             ImGui::Separator();
             ImGui::Spacing();
 
-            const bool isConnecting = (client.getStatus() == NetworkClient::ConnectionStatus::Connecting);
+            const bool isConnecting = client.getStatus() ==
+                NetworkClient::ConnectionStatus::Connecting;
 
             if (isConnecting) {
                 ImGui::BeginDisabled();

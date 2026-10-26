@@ -59,8 +59,8 @@ namespace RType {
         struct ProjectileStats {
             Vector2 velocity;
             Vector2 hitbox;
-            int damage;
-            bool piercing;
+            int damage{};
+            bool piercing{};
         };
 
         ProjectileStats statsOf(EntityKind kind)
@@ -118,7 +118,7 @@ namespace RType {
         }
     } // namespace
 
-    RTypeServer::RTypeServer(ServerConfig config) : GameServer(config)
+    RTypeServer::RTypeServer(const ServerConfig &config) : GameServer(config)
     {
         Registry &reg = registry();
 
@@ -154,27 +154,27 @@ namespace RType {
             if (!controllables[i] || !has(transforms, i)) {
                 continue;
             }
-            Weapon &weapon = _weapons[i];
+            auto &[wasShooting, chargeTime, cooldown] = _weapons[i];
             bool shooting = isShooting(controllables[i]->actionMask);
             Vector2 position = transforms[i]->position;
 
-            weapon.cooldown -= dt;
+            cooldown -= dt;
             if (shooting) {
-                weapon.chargeTime += dt;
-            } else if (weapon.wasShooting) {
+                chargeTime += dt;
+            } else if (wasShooting) {
                 // Fires when the button is released, like the client shows
                 // it: a full charge gives the wave cannon.
-                if (weapon.chargeTime >= CHARGE_TIME) {
+                if (chargeTime >= CHARGE_TIME) {
                     _pendingSpawns.push_back({EntityKind::ChargedBeam,
                         {position.x + 35.f, position.y}});
-                } else if (weapon.cooldown <= 0.f) {
+                } else if (cooldown <= 0.f) {
                     _pendingSpawns.push_back({EntityKind::PlayerLaser,
                         {position.x + 25.f, position.y}});
-                    weapon.cooldown = LASER_COOLDOWN;
+                    cooldown = LASER_COOLDOWN;
                 }
-                weapon.chargeTime = 0.f;
+                chargeTime = 0.f;
             }
-            weapon.wasShooting = shooting;
+            wasShooting = shooting;
         }
     }
 
@@ -185,7 +185,7 @@ namespace RType {
             return;
         }
         _enemySpawnTimer = 0.f;
-        std::uniform_real_distribution<float> y(
+        std::uniform_real_distribution y(
             ENEMY_WAVE_AMPLITUDE + 40.f,
             SCREEN_HEIGHT - ENEMY_WAVE_AMPLITUDE - 40.f);
 
@@ -203,18 +203,18 @@ namespace RType {
             if (!enemies[i] || !has(transforms, i)) {
                 continue;
             }
-            Enemy &enemy = *enemies[i];
+            auto &[baseY, elapsed, shootTimer] = *enemies[i];
             Vector2 &position = transforms[i]->position;
 
-            enemy.elapsed += dt;
+            elapsed += dt;
             position.x -= ENEMY_SPEED * dt;
-            position.y = enemy.baseY +
-                std::sin(enemy.elapsed * ENEMY_WAVE_FREQUENCY) *
+            position.y = baseY +
+                std::sin(elapsed * ENEMY_WAVE_FREQUENCY) *
                     ENEMY_WAVE_AMPLITUDE;
-            enemy.shootTimer += dt;
-            if (enemy.shootTimer >= ENEMY_SHOOT_INTERVAL &&
+            shootTimer += dt;
+            if (shootTimer >= ENEMY_SHOOT_INTERVAL &&
                 position.x < SCREEN_WIDTH) {
-                enemy.shootTimer = 0.f;
+                shootTimer = 0.f;
                 _pendingSpawns.push_back({EntityKind::EnemyBullet,
                     {position.x - 20.f, position.y}});
             }
@@ -332,16 +332,16 @@ namespace RType {
                 {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
             return;
         }
-        ProjectileStats stats = statsOf(request.kind);
+        auto [velocity, hitbox, damage, piercing] = statsOf(request.kind);
 
         reg.addComponent(entity,
-            Projectile {stats.velocity, stats.damage,
-                request.kind != EntityKind::EnemyBullet, stats.piercing});
-        reg.addComponent(entity, Hitbox {stats.hitbox});
+            Projectile {velocity, damage,
+                request.kind != EntityKind::EnemyBullet, piercing});
+        reg.addComponent(entity, Hitbox {hitbox});
         // Straight line: the clients move it themselves from its PHYSICS.
         replicateEntity(entity,
             {encodeKind(request.kind),
-                encodePhysics(stats.velocity, stats.hitbox)},
+                encodePhysics(velocity, hitbox)},
             true);
     }
 

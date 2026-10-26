@@ -53,7 +53,7 @@ namespace RType {
         using Clock = std::chrono::steady_clock;
 
         /** @throws std::system_error If the port cannot be bound. */
-        explicit GameServer(ServerConfig config);
+        explicit GameServer(const ServerConfig &config);
         ~GameServer();
 
         GameServer(const GameServer &) = delete;
@@ -85,6 +85,7 @@ namespace RType {
         /**
          * @brief Makes @p entity replicated and sends its ENTITY_SPAWN to
          *        every client (and later to the clients that join).
+         * @param entity The entity to replicate.
          * @param spawnComponents Components that never change, sent only
          *        in ENTITY_SPAWN (e.g. PHYSICS or a game component).
          * @param predictable The clients move it from its PHYSICS on their
@@ -237,7 +238,7 @@ namespace RType {
             const std::vector<Network::EntityComponents> &entities);
 
         /** @brief Stamps the header of @p packet for @p session, sends it. */
-        void sendPacket(ClientSession &session, Network::Packet &packet);
+        void sendPacket(ClientSession &session, Network::Packet &packet) const;
 
         /** @brief Sends @p packet to every client but @p excluded. */
         void broadcastPacket(Network::Packet &packet,

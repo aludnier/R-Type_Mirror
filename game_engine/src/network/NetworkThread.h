@@ -67,7 +67,7 @@ namespace RType::Network {
         void stop();
 
         /** @brief Sends @p datagram to @p to. Thread-safe. */
-        void sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram);
+        void sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram) const;
 
         /** @return The oldest received packet, if any. Thread-safe. */
         std::optional<ReceivedPacket> poll();

@@ -9,28 +9,27 @@ send their controls and display what the server sends back over UDP.
 The project builds three engine libraries and two executables. The server
 never links the client library, so it never depends on the graphics library.
 
-| Target | Kind | Contents | Used by |
-|---|---|---|---|
-| `engine_core` | static library | ECS, math, shared components and systems, network (Asio), modules | server and client |
-| `engine_client` | static library | engine loop, input, later rendering and audio | client |
-| `engine_server` | static library | server runtime: game loop, client sessions | server |
-| `r-type_server` | executable | server entry point | |
-| `r-type_client` | executable | client entry point (work in progress) | |
-| `physics2d_module`, `example_module` | shared libraries | dynamically loaded modules | server and client |
+| Target                               | Kind             | Contents                                                          | Used by           |
+|--------------------------------------|------------------|-------------------------------------------------------------------|-------------------|
+| `engine_core`                        | static library   | ECS, math, shared components and systems, network (Asio), modules | server and client |
+| `engine_client`                      | static library   | engine loop, input, later rendering and audio                     | client            |
+| `engine_server`                      | static library   | server runtime: game loop, client sessions                        | server            |
+| `r-type_server`                      | executable       | server entry point                                                |                   |
+| `r-type_client`                      | executable       | client entry point (work in progress)                             |                   |
+| `physics2d_module`, `example_module` | shared libraries | dynamically loaded modules                                        | server and client |
 
-| Folder | Contents |
-|---|---|
-| `game_engine/` | `engine_core`, `engine_client` and their tests |
-| `server/` | `engine_server` and `r-type_server` |
-| `game/` | `r-type_client` |
-| `modules/` | dynamic modules (see `docs/writing_dynamic_modules.md`) |
-| `docs/` | network protocol (`protocol.md`), architecture diagrams |
+| Folder         | Contents                                                |
+|----------------|---------------------------------------------------------|
+| `game_engine/` | `engine_core`, `engine_client` and their tests          |
+| `server/`      | `engine_server` and `r-type_server`                     |
+| `game/`        | `r-type_client`                                         |
+| `modules/`     | dynamic modules (see `docs/writing_dynamic_modules.md`) |
+| `docs/`        | network protocol (`protocol.md`), architecture diagrams |
 
 ## Requirements
 
 - CMake 3.21 or newer
-- A C++23 compiler: GCC 13+ or Clang 17+ on Linux, Visual Studio 2022
-  ("Desktop development with C++") on Windows
+- A C++23 compiler: GCC 13+ or Clang 17+ on Linux, Visual Studio 2022 ("Desktop development with C++") on Windows
 - Git
 
 Nothing else needs to be installed: dependencies are fetched by the build.
@@ -56,7 +55,7 @@ cmake --preset release
 cmake --build --preset release
 ```
 
-The first configure is slower: vcpkg downloads and builds the dependencies.
+The first time is slower: vcpkg downloads and builds the dependencies.
 
 ### Building a single program
 

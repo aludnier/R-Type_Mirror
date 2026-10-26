@@ -60,7 +60,7 @@ class game_state {
 }
 
 ' ===============================================================
-' Server-side systems  -- FILLED: were missing
+' Server-side systems -- FILLED: were missing
 ' ===============================================================
 package "Server systems (run by the registry)" <<filled>> {
     class input_system <<system>> {

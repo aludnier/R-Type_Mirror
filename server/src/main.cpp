@@ -17,7 +17,7 @@
 
 namespace {
     // Written by the signal handler: only lock-free atomics are safe there.
-    std::atomic<bool> stopRequested {false};
+    std::atomic stopRequested {false};
     static_assert(std::atomic<bool>::is_always_lock_free);
 
     void onSignal(int /* signal */)

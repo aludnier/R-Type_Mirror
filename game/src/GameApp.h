@@ -59,7 +59,7 @@ namespace Game {
         InputManager &getInputManager();
         ResourceManager &getResourceManager();
         NetworkClient &getNetworkClient();
-        sf::RenderWindow &getWindow();
+        sf::RenderWindow &getWindow() const;
 
     private:
         void handleEvent(const sf::Event &event);

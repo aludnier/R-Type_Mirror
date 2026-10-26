@@ -9,7 +9,6 @@
 #include "ecs/SparseArray.h"
 #include <iostream>
 #include <chrono>
-#include <thread>
 #include <SFML/Window/Keyboard.hpp>
 #include <imgui.h>
 #include <imgui-SFML.h>
@@ -25,7 +24,6 @@
 #include "components/Player.h"
 #include "components/Enemy.h"
 #include "components/Rigidbody2D.h"
-#include "components/PhysicsSettings2D.h"
 #include "components/Projectile.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
@@ -33,21 +31,17 @@
 #include "components/NetworkEntity.h"
 
 // Game system headers
-#include "systems/MovementSystem.h"
 #include "systems/ForcePodSystem.h"
 #include "systems/PlayerWeaponSystem.h"
 #include "systems/CollisionSystem.h"
 #include "systems/BoundaryCleanupSystem.h"
 #include "systems/ParallaxSystem.h"
 #include "systems/GameRenderSystem.h"
-#include "systems/AudioSystem.h"
 #include "systems/NetworkSyncSystem.h"
 
 namespace Game {
 
-    GameApp::GameApp()
-        : _running(false), _frameRate(60.0f), _fixedDeltaTime(1.0f / 60.0f)
-    {
+    GameApp::GameApp() {
 #ifdef WIN32
         _physics2DModuleLoader.loadFile("../modules/physics2D/Physics2D_Module.dll");
         _environmentModuleLoader.loadFile("../modules/environment2D/Environment2D_Module.dll");
@@ -311,7 +305,7 @@ namespace Game {
         return _networkClient;
     }
 
-    sf::RenderWindow &GameApp::getWindow()
+    sf::RenderWindow &GameApp::getWindow() const
     {
         return *_window;
     }

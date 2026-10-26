@@ -121,7 +121,7 @@ void RenderSystem::render(Registry &registry, const ResourceManager &resources,
 void addRenderSystem(Registry &registry, const ResourceManager &resources,
                      sf::RenderTarget &target, RenderSystem &renderSystem)
 {
-    registry.addSystem([&registry, &resources, &target, &renderSystem]() {
+    registry.addSystem([&registry, &resources, &target, &renderSystem] {
         renderSystem.render(registry, resources, target);
     });
 }

@@ -13,7 +13,6 @@
 #include <SFML/Graphics.hpp>
 #include <string>
 #include <unordered_map>
-#include <memory>
 #include <optional>
 #include <functional>
 

@@ -62,7 +62,7 @@ namespace RType::Network {
 
     UdpSocket::~UdpSocket() = default;
 
-    void UdpSocket::run(ReceiveHandler handler)
+    void UdpSocket::run(ReceiveHandler handler) const
     {
         _impl->handler = std::move(handler);
         _impl->startReceive();
@@ -71,7 +71,7 @@ namespace RType::Network {
         _impl->io.run();
     }
 
-    void UdpSocket::sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram)
+    void UdpSocket::sendTo(const Endpoint &to, std::vector<std::uint8_t> datagram) const
     {
         auto send = [impl = _impl.get(), to, bytes = std::move(datagram)] {
             std::error_code error;
@@ -91,14 +91,14 @@ namespace RType::Network {
         asio::post(_impl->io, std::move(send));
     }
 
-    void UdpSocket::close()
+    void UdpSocket::close() const
     {
         // Posted after the sends already queued, so they still go out:
         // handlers of a single-threaded io_context run in posting order.
         asio::post(_impl->io, [impl = _impl.get()] {
             std::error_code ignored;
 
-            impl->socket.close(ignored);
+            auto _ = impl->socket.close(ignored);
         });
     }
 

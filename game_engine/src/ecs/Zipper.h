@@ -71,7 +71,7 @@ namespace RType {
 
         ZipperIterator operator++(int){
             ZipperIterator tmp = *this;
-            ++(*this);
+            ++*this;
             return tmp;
         }
 

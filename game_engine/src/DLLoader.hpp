@@ -183,7 +183,7 @@ private:
 #else
         return dlerror();
 #endif
-    };
+    }
 
     void *getLibraryFunction(std::string_view funcName)
     {

@@ -11,7 +11,8 @@ namespace RType {
         float rotation = 0.f;
 
         constexpr Transform2D() = default;
-        constexpr Transform2D(Vector2 position, Vector2 scale = {1.f, 1.f}, float rotation = 0.f)
+
+        explicit constexpr Transform2D(Vector2 position, Vector2 scale = {1.f, 1.f}, float rotation = 0.f)
             : position(position), scale(scale), rotation(rotation) {}
 
         constexpr bool operator==(const Transform2D &o) const = default;

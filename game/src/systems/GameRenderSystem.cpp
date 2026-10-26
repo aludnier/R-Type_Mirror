@@ -10,7 +10,6 @@
 #include "ecs/SparseArray.h"
 #include "ecs/Zipper.h"
 #include "components/Transform2D.h"
-#include "components/Sprite.h"
 #include "components/Player.h"
 #include "components/Enemy.h"
 #include "components/Projectile.h"
@@ -22,7 +21,8 @@
 
 namespace Game {
 
-    void GameRenderSystem::renderFrame(RType::Registry &registry, ResourceManager &resources, sf::RenderWindow &window)
+    void GameRenderSystem::renderFrame(RType::Registry &registry,
+    const ResourceManager &resources, sf::RenderWindow &window)
     {
         window.clear(sf::Color(10, 10, 25));
 
@@ -47,7 +47,7 @@ namespace Game {
             for (int i = 0; i < 20; ++i) {
                 auto x = std::fmod(transform.position.x + static_cast<float>(i * 100), 1920.0f);
                 if (x < 0.0f) x += 1920.0f;
-                auto y = static_cast<float>((i * 67) % 1080);
+                auto y = static_cast<float>(i * 67 % 1080);
                 star.setPosition(sf::Vector2f(x, y));
                 window.draw(star);
             }

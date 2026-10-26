@@ -37,6 +37,7 @@ namespace RType {
         /**
          * @brief Records a datagram received from the client: refreshes the
          *        timeout and the acknowledgement state.
+         * @param sequence Sequence of the datagram received.
          * @param receivedAt When the network thread received it.
          */
         void onReceived(

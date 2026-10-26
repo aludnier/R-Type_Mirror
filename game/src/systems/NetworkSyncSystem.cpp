@@ -20,11 +20,13 @@
 #include <cmath>
 #include <iostream>
 
+#include "components/NetworkEntity.h"
+
 namespace Game {
 
     void NetworkSyncSystem::syncWithServer(
         RType::Registry &registry,
-        InputManager &input,
+    const InputManager &input,
         ResourceManager &resources,
         NetworkClient &client
     )
@@ -45,16 +47,19 @@ namespace Game {
         sendLocalPlayerInput(input, client);
     }
 
-    struct SyncContext {
-        RType::Registry &registry;
-        ResourceManager &resources;
-        RType::Network::NetworkId localLinkedEntity;
-    };
+    namespace {
+        struct SyncContext {
+            RType::Registry &registry;
+            ResourceManager &resources;
+            RType::Network::NetworkId localLinkedEntity;
+        };
 
-    template<class... Ts>
-    struct Overload : Ts... { using Ts::operator()...; };
-    template<class... Ts>
-    Overload(Ts...) -> Overload<Ts...>;
+        template<class... Ts>
+        struct Overload : Ts... { using Ts::operator()...; };
+        template<class... Ts>
+        Overload(Ts...) -> Overload<Ts...>;
+    } // namespace
+
 
     void NetworkSyncSystem::processServerMessages(
         const std::vector<NetworkClient::ServerMessage> &messages,
@@ -81,7 +86,7 @@ namespace Game {
     }
 
     void NetworkSyncSystem::sendLocalPlayerInput(
-        InputManager &input,
+        const InputManager &input,
         NetworkClient &client
     )
     {
@@ -90,7 +95,7 @@ namespace Game {
 
     void NetworkSyncSystem::reset(RType::Registry &registry)
     {
-        for (auto [netId, entityId] : _networkToEntity) {
+        for (auto entityId : _networkToEntity | std::views::values) {
             try {
                 registry.killEntity(RType::Registry::entityFromIndex(entityId));
             } catch (...) {
@@ -112,8 +117,7 @@ namespace Game {
 
     void NetworkSyncSystem::handleAcceptConnect(
         const RType::Network::AcceptConnectPacket &packet,
-        RType::Registry &registry,
-        ResourceManager &resources
+        RType::Registry &registry, const ResourceManager &resources
     )
     {
         if (packet.linkedEntity == RType::Network::NO_ENTITY) {
@@ -123,7 +127,7 @@ namespace Game {
         auto it = _networkToEntity.find(packet.linkedEntity);
         if (it == _networkToEntity.end()) {
             auto entity = registry.spawnEntity();
-            std::size_t entityId = static_cast<std::size_t>(entity);
+            auto entityId = static_cast<std::size_t>(entity);
             _networkToEntity.insert_or_assign(packet.linkedEntity, entityId);
             _entityToNetwork.insert_or_assign(entityId, packet.linkedEntity);
 
@@ -144,8 +148,7 @@ namespace Game {
 
     void NetworkSyncSystem::handlePlayerConnected(
         const RType::Network::PlayerConnectedPacket &packet,
-        RType::Registry &registry,
-        ResourceManager &resources,
+        RType::Registry &registry, const ResourceManager &resources,
         RType::Network::NetworkId localLinkedEntity
     )
     {
@@ -158,7 +161,7 @@ namespace Game {
         auto it = _networkToEntity.find(packet.linkedEntity);
         if (it == _networkToEntity.end()) {
             auto entity = registry.spawnEntity();
-            std::size_t entityId = static_cast<std::size_t>(entity);
+            auto entityId = static_cast<std::size_t>(entity);
             _networkToEntity.insert_or_assign(packet.linkedEntity, entityId);
             _entityToNetwork.insert_or_assign(entityId, packet.linkedEntity);
 
@@ -207,17 +210,16 @@ namespace Game {
 
     void NetworkSyncSystem::handleEntitySpawn(
         const RType::Network::EntitySpawnPacket &packet,
-        RType::Registry &registry,
-        ResourceManager &resources,
+        RType::Registry &registry, const ResourceManager &resources,
         RType::Network::NetworkId localLinkedEntity
     )
     {
         auto it = _networkToEntity.find(packet.networkId);
-        RType::Entity entity = (it != _networkToEntity.end()) ?
+        RType::Entity entity = it != _networkToEntity.end() ?
             RType::Registry::entityFromIndex(it->second) : registry.spawnEntity();
-        std::size_t entityId = static_cast<std::size_t>(entity);
+        auto entityId = static_cast<std::size_t>(entity);
 
-        const bool isLocal = (packet.networkId == localLinkedEntity);
+        const bool isLocal = packet.networkId == localLinkedEntity;
         if (it == _networkToEntity.end()) {
             _networkToEntity.insert_or_assign(packet.networkId, entityId);
             _entityToNetwork.insert_or_assign(entityId, packet.networkId);
@@ -287,20 +289,20 @@ namespace Game {
         RType::Network::NetworkId localLinkedEntity
     )
     {
-        for (const auto &entityUpdate : packet.entities) {
-            auto it = _networkToEntity.find(entityUpdate.networkId);
-            RType::Entity entity = (it != _networkToEntity.end()) ?
+        for (const auto &[networkId, components] : packet.entities) {
+            auto it = _networkToEntity.find(networkId);
+            RType::Entity entity = it != _networkToEntity.end() ?
                 RType::Registry::entityFromIndex(it->second) : registry.spawnEntity();
-            std::size_t entityId = static_cast<std::size_t>(entity);
+            auto entityId = static_cast<std::size_t>(entity);
 
-            const bool isLocal = (entityUpdate.networkId == localLinkedEntity);
+            const bool isLocal = networkId == localLinkedEntity;
             if (it == _networkToEntity.end()) {
-                _networkToEntity.insert_or_assign(entityUpdate.networkId, entityId);
-                _entityToNetwork.insert_or_assign(entityId, entityUpdate.networkId);
-                registry.addComponent<NetworkEntity>(entity, NetworkEntity(entityUpdate.networkId, isLocal, packet.tick));
+                _networkToEntity.insert_or_assign(networkId, entityId);
+                _entityToNetwork.insert_or_assign(entityId, networkId);
+                registry.addComponent<NetworkEntity>(entity, NetworkEntity(networkId, isLocal, packet.tick));
             }
 
-            for (const auto &comp : entityUpdate.components) {
+            for (const auto &comp : components) {
                 applyComponentData(entity, comp, registry, isLocal);
             }
         }
@@ -314,7 +316,7 @@ namespace Game {
     )
     {
         RType::Network::ByteReader reader(compData.data);
-        std::size_t entityId = static_cast<std::size_t>(entity);
+        auto entityId = static_cast<std::size_t>(entity);
 
         if (compData.typeId == Protocol::ENTITY_KIND) {
             applyEntityKind(entity, reader, registry);
@@ -367,7 +369,7 @@ namespace Game {
                 } else {
                     RType::Physics2D::Rigidbody2D body;
                     body.velocity = {vx, vy};
-                    registry.addComponent<RType::Physics2D::Rigidbody2D>(entity, std::move(body));
+                    registry.emplaceComponent<RType::Physics2D::Rigidbody2D>(entity, body);
                 }
 
                 if (hw > 0.0f && hh > 0.0f) {

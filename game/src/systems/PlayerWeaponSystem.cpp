@@ -24,10 +24,8 @@ namespace Game {
                         player.shootCooldown -= dt;
                     }
 
-                    bool shootPressed = input.isActionDown(Action::Shoot);
-
                     // R-Type Wave Cannon Charging mechanic
-                    if (shootPressed) {
+                    if (input.isActionDown(Action::Shoot)) {
                         player.isCharging = true;
                         player.chargeTime += dt;
                     } else if (player.isCharging) {

@@ -275,10 +275,10 @@ namespace RType::Network {
     {
         ComponentUpdateSplitter splitter(tick);
 
-        for (const auto &entity : entities) {
-            splitter.addEntity(entity.networkId);
-            for (const auto &component : entity.components) {
-                splitter.addComponent(entity.networkId, component);
+        for (const auto &[networkId, components] : entities) {
+            splitter.addEntity(networkId);
+            for (const auto &component : components) {
+                splitter.addComponent(networkId, component);
             }
         }
         return splitter.take();

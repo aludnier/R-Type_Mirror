@@ -13,7 +13,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ecs/Entity.h"
 #include "math/Vector2.h"
 #include "GameProtocol.h"
 #include "server/GameServer.h"
@@ -26,12 +25,12 @@ namespace RType {
      */
     class RTypeServer : public GameServer {
     public:
-        explicit RTypeServer(ServerConfig config);
+        explicit RTypeServer(const ServerConfig &config);
 
     private:
         /** @brief A projectile or an enemy to spawn once the loop is over. */
         struct SpawnRequest {
-            Game::Protocol::EntityKind kind;
+            Game::Protocol::EntityKind kind{};
             Vector2 position;
         };
 

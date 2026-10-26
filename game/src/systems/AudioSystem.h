@@ -24,12 +24,14 @@ namespace Game {
          * - ResourceManager supports Sound and Music asset types, but engine_client
          *   has no audio playback system (e.g. sf::Sound, sf::Music wrapper).
          */
-        static void playSoundEffect(ResourceManager &resources, const std::string &soundName);
+        static void playSoundEffect(
+            const ResourceManager &resources, const std::string &soundName);
 
         /**
          * @brief Plays background music track by asset name.
          */
-        static void playMusic(ResourceManager &resources, const std::string &musicName);
+        static void playMusic(
+            const ResourceManager &resources, const std::string &musicName);
     };
 
 } // namespace Game

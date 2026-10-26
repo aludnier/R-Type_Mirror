@@ -20,8 +20,8 @@ namespace RType::Physics2D {
     struct Contact {
         EntityPair pair;
         Vector2 normal; // from pair.first to pair.second
-        float penetration;
-        bool trigger;
+        float penetration{};
+        bool trigger{};
     };
 
     /** Contacts of the current frame, shared between detection and response systems. */

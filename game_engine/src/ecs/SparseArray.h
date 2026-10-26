@@ -86,15 +86,15 @@ namespace RType {
             return this->_data[entity];
         }
 
-        iterator begin() { return this->_data.begin(); }
-        const_iterator begin() const { return this->_data.begin(); }
-        const_iterator cbegin() const { return this->_data.cbegin(); }
+        [[nodiscard]] iterator begin() { return this->_data.begin(); }
+        [[nodiscard]] const_iterator begin() const { return this->_data.begin(); }
+        [[nodiscard]] const_iterator cbegin() const { return this->_data.cbegin(); }
 
-        iterator end() { return this->_data.end(); }
-        const_iterator end() const { return this->_data.end(); }
-        const_iterator cend() const { return this->_data.cend(); }
+        [[nodiscard]] iterator end() { return this->_data.end(); }
+        [[nodiscard]] const_iterator end() const { return this->_data.end(); }
+        [[nodiscard]] const_iterator cend() const { return this->_data.cend(); }
 
-        size_type size() const { return this->_data.size(); }
+        [[nodiscard]] size_type size() const { return this->_data.size(); }
 
         /**
          * @brief Inserts a copy of a component at the given position.
@@ -160,7 +160,7 @@ namespace RType {
          * @return Index of the element in the internal vector.
          * @throws std::out_of_range If the element is not found.
          */
-        size_type getIndex(value_type const &component) const {
+        [[nodiscard]] size_type getIndex(value_type const &component) const {
             auto it = std::ranges::find_if(this->_data, [&](const value_type &item) {
                 return std::addressof(item) == std::addressof(component);
             });

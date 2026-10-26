@@ -69,6 +69,7 @@ TEST_CASE("SparseArray erases components", "[ecs][sparse-array]") {
 
     REQUIRE_FALSE(array[0].has_value());
     REQUIRE(array[3].has_value());
+    REQUIRE(array[3]->hp == 11);
     REQUIRE(array.size() == 4u);
     REQUIRE(array.count() == 1u);
 }

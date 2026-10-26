@@ -16,7 +16,7 @@ namespace Game {
     void ForcePodSystem::addSystem(RType::Registry &registry)
     {
         registry.addSystem<RType::Transform2D, ForcePod>(
-            [&registry](auto &transforms, auto &pods) {
+            [](auto &transforms, auto &pods) {
                 for (auto [transform, pod] : RType::Zipper(transforms, pods)) {
                     if (pod.ownerId < transforms.size() && transforms[pod.ownerId].has_value()) {
                         const auto &playerPos = transforms[pod.ownerId]->position;

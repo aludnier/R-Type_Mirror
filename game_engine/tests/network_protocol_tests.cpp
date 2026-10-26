@@ -249,12 +249,12 @@ TEST_CASE("Packet sets payload size and reliable flag", "[network][packet]")
 {
     auto despawn = Packet::deserialize(
         makePacket(EntityDespawnPacket {.networkId = 1}).serialize());
-    auto controllable = makePacket(ControllablePacket {});
+    auto [header, payload] = makePacket(ControllablePacket {});
 
     REQUIRE(despawn.has_value());
     REQUIRE(despawn->header.payloadSize == 4);
     REQUIRE(despawn->header.isReliable());
-    REQUIRE_FALSE(controllable.header.isReliable());
+    REQUIRE_FALSE(header.isReliable());
 }
 
 TEST_CASE("Packet rejects datagrams with invalid framing", "[network][packet]")
@@ -351,11 +351,11 @@ TEST_CASE("ServerPackets round trip through a datagram",
 TEST_CASE("Payloads encodes controllable actions as a u32 bitmask",
     "[network][payloads]")
 {
-    auto packet = makePacket(
+    auto [header, payload] = makePacket(
         ControllablePacket {.inputSequence = 1, .actions = 0x80000005});
 
     // input_sequence, then actions in little-endian
-    REQUIRE(packet.payload == (Bytes {1, 0, 0, 0, 0x05, 0, 0, 0x80}));
+    REQUIRE(payload == (Bytes {1, 0, 0, 0, 0x05, 0, 0, 0x80}));
 }
 
 TEST_CASE("Payloads encodes component update as in the specification",
@@ -451,7 +451,7 @@ TEST_CASE("Robustness random datagrams never crash the decoder",
 {
     std::mt19937 random(42);
     std::uniform_int_distribution<std::size_t> size(0, MAX_PACKET_SIZE + 10);
-    std::uniform_int_distribution<int> byte(0, 255);
+    std::uniform_int_distribution byte(0, 255);
 
     for (int i = 0; i < 20000; ++i) {
         Bytes datagram(size(random));
@@ -468,9 +468,8 @@ TEST_CASE("Robustness random datagrams never crash the decoder",
             datagram[13] = static_cast<std::uint8_t>(payloadSize);
             datagram[14] = static_cast<std::uint8_t>(payloadSize >> 8);
         }
-        auto packet = Packet::deserialize(datagram);
 
-        if (packet) {
+        if (auto packet = Packet::deserialize(datagram)) {
             decodeAsEveryPayload(*packet);
         }
     }
@@ -517,8 +516,8 @@ namespace {
             REQUIRE(packet.tick == tick);
             REQUIRE_FALSE(packet.entities.empty());
             REQUIRE(makePacket(packet).serialize().size() <= MAX_PACKET_SIZE);
-            for (const auto &entity : packet.entities) {
-                REQUIRE_FALSE(entity.components.empty());
+            for (const auto &[networkId, components] : packet.entities) {
+                REQUIRE_FALSE(components.empty());
             }
         }
     }
@@ -533,7 +532,7 @@ TEST_CASE("splitComponentUpdate gives no packet when nothing changed",
 TEST_CASE("splitComponentUpdate keeps a small update in one packet",
     "[network][component-update]")
 {
-    std::vector<EntityComponents> entities = {
+    std::vector entities = {
         positionUpdate(1), positionUpdate(2), positionUpdate(3)};
     auto packets = splitComponentUpdate(42, entities);
 
@@ -569,7 +568,7 @@ TEST_CASE("splitComponentUpdate continues a large entity in the next packet",
         boss.components.push_back(
             {.typeId = type, .data = Bytes(8, static_cast<std::uint8_t>(type))});
     }
-    std::vector<EntityComponents> entities = {
+    std::vector entities = {
         positionUpdate(1), boss, positionUpdate(2)};
     auto packets = splitComponentUpdate(3, entities);
 
