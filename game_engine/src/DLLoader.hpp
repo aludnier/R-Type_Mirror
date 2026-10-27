@@ -170,13 +170,13 @@ private:
             HMODULE pinned = nullptr;
             GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN |
                     GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
-                reinterpret_cast<LPCSTR>(handle), &pinned);
+                reinterpret_cast<LPCSTR>(handle),
+                &pinned);
         }
         return handle;
 #else
-        const int flags = persistent
-            ? (RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE)
-            : RTLD_LAZY;
+        const int flags =
+            persistent ? (RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE) : RTLD_LAZY;
         return dlopen(libFile.c_str(), flags);
 #endif
     }
@@ -210,7 +210,8 @@ private:
 #endif
     }
 
-    #include <cstdint>
+#include <cstdint>
+
     [[nodiscard]] void *getLibraryFunction(std::string_view funcName) const
     {
 #if defined(_WIN32) || defined(_WIN64)
@@ -221,6 +222,6 @@ private:
 #endif
     }
 };
-} // namespace RType 
+} // namespace RType
 
 #endif

@@ -1,8 +1,8 @@
 #include "Module.h"
-#include "ecs/Registry.h"
-#include "ecs/SparseArray.h"
 #include "TestDependencyComponent.h"
 #include "TestPluginComponent.h"
+#include "ecs/Registry.h"
+#include "ecs/SparseArray.h"
 
 #include <stdexcept>
 
@@ -24,14 +24,12 @@ RType::ModuleStatus registerTestModule(RType::Registry &registry)
     return RType::ModuleStatus::Success;
 }
 
-const RType::ModuleDescriptor moduleDescriptor{
-    .name = "test_module",
+const RType::ModuleDescriptor moduleDescriptor {.name = "test_module",
     .apiVersion = {RType::MODULE_API_MAJOR, RType::MODULE_API_MINOR},
     .dependencies = {{"test_dependency_module",
         {RType::MODULE_API_MAJOR, RType::MODULE_API_MINOR}}},
-    .registerModule = registerTestModule
-};
-}
+    .registerModule = registerTestModule};
+} // namespace
 
 extern "C" MODULE_EXPORT const RType::ModuleDescriptor *MODULE_CALL
 RTypeLibEntryPoint()

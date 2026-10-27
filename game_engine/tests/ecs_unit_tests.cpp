@@ -132,7 +132,8 @@ TEST_CASE("Registry removes components", "[ecs][registry]")
     registry.addComponent<Position>(entity, Position {8, 9});
     registry.removeComponent<Position>(entity);
 
-    REQUIRE_FALSE(registry
+    REQUIRE_FALSE(
+        registry
             .getComponents<Position>()[static_cast<RType::entity_id_type>(
                 entity)]
             .has_value());
@@ -157,7 +158,8 @@ TEST_CASE("Registry systems see components before pending entities are removed",
     registry.runSystems();
 
     REQUIRE(systemSawEntity);
-    REQUIRE_FALSE(registry
+    REQUIRE_FALSE(
+        registry
             .getComponents<Position>()[static_cast<RType::entity_id_type>(
                 entity)]
             .has_value());

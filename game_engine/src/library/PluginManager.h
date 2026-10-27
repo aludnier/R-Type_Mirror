@@ -6,7 +6,7 @@
 */
 
 #ifndef PLUGINMANAGER_H_
-    #define PLUGINMANAGER_H_
+#define PLUGINMANAGER_H_
 
 #include <filesystem>
 #include <functional>
@@ -15,13 +15,11 @@
 #include <unordered_map>
 #include <vector>
 #include "DLLoader.hpp"
-#include "ecs/Registry.h"
 #include "Module.h"
+#include "ecs/Registry.h"
 
-namespace RType
-{
-class PluginManager
-{
+namespace RType {
+class PluginManager {
 public:
     /**
      * @brief Constructs an empty manager with no module loaded.
@@ -41,7 +39,8 @@ public:
      * registers the modules in dependency order.
      *
      * @param directory   Directory containing the module libraries.
-     * @param moduleNames Names (ModuleDescriptor::name) of the requested modules.
+     * @param moduleNames Names (ModuleDescriptor::name) of the requested
+     * modules.
      * @param registry    Registry passed to each registerModule callback.
      */
     void loadRequiredModules(const std::filesystem::path &directory,
@@ -52,8 +51,8 @@ public:
      * @param path     Path to the root module's shared library.
      * @param registry Registry passed to each registerModule callback.
      */
-    void loadModule(const std::filesystem::path &path,
-        RType::Registry &registry);
+    void loadModule(
+        const std::filesystem::path &path, RType::Registry &registry);
 
     /**
      * @brief Checks whether a module with this name is loaded.
@@ -70,12 +69,13 @@ private:
     struct Module {
         Loader library;
         std::string name;
-        RType::ModuleApiVersion apiVersion{};
+        RType::ModuleApiVersion apiVersion {};
         std::vector<RType::ModuleDependency> dependencies;
         RType::RegisterModuleFn registerModule;
     };
 
-    /** @brief Result of scanning a directory. The three members share indices. */
+    /** @brief Result of scanning a directory. The three members share indices.
+     */
     struct Scan {
         std::vector<Module> modules;
         std::vector<std::filesystem::path> paths;
@@ -83,16 +83,13 @@ private:
     };
 
     /** @brief Node state used by the depth-first dependency traversal. */
-    enum class VisitState : char {
-        Unvisited,
-        Visiting,
-        Done
-    };
+    enum class VisitState : char { Unvisited, Visiting, Done };
 
     /** @brief Opens a library as persistent (code stays mapped). */
     static Loader openLibrary(const std::filesystem::path &path);
 
-    /** @brief Tells whether a path has the platform's shared library extension. */
+    /** @brief Tells whether a path has the platform's shared library extension.
+     */
     static bool isSharedLibrary(const std::filesystem::path &path);
 
     /**
@@ -142,6 +139,6 @@ private:
     bool _configured = false;
 };
 
-}
+} // namespace RType
 
 #endif

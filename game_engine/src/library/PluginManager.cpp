@@ -4,20 +4,17 @@
 #include <stdexcept>
 #include <utility>
 
-namespace
-{
-using ModuleEntryPoint = const RType::ModuleDescriptor *(*)();
+namespace {
+using ModuleEntryPoint = const RType::ModuleDescriptor *(*) ();
 
-bool isApiCompatible(RType::ModuleApiVersion actual,
-    RType::ModuleApiVersion required)
+bool isApiCompatible(
+    RType::ModuleApiVersion actual, RType::ModuleApiVersion required)
 {
-    return actual.major == required.major &&
-        actual.minor >= required.minor;
+    return actual.major == required.major && actual.minor >= required.minor;
 }
 
 void requireCompatible(const std::string &moduleName,
-    const RType::ModuleDependency &dependency,
-    RType::ModuleApiVersion actual)
+    const RType::ModuleDependency &dependency, RType::ModuleApiVersion actual)
 {
     if (!isApiCompatible(actual, dependency.compatible_api))
         throw std::runtime_error("Module '" + moduleName +
@@ -35,7 +32,7 @@ void validateDescriptor(const RType::ModuleDescriptor *descriptor,
             "Module has an invalid descriptor or incompatible API: " +
             path.string());
 }
-}
+} // namespace
 
 RType::PluginManager::Loader RType::PluginManager::openLibrary(
     const std::filesystem::path &path)
@@ -127,8 +124,7 @@ std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
             return;
         if (state[index] == VisitState::Visiting)
             throw std::runtime_error(
-                "Module dependency cycle detected at '" + candidate.name +
-                "'");
+                "Module dependency cycle detected at '" + candidate.name + "'");
         state[index] = VisitState::Visiting;
         for (const auto &dependency : candidate.dependencies) {
             if (const auto loaded = loadedVersions.find(dependency.name);
@@ -139,9 +135,9 @@ std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
             const auto found = nameIndex.find(dependency.name);
             if (found == nameIndex.end())
                 throw std::runtime_error("Module '" + candidate.name +
-                    "' requires missing dependency '" + dependency.name +
-                    "'");
-            requireCompatible(candidate.name, dependency,
+                    "' requires missing dependency '" + dependency.name + "'");
+            requireCompatible(candidate.name,
+                dependency,
                 candidates[found->second].apiVersion);
             self(self, found->second);
         }
@@ -176,8 +172,7 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
         for (const auto index : order) {
             _loadedModules.push_back(std::move(candidates[index]));
             auto &module = _loadedModules.back();
-            if (module.registerModule(registry) !=
-                RType::ModuleStatus::Success)
+            if (module.registerModule(registry) != RType::ModuleStatus::Success)
                 throw std::runtime_error(
                     "Module '" + module.name + "' failed to initialize");
         }
@@ -189,9 +184,8 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
 
 bool RType::PluginManager::isLoaded(const std::string &name) const
 {
-    return std::ranges::any_of(_loadedModules, [&name](const auto &module) {
-        return module.name == name;
-    });
+    return std::ranges::any_of(_loadedModules,
+        [&name](const auto &module) { return module.name == name; });
 }
 
 void RType::PluginManager::loadRequiredModules(
@@ -220,11 +214,12 @@ void RType::PluginManager::loadRequiredModules(
             roots.push_back(found->second);
     }
     registerModules(scan.modules,
-        resolveLoadOrder(scan.modules, scan.index, roots), registry);
+        resolveLoadOrder(scan.modules, scan.index, roots),
+        registry);
 }
 
-void RType::PluginManager::loadModule(const std::filesystem::path &path,
-    RType::Registry &registry)
+void RType::PluginManager::loadModule(
+    const std::filesystem::path &path, RType::Registry &registry)
 {
     if (_registry && &_registry->get() != &registry)
         throw std::logic_error(
@@ -233,8 +228,8 @@ void RType::PluginManager::loadModule(const std::filesystem::path &path,
     const auto rootPath = std::filesystem::canonical(path);
     auto scan = scanDirectory(rootPath.parent_path());
 
-    const auto rootIt = std::find(scan.paths.begin(), scan.paths.end(),
-        rootPath);
+    const auto rootIt =
+        std::find(scan.paths.begin(), scan.paths.end(), rootPath);
     if (rootIt == scan.paths.end())
         throw std::runtime_error(
             "Module is missing RTypeLibEntryPoint: " + path.string());
@@ -245,5 +240,6 @@ void RType::PluginManager::loadModule(const std::filesystem::path &path,
             "Module is already loaded: " + scan.modules[rootIndex].name);
 
     registerModules(scan.modules,
-        resolveLoadOrder(scan.modules, scan.index, {rootIndex}), registry);
+        resolveLoadOrder(scan.modules, scan.index, {rootIndex}),
+        registry);
 }

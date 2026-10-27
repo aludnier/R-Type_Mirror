@@ -13,27 +13,28 @@
 #include "plugins/TestPluginComponent.h"
 
 namespace {
-    std::filesystem::path findModuleLibrary(
-        const std::filesystem::path &directory, const std::string &name)
-    {
-        for (const auto &entry : std::filesystem::directory_iterator(directory)) {
-            const auto filename = entry.path().filename().string();
-            if (entry.is_regular_file() &&
-                filename.find(name) != std::string::npos)
-                return entry.path();
-        }
-        throw std::runtime_error("Could not find test module library '" +
-            name + "' in " + directory.string());
+std::filesystem::path findModuleLibrary(
+    const std::filesystem::path &directory, const std::string &name)
+{
+    for (const auto &entry : std::filesystem::directory_iterator(directory)) {
+        const auto filename = entry.path().filename().string();
+        if (entry.is_regular_file() && filename.find(name) != std::string::npos)
+            return entry.path();
     }
+    throw std::runtime_error("Could not find test module library '" + name +
+        "' in " + directory.string());
 }
+} // namespace
 
-TEST_CASE("PluginManager loads requested modules and dependencies in dependency order",
-          "[plugins]") {
+TEST_CASE("PluginManager loads requested modules and dependencies in "
+          "dependency order",
+    "[plugins]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
-    manager.loadRequiredModules(TEST_PLUGIN_DIRECTORY,
-        {"test_module"}, registry);
+    manager.loadRequiredModules(
+        TEST_PLUGIN_DIRECTORY, {"test_module"}, registry);
 
     REQUIRE(manager.isLoaded("test_dependency_module"));
     REQUIRE(manager.isLoaded("test_module"));
@@ -47,13 +48,16 @@ TEST_CASE("PluginManager loads requested modules and dependencies in dependency 
     REQUIRE(registry.getComponents<TestPluginComponent>()[entity]->value == 42);
 }
 
-TEST_CASE("PluginManager registers a dependency only once when it is also requested",
-          "[plugins]") {
+TEST_CASE(
+    "PluginManager registers a dependency only once when it is also requested",
+    "[plugins]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
     manager.loadRequiredModules(TEST_PLUGIN_DIRECTORY,
-        {"test_module", "test_dependency_module"}, registry);
+        {"test_module", "test_dependency_module"},
+        registry);
 
     REQUIRE(manager.isLoaded("test_dependency_module"));
     REQUIRE(manager.isLoaded("test_module"));
@@ -66,12 +70,13 @@ TEST_CASE("PluginManager registers a dependency only once when it is also reques
 }
 
 TEST_CASE("PluginManager loads ModuleDescriptor dependencies before the module",
-          "[plugins][modules]") {
+    "[plugins][modules]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
-    manager.loadModule(findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"),
-        registry);
+    manager.loadModule(
+        findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"), registry);
 
     REQUIRE(manager.isLoaded("test_dependency_module"));
     REQUIRE(manager.isLoaded("test_module"));
@@ -85,11 +90,13 @@ TEST_CASE("PluginManager loads ModuleDescriptor dependencies before the module",
     REQUIRE(registry.getComponents<TestPluginComponent>()[entity]->value == 42);
 }
 
-TEST_CASE("PluginManager refuses to load the same module twice",
-          "[plugins][modules]") {
+TEST_CASE(
+    "PluginManager refuses to load the same module twice", "[plugins][modules]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
-    const auto library = findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin");
+    const auto library =
+        findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin");
 
     manager.loadModule(library, registry);
 
@@ -97,53 +104,61 @@ TEST_CASE("PluginManager refuses to load the same module twice",
     REQUIRE(manager.isLoaded("test_module"));
 }
 
-TEST_CASE("PluginManager refuses to bind to a second registry",
-          "[plugins][modules]") {
+TEST_CASE(
+    "PluginManager refuses to bind to a second registry", "[plugins][modules]")
+{
     RType::Registry first;
     RType::Registry second;
     RType::PluginManager manager;
 
-    manager.loadModule(findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"),
-        first);
+    manager.loadModule(
+        findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"), first);
 
-    REQUIRE_THROWS_AS(manager.loadModule(
+    REQUIRE_THROWS_AS(
+        manager.loadModule(
             findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"), second),
         std::logic_error);
 }
 
 TEST_CASE("PluginManager forgets the modules of a failed loadRequiredModules",
-          "[plugins]") {
+    "[plugins]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
-    REQUIRE_THROWS_WITH(manager.loadRequiredModules(TEST_PLUGIN_DIRECTORY,
-            {"test_failing_module"}, registry),
+    REQUIRE_THROWS_WITH(
+        manager.loadRequiredModules(
+            TEST_PLUGIN_DIRECTORY, {"test_failing_module"}, registry),
         "test plugin initialization failed");
     REQUIRE_FALSE(manager.isLoaded("test_failing_module"));
     REQUIRE_FALSE(manager.isLoaded("test_dependency_module"));
 }
 
 TEST_CASE("PluginManager forgets the modules of a failed loadModule",
-          "[plugins][modules]") {
+    "[plugins][modules]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
-    REQUIRE_THROWS_WITH(manager.loadModule(
+    REQUIRE_THROWS_WITH(
+        manager.loadModule(
             findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_failing"), registry),
         "test plugin initialization failed");
     REQUIRE_FALSE(manager.isLoaded("test_failing_module"));
     REQUIRE_FALSE(manager.isLoaded("test_dependency_module"));
 }
 
-TEST_CASE("PluginManager keeps earlier modules when a later load fails",
-          "[plugins]") {
+TEST_CASE(
+    "PluginManager keeps earlier modules when a later load fails", "[plugins]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
-    manager.loadModule(findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"),
-        registry);
+    manager.loadModule(
+        findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"), registry);
 
-    REQUIRE_THROWS_WITH(manager.loadModule(
+    REQUIRE_THROWS_WITH(
+        manager.loadModule(
             findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_failing"), registry),
         "test plugin initialization failed");
     REQUIRE_FALSE(manager.isLoaded("test_failing_module"));
@@ -152,12 +167,13 @@ TEST_CASE("PluginManager keeps earlier modules when a later load fails",
 }
 
 TEST_CASE("PluginManager rejects missing requirements and repeat configuration",
-          "[plugins]") {
+    "[plugins]")
+{
     RType::Registry registry;
     RType::PluginManager missingRequirement;
 
     REQUIRE_THROWS_WITH(missingRequirement.loadRequiredModules(
-            TEST_PLUGIN_DIRECTORY, {"MissingModule"}, registry),
+                            TEST_PLUGIN_DIRECTORY, {"MissingModule"}, registry),
         Catch::Matchers::ContainsSubstring("No module named 'MissingModule'"));
 
     RType::PluginManager configured;
@@ -168,12 +184,14 @@ TEST_CASE("PluginManager rejects missing requirements and repeat configuration",
         std::logic_error);
 }
 
-TEST_CASE("PluginManager reports an invalid plugin directory", "[plugins]") {
+TEST_CASE("PluginManager reports an invalid plugin directory", "[plugins]")
+{
     RType::Registry registry;
     RType::PluginManager manager;
 
     REQUIRE_THROWS_AS(manager.loadRequiredModules(
-            std::filesystem::path("missing_plugin_directory"),
-            {"test_module"}, registry),
+                          std::filesystem::path("missing_plugin_directory"),
+                          {"test_module"},
+                          registry),
         std::runtime_error);
 }
