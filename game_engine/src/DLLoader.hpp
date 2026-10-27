@@ -22,17 +22,7 @@ namespace RType {
 template<typename T>
 class DLLoader {
 public:
-<<<<<<< HEAD
-    /**
-     * @param libFile    Path to the shared library.
-     * @param persistent If true, the library stays mapped in the process
-     *                   even after close() / destruction (RTLD_NODELETE on
-     *                   POSIX, pinned module on Windows).
-     */
     explicit DLLoader(const std::string &libFile, bool persistent = false) :
-=======
-    explicit DLLoader(const std::string &libFile) :
->>>>>>> eb7d21167d7841d0350fadfd871ba7fa0e79b33d
         _handle(nullptr)
     {
         this->loadFile(libFile, persistent);
