@@ -4,8 +4,8 @@
 #include "ecs/Registry.h"
 
 namespace RType {
-    /** Registers movement driven by Controllable action masks. */
-    void addControllableSystem(Registry &registry, float speed, float dt);
-}
+/** Registers movement driven by Controllable action masks. */
+void addControllableSystem(Registry &registry, float speed, float dt);
+} // namespace RType
 
 #endif

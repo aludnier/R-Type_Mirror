@@ -8,5 +8,5 @@
 #include "components/NetworkEntity.h"
 
 namespace Game {
-    // Explicit template instantiations or component methods if needed
+// Explicit template instantiations or component methods if needed
 } // namespace Game

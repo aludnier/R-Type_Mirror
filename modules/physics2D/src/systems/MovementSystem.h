@@ -11,8 +11,8 @@
 #include "ecs/Registry.h"
 
 namespace RType::Physics2D {
-    /** Gravity, forces, drag -> velocity -> Transform2D. */
-    void addMovementSystem(Registry &registry);
-}
+/** Gravity, forces, drag -> velocity -> Transform2D. */
+void addMovementSystem(Registry &registry);
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_MOVEMENTSYSTEM_H

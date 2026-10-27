@@ -12,10 +12,10 @@
 #include "CollisionEvent2D.h"
 
 namespace RType::Physics2D {
-    /** Events of the current frame; cleared and refilled every frame. */
-    struct CollisionEvents2D {
-        std::vector<CollisionEvent2D> events;
-    };
-}
+/** Events of the current frame; cleared and refilled every frame. */
+struct CollisionEvents2D {
+    std::vector<CollisionEvent2D> events;
+};
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_COLLISIONEVENTS2D_H

@@ -13,13 +13,15 @@
 
 namespace Game {
 
-    /**
-     * @brief System responsible for player firing and R-Type wave cannon beam charging.
-     */
-    class PlayerWeaponSystem {
-    public:
-        static void addSystem(RType::Registry &registry, InputManager &input, float dt);
-    };
+/**
+ * @brief System responsible for player firing and R-Type wave cannon beam
+ * charging.
+ */
+class PlayerWeaponSystem {
+public:
+    static void addSystem(
+        RType::Registry &registry, InputManager &input, float dt);
+};
 
 } // namespace Game
 

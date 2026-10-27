@@ -9,9 +9,9 @@
 
 namespace Game {
 
-    Projectile::Projectile(bool isPlayer, int dmg, bool charged, float spd)
-        : isPlayerBullet(isPlayer), damage(dmg), isChargedBeam(charged), speed(spd)
-    {
-    }
+Projectile::Projectile(bool isPlayer, int dmg, bool charged, float spd) :
+    isPlayerBullet(isPlayer), damage(dmg), isChargedBeam(charged), speed(spd)
+{
+}
 
 } // namespace Game

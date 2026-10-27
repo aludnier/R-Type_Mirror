@@ -13,6 +13,10 @@ on:
 env:
   EPITECH_REPO: "git@github.com:EpitechPGE3-2026/G-ING-500-PAR-5-1-rtype-12.git"
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-project-Linux:
     runs-on: ubuntu-latest
@@ -77,8 +81,15 @@ jobs:
       - name: Test
         run: ctest --test-dir build/release -C Release --output-on-failure
 
+  linter:
+    name: "CPP Linter"
+    uses: ./.github/workflows/linter.yml
+    permissions:
+      contents: write
+      pull-requests: write
+
   push-to-mirror:
-    needs: [ build-project-Linux , build-project-Window ]
+    needs: [ build-project-Linux , build-project-Window , linter ]
     if: github.repository == 'aludnier/R-Type_Mirror'
     runs-on: ubuntu-latest
     steps:

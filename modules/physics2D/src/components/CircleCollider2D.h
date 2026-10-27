@@ -12,13 +12,13 @@
 #include "math/Vector2.h"
 
 namespace RType::Physics2D {
-    struct CircleCollider2D {
-        float radius = 0.5f;
-        Vector2 offset{};
-        bool isTrigger = false;
-        std::uint32_t layer = 1;
-        std::uint32_t mask = 0xFFFFFFFFu;
-    };
-}
+struct CircleCollider2D {
+    float radius = 0.5f;
+    Vector2 offset {};
+    bool isTrigger = false;
+    std::uint32_t layer = 1;
+    std::uint32_t mask = 0xFFFFFFFFu;
+};
+} // namespace RType::Physics2D
 
 #endif // PHYSICS2D_CIRCLECOLLIDER2D_H

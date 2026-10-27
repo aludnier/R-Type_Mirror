@@ -16,33 +16,33 @@
 #include "RTypeServer.h"
 
 namespace {
-    // Written by the signal handler: only lock-free atomics are safe there.
-    std::atomic<bool> stopRequested {false};
-    static_assert(std::atomic<bool>::is_always_lock_free);
+// Written by the signal handler: only lock-free atomics are safe there.
+std::atomic stopRequested {false};
+static_assert(std::atomic<bool>::is_always_lock_free);
 
-    void onSignal(int /* signal */)
-    {
-        stopRequested = true;
+void onSignal(int /* signal */)
+{
+    stopRequested = true;
+}
+
+std::optional<std::uint16_t> parsePort(std::string_view text)
+{
+    unsigned int port = 0;
+    auto [end, error] =
+        std::from_chars(text.data(), text.data() + text.size(), port);
+
+    if (error != std::errc {} || end != text.data() + text.size() ||
+        port == 0 || port > 65535) {
+        return std::nullopt;
     }
+    return static_cast<std::uint16_t>(port);
+}
 
-    std::optional<std::uint16_t> parsePort(std::string_view text)
-    {
-        unsigned int port = 0;
-        auto [end, error] =
-            std::from_chars(text.data(), text.data() + text.size(), port);
-
-        if (error != std::errc {} || end != text.data() + text.size() ||
-            port == 0 || port > 65535) {
-            return std::nullopt;
-        }
-        return static_cast<std::uint16_t>(port);
-    }
-
-    void printUsage(std::string_view program)
-    {
-        std::cout << "USAGE: " << program << " [-p port]\n"
-                  << "    -p port    UDP port to listen on (default 4242)\n";
-    }
+void printUsage(std::string_view program)
+{
+    std::cout << "USAGE: " << program << " [-p port]\n"
+              << "    -p port    UDP port to listen on (default 4242)\n";
+}
 } // namespace
 
 int main(int argc, char **argv)
