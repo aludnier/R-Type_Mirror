@@ -210,7 +210,8 @@ private:
 #endif
     }
 
-    void *getLibraryFunction(std::string_view funcName) const
+    #include <cstdint>
+    [[nodiscard]] void *getLibraryFunction(std::string_view funcName) const
     {
 #if defined(_WIN32) || defined(_WIN64)
         return (void *) GetProcAddress(
@@ -220,6 +221,6 @@ private:
 #endif
     }
 };
-} // namespace RType
+} // namespace RType 
 
 #endif

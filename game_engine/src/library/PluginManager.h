@@ -60,7 +60,7 @@ public:
      * @param name Module name.
      * @return true if loaded.
      */
-    bool isLoaded(const std::string &name) const;
+    [[nodiscard]] bool isLoaded(const std::string &name) const;
 
 private:
     using Loader = RType::DLLoader<RType::ModuleDescriptor>;
@@ -120,7 +120,7 @@ private:
      * @throws std::runtime_error On missing or incompatible dependency, or
      *         dependency cycle.
      */
-    std::vector<std::size_t> resolveLoadOrder(
+    [[nodiscard]] std::vector<std::size_t> resolveLoadOrder(
         const std::vector<Module> &candidates, const NameIndex &nameIndex,
         const std::vector<std::size_t> &roots) const;
 
