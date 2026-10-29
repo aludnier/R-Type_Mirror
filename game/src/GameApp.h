@@ -64,7 +64,6 @@ private:
     void handleEvent(const sf::Event &event);
     void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
     void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
-    RType::Registry _registry {};
     InputManager _inputManager {};
     ResourceManager _resourceManager {};
     NetworkClient _networkClient {};
@@ -77,6 +76,7 @@ private:
     float _fixedDeltaTime = 1.0f / 60.0f;
     RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader {};
     RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader {};
+    RType::Registry _registry {};
 };
 
 } // namespace Game
