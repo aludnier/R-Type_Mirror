@@ -67,9 +67,11 @@ private:
 
     /** @brief A module library, either read-only (candidate) or registered. */
     struct Module {
-        Module(RType::PluginManager::Loader lib, const RType::ModuleDescriptor *descriptor) {
+        Module(RType::PluginManager::Loader lib,
+            const RType::ModuleDescriptor *descriptor)
+        {
             library = std::move(lib);
-            name =  descriptor->name;
+            name = descriptor->name;
             apiVersion = descriptor->apiVersion;
             dependencies = descriptor->dependencies;
             registerModule = descriptor->registerModule;
@@ -100,8 +102,10 @@ private:
      */
     static bool isSharedLibrary(const std::filesystem::path &path);
 
-    static void visitModule(std::size_t index, const std::vector<Module> &candidates, const NameIndex &nameIndex,
-        const std::unordered_map<std::string, RType::ModuleApiVersion> &loadedVersions,
+    static void visitModule(std::size_t index,
+        const std::vector<Module> &candidates, const NameIndex &nameIndex,
+        const std::unordered_map<std::string, RType::ModuleApiVersion>
+            &loadedVersions,
         std::vector<VisitState> &state, std::vector<std::size_t> &order);
 
     /**

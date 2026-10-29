@@ -13,11 +13,11 @@
 #include <dlfcn.h>
 #endif
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
 #include <utility>
-#include <cstdint>
 
 namespace RType {
 template<typename T>
@@ -89,13 +89,13 @@ public:
             "Fn must be a function pointer type");
 
         void *symbol = this->getLibraryFunction(name);
-        if (!symbol){
+        if (!symbol) {
             return std::nullopt;
         }
         return reinterpret_cast<Fn>(symbol);
     }
 
-void close() noexcept
+    void close() noexcept
     {
         if (this->_handle) {
             closeLibrary(this->_handle);

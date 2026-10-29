@@ -32,7 +32,7 @@ void validateDescriptor(const RType::ModuleDescriptor *descriptor,
             "Module has an invalid descriptor or incompatible API: " +
             path.string());
 }
-}
+} // namespace
 
 RType::PluginManager::Loader RType::PluginManager::openLibrary(
     const std::filesystem::path &path)
