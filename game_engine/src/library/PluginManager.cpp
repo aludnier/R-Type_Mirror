@@ -84,21 +84,16 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
         auto library = openLibrary(path);
         const auto entryPoint =
             library.getFunction<ModuleEntryPoint>("RTypeLibEntryPoint");
-        if (entryPoint == nullptr)
+        if (entryPoint == std::nullopt)
             continue;
 
-        const auto *descriptor = entryPoint();
+        const RType::ModuleDescriptor *descriptor = (*entryPoint)();
         validateDescriptor(descriptor, path);
         if (!scan.index.emplace(descriptor->name, scan.modules.size()).second)
             throw std::runtime_error(
                 "Duplicate module name: " + descriptor->name);
 
-        Module module;
-        module.name = descriptor->name;
-        module.apiVersion = descriptor->apiVersion;
-        module.dependencies = descriptor->dependencies;
-        module.registerModule = descriptor->registerModule;
-        module.library = std::move(library);
+        Module module = Module(std::move(library), descriptor);
 
         scan.paths.push_back(std::filesystem::canonical(path));
         scan.modules.push_back(std::move(module));
@@ -176,9 +171,9 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
                 throw std::runtime_error(
                     "Module '" + module.name + "' failed to initialize");
         }
-    } catch (...) {
+    } catch (std::exception e) {
         rollback(firstNew);
-        throw;
+        throw e;
     }
 }
 

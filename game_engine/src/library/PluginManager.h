@@ -67,6 +67,14 @@ private:
 
     /** @brief A module library, either read-only (candidate) or registered. */
     struct Module {
+        Module(RType::PluginManager::Loader lib, const RType::ModuleDescriptor *descriptor) {
+            library = std::move(lib);
+            name =  descriptor->name;
+            apiVersion = descriptor->apiVersion;
+            dependencies = descriptor->dependencies;
+            registerModule = descriptor->registerModule;
+        }
+
         Loader library;
         std::string name;
         RType::ModuleApiVersion apiVersion {};
@@ -133,7 +141,7 @@ private:
      */
     void rollback(std::size_t firstNew) noexcept;
 
-    std::vector<Loader> _retiredLibraries; ///< Libraries of forgotten modules.
+    std::vector<Loader> _retiredLibraries;
     std::vector<Module> _loadedModules;
     std::optional<std::reference_wrapper<RType::Registry>> _registry;
     bool _configured = false;
