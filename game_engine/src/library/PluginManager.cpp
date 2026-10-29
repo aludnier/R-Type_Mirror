@@ -71,7 +71,7 @@ std::vector<std::filesystem::path> RType::PluginManager::listLibraries(
             continue;
         paths.push_back(entry.path());
     }
-    std::sort(paths.begin(), paths.end());
+    std::ranges::sort(paths.begin(), paths.end());
     return paths;
 }
 
