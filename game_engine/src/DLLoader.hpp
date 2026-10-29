@@ -17,6 +17,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <cstdint>
 
 namespace RType {
 template<typename T>
@@ -81,9 +82,16 @@ public:
      * @return The function pointer, or nullptr if the symbol is not exported.
      */
     template<typename Fn>
-    Fn getFunction(std::string_view name) const
+    std::optional<Fn> getFunction(std::string_view name) const
     {
-        return reinterpret_cast<Fn>(this->getLibraryFunction(name));
+        if (!std::is_function<Fn>::value){
+            return std::nullopt;
+        }
+        auto *symbol = this->getLibraryFunction(name);
+        if (!symbol) {
+            return std::nullopt;
+        }
+        return reinterpret_cast<Fn>(symbol);
     }
 
     void close() noexcept
@@ -209,8 +217,6 @@ private:
         return dlerror();
 #endif
     }
-
-#include <cstdint>
 
     [[nodiscard]] void *getLibraryFunction(std::string_view funcName) const
     {
