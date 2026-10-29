@@ -84,17 +84,18 @@ public:
     template<typename Fn>
     std::optional<Fn> getFunction(std::string_view name) const
     {
-        if (!std::is_function<Fn>::value){
-            return std::nullopt;
-        }
-        auto *symbol = this->getLibraryFunction(name);
-        if (!symbol) {
+        static_assert(std::is_pointer_v<Fn> &&
+                std::is_function_v<std::remove_pointer_t<Fn>>,
+            "Fn must be a function pointer type");
+
+        void *symbol = this->getLibraryFunction(name);
+        if (!symbol){
             return std::nullopt;
         }
         return reinterpret_cast<Fn>(symbol);
     }
 
-    void close() noexcept
+void close() noexcept
     {
         if (this->_handle) {
             closeLibrary(this->_handle);
