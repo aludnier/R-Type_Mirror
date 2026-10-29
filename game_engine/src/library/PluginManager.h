@@ -100,6 +100,10 @@ private:
      */
     static bool isSharedLibrary(const std::filesystem::path &path);
 
+    static void visitModule(std::size_t index, const std::vector<Module> &candidates, const NameIndex &nameIndex,
+        const std::unordered_map<std::string, RType::ModuleApiVersion> &loadedVersions,
+        std::vector<VisitState> &state, std::vector<std::size_t> &order);
+
     /**
      * @brief Lists the shared libraries directly inside a directory.
      * @throws std::runtime_error If @p directory is not a directory.

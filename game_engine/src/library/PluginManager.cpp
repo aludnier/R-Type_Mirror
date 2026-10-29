@@ -32,7 +32,7 @@ void validateDescriptor(const RType::ModuleDescriptor *descriptor,
             "Module has an invalid descriptor or incompatible API: " +
             path.string());
 }
-} // namespace
+}
 
 RType::PluginManager::Loader RType::PluginManager::openLibrary(
     const std::filesystem::path &path)
@@ -84,7 +84,7 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
         auto library = openLibrary(path);
         const auto entryPoint =
             library.getFunction<ModuleEntryPoint>("RTypeLibEntryPoint");
-        if (entryPoint == std::nullopt)
+        if (!entryPoint)
             continue;
 
         const RType::ModuleDescriptor *descriptor = (*entryPoint)();
@@ -101,6 +101,39 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
     return scan;
 }
 
+void RType::PluginManager::visitModule(std::size_t index,
+    const std::vector<Module> &candidates, const NameIndex &nameIndex,
+    const std::unordered_map<std::string, RType::ModuleApiVersion>
+        &loadedVersions,
+    std::vector<VisitState> &state, std::vector<std::size_t> &order)
+{
+    const auto &candidate = candidates[index];
+
+    if (state[index] == VisitState::Done)
+        return;
+    if (state[index] == VisitState::Visiting)
+        throw std::runtime_error(
+            "Module dependency cycle detected at '" + candidate.name + "'");
+    state[index] = VisitState::Visiting;
+    for (const auto &dependency : candidate.dependencies) {
+        if (const auto loaded = loadedVersions.find(dependency.name);
+            loaded != loadedVersions.end()) {
+            requireCompatible(candidate.name, dependency, loaded->second);
+            continue;
+        }
+        const auto found = nameIndex.find(dependency.name);
+        if (found == nameIndex.end())
+            throw std::runtime_error("Module '" + candidate.name +
+                "' requires missing dependency '" + dependency.name + "'");
+        requireCompatible(
+            candidate.name, dependency, candidates[found->second].apiVersion);
+        visitModule(
+            found->second, candidates, nameIndex, loadedVersions, state, order);
+    }
+    state[index] = VisitState::Done;
+    order.push_back(index);
+}
+
 std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
     const std::vector<Module> &candidates, const NameIndex &nameIndex,
     const std::vector<std::size_t> &roots) const
@@ -112,36 +145,8 @@ std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
     std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
     std::vector<std::size_t> order;
 
-    const auto visit = [&](const auto &self, std::size_t index) -> void {
-        const auto &candidate = candidates[index];
-
-        if (state[index] == VisitState::Done)
-            return;
-        if (state[index] == VisitState::Visiting)
-            throw std::runtime_error(
-                "Module dependency cycle detected at '" + candidate.name + "'");
-        state[index] = VisitState::Visiting;
-        for (const auto &dependency : candidate.dependencies) {
-            if (const auto loaded = loadedVersions.find(dependency.name);
-                loaded != loadedVersions.end()) {
-                requireCompatible(candidate.name, dependency, loaded->second);
-                continue;
-            }
-            const auto found = nameIndex.find(dependency.name);
-            if (found == nameIndex.end())
-                throw std::runtime_error("Module '" + candidate.name +
-                    "' requires missing dependency '" + dependency.name + "'");
-            requireCompatible(candidate.name,
-                dependency,
-                candidates[found->second].apiVersion);
-            self(self, found->second);
-        }
-        state[index] = VisitState::Done;
-        order.push_back(index);
-    };
-
     for (const auto root : roots)
-        visit(visit, root);
+        visitModule(root, candidates, nameIndex, loadedVersions, state, order);
     return order;
 }
 
@@ -171,7 +176,7 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
                 throw std::runtime_error(
                     "Module '" + module.name + "' failed to initialize");
         }
-    } catch (std::exception e) {
+    } catch (std::runtime_error &e) {
         rollback(firstNew);
         throw e;
     }
