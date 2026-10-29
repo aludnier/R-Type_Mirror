@@ -6,7 +6,8 @@
 
 namespace {
 using ModuleEntryPoint = const RType::ModuleDescriptor *(*) ();
-using DescriptorRef = std::optional<std::reference_wrapper<const RType::ModuleDescriptor>>;
+using DescriptorRef =
+    std::optional<std::reference_wrapper<const RType::ModuleDescriptor>>;
 
 bool isApiCompatible(
     RType::ModuleApiVersion actual, RType::ModuleApiVersion required)
@@ -23,8 +24,8 @@ void requireCompatible(const std::string &moduleName,
             dependency.name + "'");
 }
 
-void validateDescriptor(const std::filesystem::path &path,
-    const DescriptorRef descriptor)
+void validateDescriptor(
+    const std::filesystem::path &path, const DescriptorRef descriptor)
 {
     if (!descriptor || descriptor->get().name.empty() ||
         descriptor->get().apiVersion.major != RType::MODULE_API_MAJOR ||
@@ -89,7 +90,9 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
             continue;
 
         const RType::ModuleDescriptor *descriptor = (*entryPoint)();
-        validateDescriptor(path, (descriptor) ? DescriptorRef(std::cref(*descriptor)) : std::nullopt);
+        validateDescriptor(path,
+            (descriptor) ? DescriptorRef(std::cref(*descriptor))
+                         : std::nullopt);
         if (!scan.index.emplace(descriptor->name, scan.modules.size()).second)
             throw std::runtime_error(
                 "Duplicate module name: " + descriptor->name);
