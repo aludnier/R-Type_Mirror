@@ -102,12 +102,6 @@ private:
      */
     static bool isSharedLibrary(const std::filesystem::path &path);
 
-    static void visitModule(std::size_t index,
-        const std::vector<Module> &candidates, const NameIndex &nameIndex,
-        const std::unordered_map<std::string, RType::ModuleApiVersion>
-            &loadedVersions,
-        std::vector<VisitState> &state, std::vector<std::size_t> &order);
-
     /**
      * @brief Lists the shared libraries directly inside a directory.
      * @throws std::runtime_error If @p directory is not a directory.
@@ -136,6 +130,12 @@ private:
     [[nodiscard]] std::vector<std::size_t> resolveLoadOrder(
         const std::vector<Module> &candidates, const NameIndex &nameIndex,
         const std::vector<std::size_t> &roots) const;
+
+    void visitModule(std::size_t index, const std::vector<Module> &candidates,
+        const NameIndex &nameIndex, std::vector<VisitState> &state,
+        std::vector<std::size_t> &order) const;
+
+    const Module *findLoaded(const std::string &name) const;
 
     /**
      * @brief Registers the modules in order and keeps them as loaded.

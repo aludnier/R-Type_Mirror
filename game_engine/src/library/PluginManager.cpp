@@ -73,7 +73,7 @@ std::vector<std::filesystem::path> RType::PluginManager::listLibraries(
             continue;
         paths.push_back(entry.path());
     }
-    std::ranges::sort(paths.begin(), paths.end());
+    std::ranges::sort(paths);
     return paths;
 }
 
@@ -105,11 +105,17 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
     return scan;
 }
 
+const RType::PluginManager::Module *RType::PluginManager::findLoaded(
+    const std::string &name) const
+{
+    const auto it = std::ranges::find(_loadedModules, name, &Module::name);
+
+    return it == _loadedModules.end() ? nullptr : &*it;
+}
+
 void RType::PluginManager::visitModule(std::size_t index,
     const std::vector<Module> &candidates, const NameIndex &nameIndex,
-    const std::unordered_map<std::string, RType::ModuleApiVersion>
-        &loadedVersions,
-    std::vector<VisitState> &state, std::vector<std::size_t> &order)
+    std::vector<VisitState> &state, std::vector<std::size_t> &order) const
 {
     const auto &candidate = candidates[index];
 
@@ -120,9 +126,8 @@ void RType::PluginManager::visitModule(std::size_t index,
             "Module dependency cycle detected at '" + candidate.name + "'");
     state[index] = VisitState::Visiting;
     for (const auto &dependency : candidate.dependencies) {
-        if (const auto loaded = loadedVersions.find(dependency.name);
-            loaded != loadedVersions.end()) {
-            requireCompatible(candidate.name, dependency, loaded->second);
+        if (const auto *loaded = findLoaded(dependency.name)) {
+            requireCompatible(candidate.name, dependency, loaded->apiVersion);
             continue;
         }
         const auto found = nameIndex.find(dependency.name);
@@ -131,8 +136,7 @@ void RType::PluginManager::visitModule(std::size_t index,
                 "' requires missing dependency '" + dependency.name + "'");
         requireCompatible(
             candidate.name, dependency, candidates[found->second].apiVersion);
-        visitModule(
-            found->second, candidates, nameIndex, loadedVersions, state, order);
+        visitModule(found->second, candidates, nameIndex, state, order);
     }
     state[index] = VisitState::Done;
     order.push_back(index);
@@ -142,15 +146,11 @@ std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
     const std::vector<Module> &candidates, const NameIndex &nameIndex,
     const std::vector<std::size_t> &roots) const
 {
-    std::unordered_map<std::string, RType::ModuleApiVersion> loadedVersions;
-    for (const auto &module : _loadedModules)
-        loadedVersions.emplace(module.name, module.apiVersion);
-
     std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
     std::vector<std::size_t> order;
 
     for (const auto root : roots)
-        visitModule(root, candidates, nameIndex, loadedVersions, state, order);
+        visitModule(root, candidates, nameIndex, state, order);
     return order;
 }
 
