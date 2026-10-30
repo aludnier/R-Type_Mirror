@@ -81,9 +81,9 @@ public:
      * @param name Null-terminated symbol name.
      * @return The function pointer, or nullptr if the symbol is not exported.
      */
-    template <typename Fn>
-    requires (std::is_pointer_v<Fn> &&
-              std::is_function_v<std::remove_pointer_t<Fn>>)
+    template<typename Fn>
+        requires(std::is_pointer_v<Fn> &&
+            std::is_function_v<std::remove_pointer_t<Fn>>)
     std::optional<Fn> getFunction(std::string_view name) const
     {
         void *symbol = this->getLibraryFunction(name);

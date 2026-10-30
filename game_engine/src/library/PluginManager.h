@@ -135,7 +135,7 @@ private:
         const NameIndex &nameIndex, std::vector<VisitState> &state,
         std::vector<std::size_t> &order) const;
 
-    const Module *findLoaded(const std::string &name) const;
+    [[nodiscard]] const Module *findLoaded(const std::string &name) const;
 
     /**
      * @brief Registers the modules in order and keeps them as loaded.
