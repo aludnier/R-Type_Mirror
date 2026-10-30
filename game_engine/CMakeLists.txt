@@ -31,6 +31,8 @@ set(CORE_SRC
         src/network/PacketHeader.cpp
         src/network/ServerPackets.cpp
         src/network/UdpSocket.cpp
+        src/configuration/ProductVersion.cpp
+        src/configuration/ProductVersion.hpp
 )
 
 add_library(engine_core STATIC ${CORE_SRC})
@@ -83,6 +85,15 @@ set(SERVER_SRC
 add_library(engine_server STATIC ${SERVER_SRC})
 
 target_link_libraries(engine_server PUBLIC engine_core)
+
+set(CONFIGURATION_SRC
+        src/configuration/Configuration.cpp
+        src/configuration/Configuration.hpp
+)
+
+add_library(engine_configuration STATIC ${CONFIGURATION_SRC})
+find_package(nlohmann_json CONFIG REQUIRED)
+target_link_libraries(engine_configuration PUBLIC engine_core nlohmann_json::nlohmann_json)
 
 # ---------------------------------------------------------------------------
 # Temporary: keeps the old target name working for branches opened before
