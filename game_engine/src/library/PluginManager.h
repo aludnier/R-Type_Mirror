@@ -132,8 +132,7 @@ private:
         const std::vector<std::size_t> &roots) const;
 
     void visitModule(std::size_t index, const std::vector<Module> &candidates,
-        const NameIndex &nameIndex, std::vector<VisitState> &state,
-        std::vector<std::size_t> &order) const;
+        std::vector<VisitState> &state, std::vector<std::size_t> &order) const;
 
     [[nodiscard]] const Module *findLoaded(const std::string &name) const;
 

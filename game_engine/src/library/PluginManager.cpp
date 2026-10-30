@@ -117,8 +117,8 @@ const RType::PluginManager::Module *RType::PluginManager::findLoaded(
 }
 
 void RType::PluginManager::visitModule(std::size_t index,
-    const std::vector<Module> &candidates, const NameIndex &nameIndex,
-    std::vector<VisitState> &state, std::vector<std::size_t> &order) const
+    const std::vector<Module> &candidates, std::vector<VisitState> &state,
+    std::vector<std::size_t> &order) const
 {
     const auto &candidate = candidates[index];
 
@@ -133,27 +133,30 @@ void RType::PluginManager::visitModule(std::size_t index,
             requireCompatible(candidate.name, dependency, loaded->apiVersion);
             continue;
         }
-        const auto found = nameIndex.find(dependency.name);
-        if (found == nameIndex.end())
+        const auto found =
+            std::ranges::find(candidates, dependency.name, &Module::name);
+        if (found == candidates.end())
             throw std::runtime_error("Module '" + candidate.name +
                 "' requires missing dependency '" + dependency.name + "'");
-        requireCompatible(
-            candidate.name, dependency, candidates[found->second].apiVersion);
-        visitModule(found->second, candidates, nameIndex, state, order);
+        requireCompatible(candidate.name, dependency, found->apiVersion);
+        visitModule(static_cast<std::size_t>(found - candidates.begin()),
+            candidates,
+            state,
+            order);
     }
     state[index] = VisitState::Done;
     order.push_back(index);
 }
 
 std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
-    const std::vector<Module> &candidates, const NameIndex &nameIndex,
+    const std::vector<Module> &candidates, const NameIndex &,
     const std::vector<std::size_t> &roots) const
 {
     std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
     std::vector<std::size_t> order;
 
     for (const auto root : roots)
-        visitModule(root, candidates, nameIndex, state, order);
+        visitModule(root, candidates, state, order);
     return order;
 }
 
