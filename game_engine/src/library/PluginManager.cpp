@@ -110,7 +110,10 @@ const RType::PluginManager::Module *RType::PluginManager::findLoaded(
 {
     const auto it = std::ranges::find(_loadedModules, name, &Module::name);
 
-    return it == _loadedModules.end() ? nullptr : &*it;
+    if (it == _loadedModules.end()) {
+        return nullptr;
+    }
+    return &*it;
 }
 
 void RType::PluginManager::visitModule(std::size_t index,
