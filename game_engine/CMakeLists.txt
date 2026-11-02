@@ -23,6 +23,8 @@ set(CORE_SRC
         src/systems/ControllableSystem.h
         src/library/RessourceManager.cpp
         src/library/RessourceManager.h
+        src/library/PluginManager.cpp
+        src/library/PluginManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -37,16 +39,13 @@ add_library(engine_core STATIC ${CORE_SRC})
 
 target_include_directories(engine_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# Linked into the modules, which are shared libraries.
 set_target_properties(engine_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-# Asio is installed by vcpkg (vcpkg.json). PRIVATE: only UdpSocket.cpp
-# includes it, the users of the engine never see it.
 find_package(asio CONFIG REQUIRED)
 find_package(Threads REQUIRED)
 target_link_libraries(engine_core PRIVATE asio::asio PUBLIC Threads::Threads)
+target_link_libraries(engine_core PUBLIC ${CMAKE_DL_LIBS})
 if (WIN32)
-    # Windows 10 API, otherwise Asio warns about a missing _WIN32_WINNT.
     target_compile_definitions(engine_core PRIVATE _WIN32_WINNT=0x0A00)
 endif ()
 
@@ -78,6 +77,7 @@ set(SERVER_SRC
         src/server/ClientSession.h
         src/server/GameServer.cpp
         src/server/GameServer.h
+        src/DLLoader.hpp
 )
 
 add_library(engine_server STATIC ${SERVER_SRC})
@@ -99,10 +99,29 @@ if (BUILD_TESTS)
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
             tests/library_manager_tests.cpp
+            tests/plugin_manager_tests.cpp
+            tests/physics2d_plugin_tests.cpp
     )
 
-    # engine_client brings engine_core with it.
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
+
+    set(PLUGIN_TEST_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test_plugins")
+    add_library(test_plugin MODULE tests/plugins/TestPlugin.cpp)
+    add_library(test_dependency_plugin MODULE tests/plugins/TestDependencyPlugin.cpp)
+    add_library(test_failing_plugin MODULE tests/plugins/TestFailingPlugin.cpp)
+    foreach(plugin_target IN ITEMS
+            test_plugin test_dependency_plugin test_failing_plugin)
+        set_target_properties(${plugin_target} PROPERTIES
+                LIBRARY_OUTPUT_DIRECTORY "$<1:${PLUGIN_TEST_DIRECTORY}>"
+                RUNTIME_OUTPUT_DIRECTORY "$<1:${PLUGIN_TEST_DIRECTORY}>")
+        target_include_directories(${plugin_target} PRIVATE
+                src tests/plugins)
+        target_link_libraries(${plugin_target} PRIVATE engine_core)
+    endforeach()
+    add_dependencies(game_engine_tests
+            test_plugin test_dependency_plugin test_failing_plugin)
+    target_compile_definitions(game_engine_tests PRIVATE
+            TEST_PLUGIN_DIRECTORY="${PLUGIN_TEST_DIRECTORY}")
 
     add_test(NAME game_engine_tests COMMAND game_engine_tests)
 

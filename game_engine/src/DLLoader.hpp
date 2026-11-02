@@ -13,18 +13,20 @@
 #include <dlfcn.h>
 #endif
 
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace RType {
 template<typename T>
 class DLLoader {
 public:
-    explicit DLLoader(const std::string &libFile) :
+    explicit DLLoader(const std::string &libFile, bool persistent = false) :
         _handle(nullptr)
     {
-        this->loadFile(libFile);
+        this->loadFile(libFile, persistent);
     }
 
     explicit DLLoader() :
@@ -73,6 +75,24 @@ public:
         return *instance;
     }
 
+    /**
+     * @brief Looks up an exported symbol and casts it to a function pointer.
+     * @tparam Fn  Function pointer type to cast to.
+     * @param name Null-terminated symbol name.
+     * @return The function pointer, or nullptr if the symbol is not exported.
+     */
+    template<typename Fn>
+        requires(std::is_pointer_v<Fn> &&
+            std::is_function_v<std::remove_pointer_t<Fn>>)
+    std::optional<Fn> getFunction(std::string_view name) const
+    {
+        void *symbol = this->getLibraryFunction(name);
+        if (!symbol) {
+            return std::nullopt;
+        }
+        return reinterpret_cast<Fn>(symbol);
+    }
+
     void close() noexcept
     {
         if (this->_handle) {
@@ -81,10 +101,10 @@ public:
         }
     }
 
-    void loadFile(const std::string &libFile)
+    void loadFile(const std::string &libFile, bool persistent = false)
     {
         this->close();
-        this->_handle = openLibrary(libFile);
+        this->_handle = openLibrary(libFile, persistent);
         if (!this->_handle)
             throw LibraryLoadException(getLibraryError());
     }
@@ -149,12 +169,22 @@ private:
     static constexpr std::string_view ENTRY_POINT_SYMBOL = "RTypeLibEntryPoint";
     void *_handle;
 
-    void *openLibrary(const std::string &libFile)
+    void *openLibrary(const std::string &libFile, bool persistent)
     {
 #if defined(_WIN32) || defined(_WIN64)
-        return LoadLibraryA(libFile.c_str());
+        HMODULE handle = LoadLibraryA(libFile.c_str());
+        if (handle && persistent) {
+            HMODULE pinned = nullptr;
+            GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN |
+                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+                reinterpret_cast<LPCSTR>(handle),
+                &pinned);
+        }
+        return handle;
 #else
-        return dlopen(libFile.c_str(), RTLD_LAZY);
+        const int flags =
+            persistent ? (RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE) : RTLD_LAZY;
+        return dlopen(libFile.c_str(), flags);
 #endif
     }
 
@@ -187,7 +217,7 @@ private:
 #endif
     }
 
-    void *getLibraryFunction(std::string_view funcName)
+    [[nodiscard]] void *getLibraryFunction(std::string_view funcName) const
     {
 #if defined(_WIN32) || defined(_WIN64)
         return (void *) GetProcAddress(
