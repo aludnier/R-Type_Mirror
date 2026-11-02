@@ -2,10 +2,10 @@
 
 #include <filesystem>
 #include <fstream>
+#include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <nlohmann/json.hpp>
 #include "library/NlohmanReader.h"
 
 namespace {
@@ -36,8 +36,8 @@ public:
     explicit TempFile(const std::string &content)
     {
         static int counter = 0;
-        _path = std::filesystem::temp_directory_path()
-            / ("rtype_reader_test_" + std::to_string(counter++) + ".json");
+        _path = std::filesystem::temp_directory_path() /
+            ("rtype_reader_test_" + std::to_string(counter++) + ".json");
         std::ofstream out(_path, std::ios::trunc);
         out << content;
     }
@@ -51,7 +51,10 @@ public:
     TempFile(const TempFile &) = delete;
     TempFile &operator=(const TempFile &) = delete;
 
-    const std::filesystem::path &path() const { return _path; }
+    const std::filesystem::path &path() const
+    {
+        return _path;
+    }
 
 private:
     std::filesystem::path _path;
@@ -62,9 +65,8 @@ struct Loaded {
     TempFile file;
     RType::nlohamReader reader;
 
-    explicit Loaded(const std::string &content)
-        : file(content)
-        , reader(file.path())
+    explicit Loaded(const std::string &content) :
+        file(content), reader(file.path())
     {
     }
 };
@@ -157,8 +159,7 @@ TEST_CASE("nlohamReader constructor", "[config][json-reader][ctor]")
     SECTION("throws for malformed JSON")
     {
         TempFile file("{ broken");
-        REQUIRE_THROWS_AS(
-            RType::nlohamReader(file.path()), std::runtime_error);
+        REQUIRE_THROWS_AS(RType::nlohamReader(file.path()), std::runtime_error);
     }
 }
 
@@ -184,8 +185,8 @@ TEST_CASE("nlohamReader operator[]", "[config][json-reader][index]")
         REQUIRE(reader["waves"].size() == 2u);
         REQUIRE(reader["waves"].at(0).at("enemy") == "bydos_basic");
         REQUIRE(reader["waves"].at(1).at("count") == 3);
-        REQUIRE_THROWS_AS(reader["waves"].at(0).at("missing"),
-            nlohmann::json::out_of_range);
+        REQUIRE_THROWS_AS(
+            reader["waves"].at(0).at("missing"), nlohmann::json::out_of_range);
         REQUIRE_THROWS_AS(reader["waves"].at(5), nlohmann::json::out_of_range);
     }
 }
@@ -206,8 +207,7 @@ TEST_CASE("nlohamReader get", "[config][json-reader][get]")
     {
         REQUIRE_THROWS_AS(
             reader.get<int>("unknown"), nlohmann::json::out_of_range);
-        REQUIRE_THROWS_AS(
-            reader.get<int>("name"), nlohmann::json::type_error);
+        REQUIRE_THROWS_AS(reader.get<int>("name"), nlohmann::json::type_error);
     }
 
     SECTION("with fallback: stored value wins")
@@ -238,8 +238,8 @@ TEST_CASE("nlohamReader has", "[config][json-reader][has]")
         REQUIRE(l.reader.has("port"));
         REQUIRE(l.reader.has("waves"));
         REQUIRE_FALSE(l.reader.has("unknown"));
-        REQUIRE_FALSE(l.reader.has("Name"));   // case sensitive
-        REQUIRE_FALSE(l.reader.has("enemy"));  // nested keys are not found
+        REQUIRE_FALSE(l.reader.has("Name")); // case sensitive
+        REQUIRE_FALSE(l.reader.has("enemy")); // nested keys are not found
     }
 
     SECTION("true for a key holding null")
@@ -265,8 +265,7 @@ TEST_CASE("nlohamReader has", "[config][json-reader][has]")
         Loaded l(LEVEL_JSON);
         REQUIRE_FALSE(l.reader.has("unknown"));
         REQUIRE_FALSE(l.reader.has("unknown"));
-        REQUIRE_THROWS_AS(
-            l.reader["unknown"], nlohmann::json::out_of_range);
+        REQUIRE_THROWS_AS(l.reader["unknown"], nlohmann::json::out_of_range);
     }
 
     SECTION("reflects a failed read and a reload")
@@ -378,8 +377,7 @@ TEST_CASE("nlohamReader convertJson", "[config][json-reader][convert]")
     SECTION("throws on a default reader")
     {
         RType::nlohamReader reader;
-        REQUIRE_THROWS_AS(
-            reader.convertJson<LevelDef>(), std::runtime_error);
+        REQUIRE_THROWS_AS(reader.convertJson<LevelDef>(), std::runtime_error);
     }
 
     SECTION("uses defaults for lenient structs")
