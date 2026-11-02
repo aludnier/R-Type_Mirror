@@ -4,15 +4,11 @@
 #include <fstream>
 #include <stdexcept>
 #include <string>
-#include <iostream>
-
+#include <vector>
 #include <nlohmann/json.hpp>
-
 #include "library/NlohmanReader.h"
 
 namespace {
-
-
 struct WaveDef {
     float time;
     std::string enemy;
@@ -32,8 +28,8 @@ struct OptionalSettings {
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(WaveDef, time, enemy, count)
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(LevelDef, version, name, waves)
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(OptionalSettings, port, autoFire)
-
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(
+    OptionalSettings, port, autoFire)
 
 class TempFile {
 public:
@@ -61,7 +57,19 @@ private:
     std::filesystem::path _path;
 };
 
-const char *const LEVEL_JSON = R"({
+// Temp file + reader already loaded from it.
+struct Loaded {
+    TempFile file;
+    RType::nlohamReader reader;
+
+    explicit Loaded(const std::string &content)
+        : file(content)
+        , reader(file.path())
+    {
+    }
+};
+
+const std::string LEVEL_JSON = R"({
     "version": 1,
     "name": "level1",
     "port": 4242,
@@ -72,507 +80,329 @@ const char *const LEVEL_JSON = R"({
     ]
 })";
 
+const std::filesystem::path MISSING =
+    std::filesystem::temp_directory_path() / "rtype_reader_missing.json";
+
+// Documents that must NOT convert to a LevelDef.
+const std::vector<std::string> INVALID_LEVELS = {
+    R"({"version": 1, "waves": []})",
+    R"({"version": "one", "name": "x", "waves": []})",
+    R"({"version": 1, "name": "x", "waves": [{"time": 1.0, "count": 2}]})",
+    R"({"version": 1, "name": "x",
+        "waves": [{"time": 1.0, "enemy": "a", "count": "many"}]})",
+    R"({"version": 1})",
+    "{}",
+    "[1, 2, 3]",
+};
+
 } // namespace
 
-TEST_CASE("nlohamReader readFile loads a valid file", "[config][json-reader]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(file.path()));
-    REQUIRE(reader["name"] == "level1");
-}
-
-TEST_CASE("nlohamReader readFile returns false for a missing file",
-    "[config][json-reader]")
-{
-    RType::nlohamReader reader;
-    const auto missing = std::filesystem::temp_directory_path()
-        / "rtype_reader_does_not_exist.json";
-
-    REQUIRE_FALSE(reader.readFile(missing));
-}
-
-TEST_CASE("nlohamReader readFile returns false for malformed JSON",
-    "[config][json-reader]")
-{
-    TempFile file("{ \"version\": 1, \"name\": ");
-    RType::nlohamReader reader;
-
-    REQUIRE_FALSE(reader.readFile(file.path()));
-}
-
-TEST_CASE("nlohamReader readFile returns false for an empty file",
-    "[config][json-reader]")
-{
-    TempFile file("");
-    RType::nlohamReader reader;
-
-    REQUIRE_FALSE(reader.readFile(file.path()));
-}
-
-TEST_CASE("nlohamReader failed readFile clears previously loaded data",
-    "[config][json-reader]")
-{
-    TempFile good(LEVEL_JSON);
-    TempFile bad("not json");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(good.path()));
-    REQUIRE_FALSE(reader.readFile(bad.path()));
-    REQUIRE_THROWS_AS(reader["name"], nlohmann::json::out_of_range);
-}
-
-TEST_CASE("nlohamReader readFile replaces data on reload",
-    "[config][json-reader]")
-{
-    TempFile first(R"({"name": "first"})");
-    TempFile second(R"({"name": "second"})");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(first.path()));
-    REQUIRE(reader["name"] == "first");
-    REQUIRE(reader.readFile(second.path()));
-    REQUIRE(reader["name"] == "second");
-}
-
-TEST_CASE("nlohamReader constructor loads a valid file",
-    "[config][json-reader]")
-{
-    TempFile file(LEVEL_JSON);
-
-    REQUIRE_NOTHROW(RType::nlohamReader(file.path()));
-}
-
-TEST_CASE("nlohamReader constructor throws for a missing file",
-    "[config][json-reader]")
-{
-    const auto missing = std::filesystem::temp_directory_path()
-        / "rtype_reader_does_not_exist.json";
-
-    REQUIRE_THROWS_AS(RType::nlohamReader(missing), std::runtime_error);
-}
-
-TEST_CASE("nlohamReader constructor throws for malformed JSON",
-    "[config][json-reader]")
-{
-    TempFile file("{ broken");
-
-    REQUIRE_THROWS_AS(RType::nlohamReader(file.path()), std::runtime_error);
-}
-
-TEST_CASE("nlohamReader default constructed reader has no data",
-    "[config][json-reader]")
+TEST_CASE("nlohamReader readFile", "[config][json-reader][read]")
 {
     RType::nlohamReader reader;
 
-    REQUIRE_THROWS_AS(reader["anything"], nlohmann::json::out_of_range);
+    SECTION("loads a valid file")
+    {
+        TempFile file(LEVEL_JSON);
+        REQUIRE(reader.readFile(file.path()));
+        REQUIRE(reader["name"] == "level1");
+    }
+
+    SECTION("returns false for a missing file")
+    {
+        REQUIRE_FALSE(reader.readFile(MISSING));
+    }
+
+    SECTION("returns false for malformed or empty content")
+    {
+        for (const auto *content : {"", "not json", "{ \"version\": 1, "}) {
+            TempFile file(content);
+            REQUIRE_FALSE(reader.readFile(file.path()));
+        }
+    }
+
+    SECTION("a failed read clears previously loaded data")
+    {
+        TempFile good(LEVEL_JSON);
+        TempFile bad("not json");
+        REQUIRE(reader.readFile(good.path()));
+        REQUIRE_FALSE(reader.readFile(bad.path()));
+        REQUIRE_THROWS_AS(reader["name"], nlohmann::json::out_of_range);
+    }
+
+    SECTION("a reload replaces the data")
+    {
+        TempFile first(R"({"name": "first"})");
+        TempFile second(R"({"name": "second"})");
+        REQUIRE(reader.readFile(first.path()));
+        REQUIRE(reader["name"] == "first");
+        REQUIRE(reader.readFile(second.path()));
+        REQUIRE(reader["name"] == "second");
+    }
 }
 
-TEST_CASE("nlohamReader operator[] throws for a missing key",
-    "[config][json-reader]")
+TEST_CASE("nlohamReader constructor", "[config][json-reader][ctor]")
 {
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
+    SECTION("loads a valid file")
+    {
+        TempFile file(LEVEL_JSON);
+        REQUIRE_NOTHROW(RType::nlohamReader(file.path()));
+    }
 
-    REQUIRE_THROWS_AS(reader["unknown"], nlohmann::json::out_of_range);
+    SECTION("throws for a missing file")
+    {
+        REQUIRE_THROWS_AS(RType::nlohamReader(MISSING), std::runtime_error);
+    }
+
+    SECTION("throws for malformed JSON")
+    {
+        TempFile file("{ broken");
+        REQUIRE_THROWS_AS(
+            RType::nlohamReader(file.path()), std::runtime_error);
+    }
 }
 
-TEST_CASE("nlohamReader operator[] allows chained access",
-    "[config][json-reader]")
+TEST_CASE("nlohamReader operator[]", "[config][json-reader][index]")
 {
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
+    SECTION("a default reader has no data")
+    {
+        RType::nlohamReader reader;
+        REQUIRE_THROWS_AS(reader["anything"], nlohmann::json::out_of_range);
+    }
 
-    REQUIRE(reader["waves"].size() == 2u);
-    REQUIRE(reader["waves"].at(0).at("enemy") == "bydos_basic");
-    REQUIRE(reader["waves"].at(1).at("count") == 3);
-    REQUIRE_THROWS_AS(
-        reader["waves"].at(0).at("missing"), nlohmann::json::out_of_range);
-    REQUIRE_THROWS_AS(reader["waves"].at(5), nlohmann::json::out_of_range);
+    SECTION("throws for a missing key")
+    {
+        Loaded l(LEVEL_JSON);
+        REQUIRE_THROWS_AS(l.reader["unknown"], nlohmann::json::out_of_range);
+    }
+
+    SECTION("allows chained access")
+    {
+        Loaded l(LEVEL_JSON);
+        auto &reader = l.reader;
+
+        REQUIRE(reader["waves"].size() == 2u);
+        REQUIRE(reader["waves"].at(0).at("enemy") == "bydos_basic");
+        REQUIRE(reader["waves"].at(1).at("count") == 3);
+        REQUIRE_THROWS_AS(reader["waves"].at(0).at("missing"),
+            nlohmann::json::out_of_range);
+        REQUIRE_THROWS_AS(reader["waves"].at(5), nlohmann::json::out_of_range);
+    }
 }
 
-TEST_CASE("nlohamReader get returns typed values", "[config][json-reader]")
+TEST_CASE("nlohamReader get", "[config][json-reader][get]")
 {
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
+    Loaded l(LEVEL_JSON);
+    auto &reader = l.reader;
 
-    REQUIRE(reader.get<int>("port") == 4242);
-    REQUIRE(reader.get<std::string>("name") == "level1");
-    REQUIRE(reader.get<float>("volume") == 0.5f);
+    SECTION("returns typed values")
+    {
+        REQUIRE(reader.get<int>("port") == 4242);
+        REQUIRE(reader.get<std::string>("name") == "level1");
+        REQUIRE(reader.get<float>("volume") == 0.5f);
+    }
+
+    SECTION("throws for a missing key or a wrong type")
+    {
+        REQUIRE_THROWS_AS(
+            reader.get<int>("unknown"), nlohmann::json::out_of_range);
+        REQUIRE_THROWS_AS(
+            reader.get<int>("name"), nlohmann::json::type_error);
+    }
+
+    SECTION("with fallback: stored value wins")
+    {
+        REQUIRE(reader.get<int>("port", 1234) == 4242);
+    }
+
+    SECTION("with fallback: used for a missing key or a wrong type")
+    {
+        REQUIRE(reader.get<int>("unknown", 1234) == 1234);
+        REQUIRE(reader.get<std::string>("unknown", "default") == "default");
+        REQUIRE(reader.get<int>("name", 99) == 99);
+    }
+
+    SECTION("with fallback: works on a default reader")
+    {
+        RType::nlohamReader empty;
+        REQUIRE(empty.get<int>("port", 4242) == 4242);
+    }
 }
 
-TEST_CASE("nlohamReader get throws for a missing key", "[config][json-reader]")
+TEST_CASE("nlohamReader has", "[config][json-reader][has]")
 {
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
+    SECTION("true for existing top level keys, false otherwise")
+    {
+        Loaded l(LEVEL_JSON);
+        REQUIRE(l.reader.has("name"));
+        REQUIRE(l.reader.has("port"));
+        REQUIRE(l.reader.has("waves"));
+        REQUIRE_FALSE(l.reader.has("unknown"));
+        REQUIRE_FALSE(l.reader.has("Name"));   // case sensitive
+        REQUIRE_FALSE(l.reader.has("enemy"));  // nested keys are not found
+    }
 
-    REQUIRE_THROWS_AS(reader.get<int>("unknown"), nlohmann::json::out_of_range);
+    SECTION("true for a key holding null")
+    {
+        Loaded l(R"({"optional": null})");
+        REQUIRE(l.reader.has("optional"));
+    }
+
+    SECTION("false on a default reader")
+    {
+        RType::nlohamReader reader;
+        REQUIRE_FALSE(reader.has("anything"));
+    }
+
+    SECTION("false when the root is not an object")
+    {
+        Loaded l("[1, 2, 3]");
+        REQUIRE_FALSE(l.reader.has("name"));
+    }
+
+    SECTION("does not insert missing keys")
+    {
+        Loaded l(LEVEL_JSON);
+        REQUIRE_FALSE(l.reader.has("unknown"));
+        REQUIRE_FALSE(l.reader.has("unknown"));
+        REQUIRE_THROWS_AS(
+            l.reader["unknown"], nlohmann::json::out_of_range);
+    }
+
+    SECTION("reflects a failed read and a reload")
+    {
+        TempFile first(R"({"a": 1})");
+        TempFile second(R"({"b": 2})");
+        TempFile bad("not json");
+        RType::nlohamReader reader;
+
+        REQUIRE(reader.readFile(first.path()));
+        REQUIRE(reader.has("a"));
+        REQUIRE_FALSE(reader.has("b"));
+
+        REQUIRE(reader.readFile(second.path()));
+        REQUIRE_FALSE(reader.has("a"));
+        REQUIRE(reader.has("b"));
+
+        REQUIRE_FALSE(reader.readFile(bad.path()));
+        REQUIRE_FALSE(reader.has("b"));
+    }
 }
 
-TEST_CASE("nlohamReader get throws for a wrong type", "[config][json-reader]")
+TEST_CASE("nlohamReader validate", "[config][json-reader][validate]")
 {
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
+    SECTION("true for matching structs")
+    {
+        Loaded l(LEVEL_JSON);
+        REQUIRE(l.reader.validate<LevelDef>());
 
-    REQUIRE_THROWS_AS(reader.get<int>("name"), nlohmann::json::type_error);
+        Loaded empty(R"({"version": 1, "name": "x", "waves": []})");
+        REQUIRE(empty.reader.validate<LevelDef>());
+    }
+
+    SECTION("false for every invalid document")
+    {
+        for (const auto &content : INVALID_LEVELS) {
+            Loaded l(content);
+            INFO(content);
+            REQUIRE_FALSE(l.reader.validate<LevelDef>());
+        }
+    }
+
+    SECTION("known limitation: unknown keys are ignored")
+    {
+        Loaded l(R"({"version": 1, "name": "x", "waves": [], "enmey": 1})");
+        REQUIRE(l.reader.validate<LevelDef>());
+    }
+
+    SECTION("false on a default reader")
+    {
+        RType::nlohamReader reader;
+        REQUIRE_FALSE(reader.validate<LevelDef>());
+    }
+
+    SECTION("false after a failed readFile")
+    {
+        TempFile good(LEVEL_JSON);
+        TempFile bad("not json");
+        RType::nlohamReader reader;
+
+        REQUIRE(reader.readFile(good.path()));
+        REQUIRE(reader.validate<LevelDef>());
+        REQUIRE_FALSE(reader.readFile(bad.path()));
+        REQUIRE_FALSE(reader.validate<LevelDef>());
+    }
+
+    SECTION("defaults make an empty object valid for lenient structs")
+    {
+        Loaded l("{}");
+        REQUIRE(l.reader.validate<OptionalSettings>());
+    }
+
+    SECTION("does not modify the loaded data")
+    {
+        Loaded l(LEVEL_JSON);
+        REQUIRE_FALSE(l.reader.validate<WaveDef>());
+        REQUIRE(l.reader.has("name"));
+        REQUIRE(l.reader.get<std::string>("name") == "level1");
+    }
 }
 
-TEST_CASE("nlohamReader get with fallback returns the stored value",
-    "[config][json-reader]")
+TEST_CASE("nlohamReader convertJson", "[config][json-reader][convert]")
 {
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.get<int>("port", 1234) == 4242);
-}
-
-TEST_CASE("nlohamReader get with fallback returns fallback for a missing key",
-    "[config][json-reader]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.get<int>("unknown", 1234) == 1234);
-    REQUIRE(reader.get<std::string>("unknown", "default") == "default");
-}
-
-TEST_CASE("nlohamReader get with fallback returns fallback for a wrong type",
-    "[config][json-reader]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.get<int>("name", 99) == 99);
-}
-
-TEST_CASE("nlohamReader get with fallback works on a default reader",
-    "[config][json-reader]")
-{
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.get<int>("port", 4242) == 4242);
-}
-
-TEST_CASE("nlohamReader has returns true for an existing key",
-    "[config][json-reader][has]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.has("name"));
-    REQUIRE(reader.has("port"));
-    REQUIRE(reader.has("waves"));
-}
-
-TEST_CASE("nlohamReader has returns false for a missing key",
-    "[config][json-reader][has]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.has("unknown"));
-}
-
-TEST_CASE("nlohamReader has is case sensitive", "[config][json-reader][has]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.has("Name"));
-    REQUIRE_FALSE(reader.has("PORT"));
-}
-
-TEST_CASE("nlohamReader has only checks top level keys",
-    "[config][json-reader][has]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    // "enemy" exists inside waves[0], but not at the root.
-    REQUIRE_FALSE(reader.has("enemy"));
-    REQUIRE_FALSE(reader.has("count"));
-}
-
-TEST_CASE("nlohamReader has returns true for a key holding null",
-    "[config][json-reader][has]")
-{
-    TempFile file(R"({"optional": null})");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.has("optional"));
-}
-
-TEST_CASE("nlohamReader has returns false on a default constructed reader",
-    "[config][json-reader][has]")
-{
-    RType::nlohamReader reader;
-
-    REQUIRE_FALSE(reader.has("anything"));
-}
-
-TEST_CASE("nlohamReader has returns false after a failed readFile",
-    "[config][json-reader][has]")
-{
-    TempFile good(LEVEL_JSON);
-    TempFile bad("not json");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(good.path()));
-    REQUIRE(reader.has("name"));
-    REQUIRE_FALSE(reader.readFile(bad.path()));
-    REQUIRE_FALSE(reader.has("name"));
-}
-
-TEST_CASE("nlohamReader has returns false when the root is not an object",
-    "[config][json-reader][has]")
-{
-    TempFile file("[1, 2, 3]");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(file.path()));
-    REQUIRE_FALSE(reader.has("name"));
-}
-
-TEST_CASE("nlohamReader has does not insert missing keys",
-    "[config][json-reader][has]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.has("unknown"));
-    REQUIRE_FALSE(reader.has("unknown"));
-    REQUIRE_THROWS_AS(reader["unknown"], nlohmann::json::out_of_range);
-}
-
-TEST_CASE("nlohamReader has reflects data replaced by a reload",
-    "[config][json-reader][has]")
-{
-    TempFile first(R"({"a": 1})");
-    TempFile second(R"({"b": 2})");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(first.path()));
-    REQUIRE(reader.has("a"));
-    REQUIRE_FALSE(reader.has("b"));
-
-    REQUIRE(reader.readFile(second.path()));
-    REQUIRE_FALSE(reader.has("a"));
-    REQUIRE(reader.has("b"));
-}
-
-TEST_CASE("nlohamReader validate returns true for a matching struct",
-    "[config][json-reader][validate]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate returns false for a missing required key",
-    "[config][json-reader][validate]")
-{
-    TempFile file(R"({"version": 1, "waves": []})");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate returns false for a wrong type",
-    "[config][json-reader][validate]")
-{
-    TempFile file(R"({"version": "one", "name": "x", "waves": []})");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate checks nested elements",
-    "[config][json-reader][validate]")
-{
-    TempFile file(R"({
-        "version": 1, "name": "x",
-        "waves": [ { "time": 1.0, "enemy": "a", "count": 2 },
-                   { "time": 2.0, "enemy": "b", "count": "many" } ]
-    })");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate returns false for a missing nested key",
-    "[config][json-reader][validate]")
-{
-    TempFile file(R"({
-        "version": 1, "name": "x",
-        "waves": [ { "time": 1.0, "count": 2 } ]
-    })");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate accepts an empty array",
-    "[config][json-reader][validate]")
-{
-    TempFile file(R"({"version": 1, "name": "x", "waves": []})");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate ignores unknown keys",
-    "[config][json-reader][validate]")
-{
-    TempFile file(R"({"version": 1, "name": "x", "waves": [], "enmey": 1})");
-    RType::nlohamReader reader(file.path());
-
-    // Documents the known limitation: typos are not detected.
-    REQUIRE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate returns false when the root is not an object",
-    "[config][json-reader][validate]")
-{
-    TempFile file("[1, 2, 3]");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(file.path()));
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate returns false on a default constructed reader",
-    "[config][json-reader][validate]")
-{
-    RType::nlohamReader reader;
-
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate returns false after a failed readFile",
-    "[config][json-reader][validate]")
-{
-    TempFile good(LEVEL_JSON);
-    TempFile bad("not json");
-    RType::nlohamReader reader;
-
-    REQUIRE(reader.readFile(good.path()));
-    REQUIRE(reader.validate<LevelDef>());
-    REQUIRE_FALSE(reader.readFile(bad.path()));
-    REQUIRE_FALSE(reader.validate<LevelDef>());
-}
-
-TEST_CASE("nlohamReader validate passes with defaults for missing keys",
-    "[config][json-reader][validate]")
-{
-    TempFile file("{}");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE(reader.validate<OptionalSettings>());
-}
-
-TEST_CASE("nlohamReader validate does not modify the loaded data",
-    "[config][json-reader][validate]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_FALSE(reader.validate<WaveDef>());
-    REQUIRE(reader.has("name"));
-    REQUIRE(reader.get<std::string>("name") == "level1");
-}
-
-TEST_CASE("nlohamReader convertJson returns a filled struct",
-    "[config][json-reader][convert]")
-{
-    TempFile file(LEVEL_JSON);
-    RType::nlohamReader reader(file.path());
-
-    const auto level = reader.convertJson<LevelDef>();
-
-    REQUIRE(level.version == 1);
-    REQUIRE(level.name == "level1");
-    REQUIRE(level.waves.size() == 2u);
-    REQUIRE(level.waves[0].enemy == "bydos_basic");
-    REQUIRE(level.waves[0].count == 5);
-    REQUIRE(level.waves[0].time == 2.0f);
-    REQUIRE(level.waves[1].enemy == "bydos_shooter");
-    REQUIRE(level.waves[1].count == 3);
-}
-
-TEST_CASE("nlohamReader convertJson throws runtime_error for a missing key",
-    "[config][json-reader][convert]")
-{
-    TempFile file(R"({"version": 1, "waves": []})");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_THROWS_AS(reader.convertJson<LevelDef>(), std::runtime_error);
-}
-
-TEST_CASE("nlohamReader convertJson throws runtime_error for a wrong type",
-    "[config][json-reader][convert]")
-{
-    TempFile file(R"({"version": "one", "name": "x", "waves": []})");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_THROWS_AS(reader.convertJson<LevelDef>(), std::runtime_error);
-}
-
-TEST_CASE("nlohamReader convertJson throws runtime_error for a bad nested element",
-    "[config][json-reader][convert]")
-{
-    TempFile file(R"({
-        "version": 1, "name": "x",
-        "waves": [ { "time": 1.0, "enemy": "a" } ]
-    })");
-    RType::nlohamReader reader(file.path());
-
-    REQUIRE_THROWS_AS(reader.convertJson<LevelDef>(), std::runtime_error);
-}
-
-TEST_CASE("nlohamReader convertJson uses defaults for lenient structs",
-    "[config][json-reader][convert]")
-{
-    TempFile file(R"({"port": 9000})");
-    RType::nlohamReader reader(file.path());
-
-    const auto settings = reader.convertJson<OptionalSettings>();
-
-    REQUIRE(settings.port == 9000);
-    REQUIRE_FALSE(settings.autoFire);
-}
-
-TEST_CASE("nlohamReader convertJson on an empty object gives all defaults",
-    "[config][json-reader][convert]")
-{
-    TempFile file("{}");
-    RType::nlohamReader reader(file.path());
-
-    const auto settings = reader.convertJson<OptionalSettings>();
-
-    REQUIRE(settings.port == 4242);
-    REQUIRE_FALSE(settings.autoFire);
-}
-
-TEST_CASE("nlohamReader convertJson throws on a default constructed reader",
-    "[config][json-reader][convert]")
-{
-    RType::nlohamReader reader;
-
-    REQUIRE_THROWS_AS(reader.convertJson<LevelDef>(), std::runtime_error);
-}
-
-TEST_CASE("nlohamReader convertJson is consistent with validate",
-    "[config][json-reader][convert]")
-{
-    TempFile good(LEVEL_JSON);
-    TempFile bad(R"({"version": 1})");
-    RType::nlohamReader goodReader(good.path());
-    RType::nlohamReader badReader(bad.path());
-
-    REQUIRE(goodReader.validate<LevelDef>());
-    REQUIRE_NOTHROW(goodReader.convertJson<LevelDef>());
-    REQUIRE_FALSE(badReader.validate<LevelDef>());
-    REQUIRE_THROWS(badReader.convertJson<LevelDef>());
+    SECTION("returns a filled struct")
+    {
+        Loaded l(LEVEL_JSON);
+        const auto level = l.reader.convertJson<LevelDef>();
+
+        REQUIRE(level.version == 1);
+        REQUIRE(level.name == "level1");
+        REQUIRE(level.waves.size() == 2u);
+        REQUIRE(level.waves[0].enemy == "bydos_basic");
+        REQUIRE(level.waves[0].count == 5);
+        REQUIRE(level.waves[0].time == 2.0f);
+        REQUIRE(level.waves[1].enemy == "bydos_shooter");
+        REQUIRE(level.waves[1].count == 3);
+    }
+
+    SECTION("throws runtime_error for every invalid document")
+    {
+        for (const auto &content : INVALID_LEVELS) {
+            Loaded l(content);
+            INFO(content);
+            REQUIRE_THROWS_AS(
+                l.reader.convertJson<LevelDef>(), std::runtime_error);
+        }
+    }
+
+    SECTION("throws on a default reader")
+    {
+        RType::nlohamReader reader;
+        REQUIRE_THROWS_AS(
+            reader.convertJson<LevelDef>(), std::runtime_error);
+    }
+
+    SECTION("uses defaults for lenient structs")
+    {
+        Loaded partial(R"({"port": 9000})");
+        const auto settings = partial.reader.convertJson<OptionalSettings>();
+        REQUIRE(settings.port == 9000);
+        REQUIRE_FALSE(settings.autoFire);
+
+        Loaded empty("{}");
+        const auto defaults = empty.reader.convertJson<OptionalSettings>();
+        REQUIRE(defaults.port == 4242);
+        REQUIRE_FALSE(defaults.autoFire);
+    }
+
+    SECTION("is consistent with validate")
+    {
+        Loaded good(LEVEL_JSON);
+        Loaded bad(R"({"version": 1})");
+
+        REQUIRE(good.reader.validate<LevelDef>());
+        REQUIRE_NOTHROW(good.reader.convertJson<LevelDef>());
+        REQUIRE_FALSE(bad.reader.validate<LevelDef>());
+        REQUIRE_THROWS(bad.reader.convertJson<LevelDef>());
+    }
 }
