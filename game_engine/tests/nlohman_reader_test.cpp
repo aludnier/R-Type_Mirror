@@ -10,13 +10,13 @@
 
 namespace {
 struct WaveDef {
-    float time;
+    float time = 0;
     std::string enemy;
-    int count;
+    int count = 0;
 };
 
 struct LevelDef {
-    int version;
+    int version = 0;
     std::string name;
     std::vector<WaveDef> waves;
 };
@@ -51,7 +51,7 @@ public:
     TempFile(const TempFile &) = delete;
     TempFile &operator=(const TempFile &) = delete;
 
-    const std::filesystem::path &path() const
+    [[nodiscard]] const std::filesystem::path &path() const
     {
         return _path;
     }
