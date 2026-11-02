@@ -25,6 +25,8 @@ set(CORE_SRC
         src/library/RessourceManager.h
         src/library/PluginManager.cpp
         src/library/PluginManager.h
+        src/library/NlohmanReader.cpp
+        src/library/NlohmanReader.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -35,6 +37,8 @@ set(CORE_SRC
         src/network/UdpSocket.cpp
 )
 
+find_package(nlohmann_json CONFIG REQUIRED)
+
 add_library(engine_core STATIC ${CORE_SRC})
 
 target_include_directories(engine_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -43,7 +47,9 @@ set_target_properties(engine_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 find_package(asio CONFIG REQUIRED)
 find_package(Threads REQUIRED)
-target_link_libraries(engine_core PRIVATE asio::asio PUBLIC Threads::Threads)
+target_link_libraries(engine_core
+        PRIVATE asio::asio
+        PUBLIC Threads::Threads nlohmann_json::nlohmann_json)
 target_link_libraries(engine_core PUBLIC ${CMAKE_DL_LIBS})
 if (WIN32)
     target_compile_definitions(engine_core PRIVATE _WIN32_WINNT=0x0A00)
@@ -101,6 +107,7 @@ if (BUILD_TESTS)
             tests/library_manager_tests.cpp
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
+            tests/nlohman_reader_test.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
