@@ -15,8 +15,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "components/Action.h"
 #include "NlohmanReader.h"
+#include "components/Action.h"
 
 class InputManager {
 public:
