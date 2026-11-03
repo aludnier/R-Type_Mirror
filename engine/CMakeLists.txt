@@ -1,4 +1,15 @@
-cmake_minimum_required(VERSION 3.10.0)
+cmake_minimum_required(VERSION 3.21)
+project(Eng VERSION 0.1.0 LANGUAGES C CXX)
+
+if (PROJECT_IS_TOP_LEVEL)
+    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    option(BUILD_TESTS "Build the tests" ON)
+    include(CTest)
+endif ()
+
+# Every engine module (.so/.dll) is built into this folder.
+set(ENGINE_MODULE_DIR "${CMAKE_BINARY_DIR}/modules" CACHE INTERNAL "")
 
 # ---------------------------------------------------------------------------
 # engine_core: used by the server AND the client. Must never depend on a
@@ -91,11 +102,11 @@ add_library(engine_server STATIC ${SERVER_SRC})
 target_link_libraries(engine_server PUBLIC engine_core)
 
 # ---------------------------------------------------------------------------
-# Temporary: keeps the old target name working for branches opened before
-# the split. Remove once every branch links engine_core / engine_client.
+# Namespaced names: games link Eng:: targets only.
 # ---------------------------------------------------------------------------
-add_library(game_engine INTERFACE)
-target_link_libraries(game_engine INTERFACE engine_core engine_client)
+add_library(Eng::core ALIAS engine_core)
+add_library(Eng::client ALIAS engine_client)
+add_library(Eng::server ALIAS engine_server)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
@@ -142,3 +153,7 @@ if (BUILD_TESTS)
 
     add_test(NAME engine_server_tests COMMAND engine_server_tests)
 endif ()
+
+add_subdirectory(modules/example)
+add_subdirectory(modules/physics2D)
+add_subdirectory(modules/environment2D)

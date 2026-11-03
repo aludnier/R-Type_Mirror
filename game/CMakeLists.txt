@@ -39,11 +39,10 @@ set(SRC
 add_executable(r-type_client ${SRC})
 target_include_directories(r-type_client PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
-        ${PROJECT_SOURCE_DIR}/modules/environment2D/src
-        ${PROJECT_SOURCE_DIR}/modules/physics2D/src
 )
 find_package(SFML COMPONENTS Graphics Window Audio System CONFIG REQUIRED)
 find_package(ImGui-SFML CONFIG REQUIRED)
 
 add_dependencies(r-type_client physics2d_module environment2d_module)
-target_link_libraries(r-type_client PRIVATE engine_client SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
+target_compile_definitions(r-type_client PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
+target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::environment2d SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)

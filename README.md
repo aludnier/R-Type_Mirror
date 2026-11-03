@@ -18,13 +18,13 @@ never links the client library, so it never depends on the graphics library.
 | `r-type_client`                      | executable       | client entry point (work in progress)                             |                   |
 | `physics2d_module`, `example_module` | shared libraries | dynamically loaded modules                                        | server and client |
 
-| Folder         | Contents                                                |
-|----------------|---------------------------------------------------------|
-| `game_engine/` | `engine_core`, `engine_client` and their tests          |
-| `server/`      | `engine_server` and `r-type_server`                     |
-| `game/`        | `r-type_client`                                         |
-| `modules/`     | dynamic modules (see `docs/writing_dynamic_modules.md`) |
-| `docs/`        | network protocol (`protocol.md`), architecture diagrams |
+| Folder            | Contents                                                |
+|-------------------|---------------------------------------------------------|
+| `engine/`         | `engine_core`, `engine_client` and their tests          |
+| `server/`         | `engine_server` and `r-type_server`                     |
+| `game/`           | `r-type_client`                                         |
+| `engine/modules/` | dynamic modules (see `docs/writing_dynamic_modules.md`) |
+| `docs/`           | network protocol (`protocol.md`), architecture diagrams |
 
 ## Requirements
 

@@ -144,7 +144,7 @@ library is unloaded.
 Create a separate module directory containing at least:
 
 ```text
-modules/<name>/
+engine/modules/<name>/
 ├── CMakeLists.txt
 ├── include/<name>/<name>_api.h   # only if the API is module-specific
 └── src/
@@ -213,9 +213,7 @@ add_library(example_module SHARED
     src/example_module.cpp
 )
 
-target_include_directories(example_module PUBLIC
-    ${PROJECT_SOURCE_DIR}/game_engine/src
-)
+target_link_libraries(example_module PRIVATE engine_core)
 
 target_compile_features(example_module PRIVATE cxx_std_23)
 set_target_properties(example_module PROPERTIES

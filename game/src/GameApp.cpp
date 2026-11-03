@@ -44,14 +44,13 @@ namespace Game {
 GameApp::GameApp()
 {
 #ifdef WIN32
-    _physics2DModuleLoader.loadFile(
-        "../modules/physics2D/Physics2D_Module.dll");
+    _physics2DModuleLoader.loadFile(ENGINE_MODULE_DIR "/Physics2D_Module.dll");
     _environmentModuleLoader.loadFile(
-        "../modules/environment2D/Environment2D_Module.dll");
+        ENGINE_MODULE_DIR "/Environment2D_Module.dll");
 #else
-    _physics2DModuleLoader.loadFile("../modules/physics2D/Physics2D_Module.so");
+    _physics2DModuleLoader.loadFile(ENGINE_MODULE_DIR "/Physics2D_Module.so");
     _environmentModuleLoader.loadFile(
-        "../modules/environment2D/Environment2D_Module.so");
+        ENGINE_MODULE_DIR "/Environment2D_Module.so");
 #endif
 }
 
