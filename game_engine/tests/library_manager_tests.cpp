@@ -193,6 +193,29 @@ TEST_CASE("InputManager loads action bindings from a config file",
     REQUIRE(manager.isActionDown(Action::Shoot));
     REQUIRE_FALSE(manager.isActionDown(Action::MoveDown));
 }
+TEST_CASE("InputManager accepts named device inputs in a config file",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": ["KEYBOARD_A", "JOYPAD_UP"],
+            "Shoot": ["MOUSE_LEFT"]
+        }
+    })");
+    InputManager manager;
+
+    manager.loadConfigFile(config.path());
+
+    manager.setInputState("KEYBOARD_A", true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    manager.setInputState("KEYBOARD_A", false);
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
+
+    manager.setInputState("JOYPAD_UP", true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    manager.setInputState("MOUSE_LEFT", true);
+    REQUIRE(manager.isActionDown(Action::Shoot));
+}
 
 TEST_CASE("InputManager config replaces listed bindings and preserves others",
     "[input][manager][config]")
