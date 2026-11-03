@@ -91,6 +91,24 @@ add_library(engine_server STATIC ${SERVER_SRC})
 target_link_libraries(engine_server PUBLIC engine_core)
 
 # ---------------------------------------------------------------------------
+# engine_scripting: Lua scripting on top of the ECS (sol2 + Lua 5.4). No
+# graphics dependency, so both the server and the client can link it.
+# ---------------------------------------------------------------------------
+find_package(Lua REQUIRED)
+find_package(sol2 CONFIG REQUIRED)
+
+set(SCRIPTING_SRC
+        src/scripting/ScriptEngine.cpp
+        src/scripting/ScriptEngine.h
+)
+
+add_library(engine_scripting STATIC ${SCRIPTING_SRC})
+
+target_include_directories(engine_scripting PUBLIC ${LUA_INCLUDE_DIR})
+target_link_libraries(engine_scripting PUBLIC engine_core sol2::sol2 ${LUA_LIBRARIES})
+target_compile_definitions(engine_scripting PUBLIC SOL_ALL_SAFETIES_ON=1)
+
+# ---------------------------------------------------------------------------
 # Temporary: keeps the old target name working for branches opened before
 # the split. Remove once every branch links engine_core / engine_client.
 # ---------------------------------------------------------------------------
