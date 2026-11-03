@@ -11,9 +11,13 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
+#include <string>
+#include <string_view>
 #include <unordered_set>
 #include <vector>
 
+#include "NlohmanReader.h"
 #include "components/Action.h"
 
 class InputManager {
@@ -21,7 +25,15 @@ public:
     using KeyCode = int;
 
     InputManager() = default;
+    explicit InputManager(const std::filesystem::path &configFile);
     ~InputManager() = default;
+
+    /**
+     * @brief Loads action-to-input bindings from a JSON config file.
+     * @param configFile JSON file with a "bindings" object keyed by action
+     * names; each value is an array of integer key codes or named inputs.
+     */
+    void loadConfigFile(const std::filesystem::path &configFile);
 
     /**
      * @brief Binds a key to an action.
@@ -33,12 +45,23 @@ public:
     void bind(Action action, KeyCode key);
 
     /**
+     * @brief Binds a named device input to an action.
+     * @param input Input identifier, such as "KEYBOARD_A" or "MOUSE_LEFT".
+     */
+    void bind(Action action, const std::string &input);
+
+    /**
      * @brief Removes one key from an action.
      * @param action Action to modify.
      * @param key Key to unbind.
      * @note Does nothing if the key was not bound to this action.
      */
     void unbind(Action action, KeyCode key);
+
+    /**
+     * @brief Removes one named device input from an action.
+     */
+    void unbind(Action action, std::string_view input);
 
     /**
      * @brief Removes every key bound to an action.
@@ -56,6 +79,11 @@ public:
     void setKeyState(KeyCode key, bool pressed);
 
     /**
+     * @brief Records that a named device input was pressed or released.
+     */
+    void setInputState(std::string_view input, bool pressed);
+
+    /**
      * @brief Checks whether an action is currently active.
      * @param action Action to check.
      * @return true if at least one key bound to the action is down.
@@ -70,12 +98,16 @@ public:
      */
     std::uint8_t actionMask() const;
 
+    static std::string keyCodeId(InputManager::KeyCode key);
+
 private:
     static constexpr std::size_t actionCount =
         static_cast<std::size_t>(Action::Count);
 
-    std::array<std::vector<KeyCode>, actionCount> _bindings;
-    std::unordered_set<KeyCode> _pressed;
+    using InputId = std::string;
+    std::array<std::vector<InputId>, actionCount> _bindings;
+    std::unordered_set<InputId> _pressed;
+    RType::nlohamReader _reader;
 };
 
 #endif

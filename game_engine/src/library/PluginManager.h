@@ -26,6 +26,14 @@ public:
      */
     explicit PluginManager() = default;
 
+    /**
+     * @brief Constructs a manager and loads its configured modules.
+     * @param configFile JSON file with a "directory" and "modules" entry.
+     * @param registry Registry passed to each module registration callback.
+     */
+    PluginManager(
+        const std::filesystem::path &configFile, RType::Registry &registry);
+
     ~PluginManager() = default;
 
     PluginManager(const PluginManager &) = delete;
@@ -45,6 +53,14 @@ public:
      */
     void loadRequiredModules(const std::filesystem::path &directory,
         const std::vector<std::string> &moduleNames, RType::Registry &registry);
+
+    /**
+     * @brief Loads module requirements from a JSON config file.
+     * @param configFile JSON file with a "directory" and "modules" entry.
+     * @param registry Registry passed to each module registration callback.
+     */
+    void loadConfigFile(
+        const std::filesystem::path &configFile, RType::Registry &registry);
 
     /**
      * @brief Loads a module library and the dependencies found next to it.

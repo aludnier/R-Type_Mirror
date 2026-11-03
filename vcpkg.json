@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "dependencies": [
     "asio",
+    "nlohmann-json",
     {
       "name": "sfml",
       "version>=": "3.0.2"

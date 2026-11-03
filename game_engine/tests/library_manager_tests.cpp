@@ -13,6 +13,7 @@
 #include <stdexcept>
 
 #include <SFML/Graphics.hpp>
+#include "TempConfigFile.hpp"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
@@ -175,6 +176,91 @@ TEST_CASE(
     REQUIRE(manager.isActionDown(Action::MoveDown));
 }
 
+TEST_CASE("InputManager loads action bindings from a config file",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": [10, 11],
+            "Shoot": [32]
+        }
+    })");
+    InputManager manager(config.path());
+
+    manager.setKeyState(11, true);
+    manager.setKeyState(32, true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    REQUIRE(manager.isActionDown(Action::Shoot));
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveDown));
+}
+
+TEST_CASE("InputManager accepts named device inputs in a config file",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": ["KEYBOARD_A", "JOYPAD_UP"],
+            "Shoot": ["MOUSE_LEFT"]
+        }
+    })");
+    InputManager manager;
+
+    manager.loadConfigFile(config.path());
+
+    manager.setInputState("KEYBOARD_A", true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    manager.setInputState("KEYBOARD_A", false);
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
+
+    manager.setInputState("JOYPAD_UP", true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    manager.setInputState("MOUSE_LEFT", true);
+    REQUIRE(manager.isActionDown(Action::Shoot));
+}
+
+TEST_CASE("InputManager config replaces listed bindings and preserves others",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": [3]
+        }
+    })");
+    InputManager manager;
+    manager.bind(Action::MoveUp, 1);
+    manager.bind(Action::Shoot, 2);
+
+    manager.loadConfigFile(config.path());
+
+    manager.setKeyState(1, true);
+    manager.setKeyState(2, true);
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
+    REQUIRE(manager.isActionDown(Action::Shoot));
+    manager.setKeyState(3, true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+}
+
+TEST_CASE("InputManager rejects unknown actions without partial changes",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": [3],
+            "Unknown": [4]
+        }
+    })");
+    InputManager manager;
+    manager.bind(Action::MoveUp, 1);
+
+    REQUIRE_THROWS_AS(
+        manager.loadConfigFile(config.path()), std::invalid_argument);
+    manager.setKeyState(1, true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    manager.setKeyState(1, false);
+    manager.setKeyState(3, true);
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
+}
+
 // ---------------------------------------------------------------------------
 // ResourceManager
 // ---------------------------------------------------------------------------
@@ -218,6 +304,70 @@ TEST_CASE("ResourceManager stores every asset type", "[resource][manager]")
     REQUIRE(manager.getAsset("s").type == ResourceManager::AssetType::Sound);
     REQUIRE(manager.getAsset("m").type == ResourceManager::AssetType::Music);
     REQUIRE(manager.getAsset("f").type == ResourceManager::AssetType::Font);
+}
+
+TEST_CASE("ResourceManager constructor loads assets from a config file",
+    "[resource][manager][config]")
+{
+    TempConfigFile config(R"({
+        "assets": {
+            "background": {"path": "assets/background.png"},
+            "laser": {"path": "assets/laser.wav", "type": "Sound"},
+            "theme": {"path": "assets/theme.ogg", "type": "Music"},
+            "font": {"path": "assets/font.ttf", "type": "Font"}
+        }
+    })");
+
+    ResourceManager manager(config.path());
+
+    REQUIRE(manager.hasAsset("background"));
+    REQUIRE(manager.getAsset("background").path == "assets/background.png");
+    REQUIRE(manager.getAsset("background").type ==
+        ResourceManager::AssetType::Texture);
+    REQUIRE(
+        manager.getAsset("laser").type == ResourceManager::AssetType::Sound);
+    REQUIRE(
+        manager.getAsset("theme").type == ResourceManager::AssetType::Music);
+    REQUIRE(manager.getAsset("font").type == ResourceManager::AssetType::Font);
+}
+
+TEST_CASE("ResourceManager loadConfigFile preserves existing asset storage",
+    "[resource][manager][config]")
+{
+    TempConfigFile config(R"({
+        "assets": {
+            "ship": {"path": "assets/ship_updated.png", "type": "Texture"},
+            "laser": {"path": "assets/laser.wav", "type": "Sound"}
+        }
+    })");
+    ResourceManager manager;
+    const auto shipId = manager.addAsset("ship", "assets/ship.png");
+
+    manager.loadConfigFile(config.path());
+
+    REQUIRE(manager.getAsset("ship").id == shipId);
+    REQUIRE(manager.getAsset("ship").path == "assets/ship_updated.png");
+    REQUIRE(
+        manager.getAssetById(shipId)->get().path == "assets/ship_updated.png");
+    REQUIRE(
+        manager.getAsset("laser").type == ResourceManager::AssetType::Sound);
+}
+
+TEST_CASE("ResourceManager rejects invalid config without partial changes",
+    "[resource][manager][config]")
+{
+    TempConfigFile config(R"({
+        "assets": {
+            "valid": {"path": "assets/valid.png"},
+            "invalid": {"path": "assets/invalid.wav", "type": "Unknown"}
+        }
+    })");
+    ResourceManager manager;
+
+    REQUIRE_THROWS_AS(
+        manager.loadConfigFile(config.path()), std::invalid_argument);
+    REQUIRE_FALSE(manager.hasAsset("valid"));
+    REQUIRE_FALSE(manager.hasAsset("invalid"));
 }
 
 TEST_CASE("ResourceManager reports unknown names without creating them",

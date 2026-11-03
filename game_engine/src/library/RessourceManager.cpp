@@ -6,7 +6,56 @@
 */
 
 #include "RessourceManager.h"
+#include <map>
 #include <stdexcept>
+#include "NlohmanReader.h"
+
+namespace {
+struct AssetConfig {
+    std::string path;
+    ResourceManager::AssetType type = ResourceManager::AssetType::Texture;
+};
+
+struct Config {
+    std::map<std::string, AssetConfig> assets;
+};
+
+void from_json(const nlohmann::json &j, AssetConfig &a)
+{
+    using T = ResourceManager::AssetType;
+    static const std::map<std::string, T> types = {{"Texture", T::Texture},
+        {"Sound", T::Sound},
+        {"Music", T::Music},
+        {"Font", T::Font}};
+
+    j.at("path").get_to(a.path);
+    const auto name = j.value("type", std::string("Texture"));
+    const auto it = types.find(name);
+    if (it == types.end())
+        throw std::invalid_argument("unknown asset type '" + name + "'");
+    a.type = it->second;
+}
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Config, assets)
+
+} // namespace
+
+ResourceManager::ResourceManager(const std::filesystem::path &configFile)
+{
+    loadConfigFile(configFile);
+}
+
+void ResourceManager::loadConfigFile(const std::filesystem::path &configFile)
+{
+    if (!_reader.readFile(configFile)) {
+        throw std::runtime_error(
+            "[RessourceManager] cannot read " + configFile.string());
+    }
+    const auto config = _reader.convertJson<Config>();
+
+    for (const auto &[name, asset] : config.assets)
+        addAsset(name, asset.path, asset.type);
+}
 
 std::uint32_t ResourceManager::addAsset(
     const std::string &name, const std::string &path, AssetType type)
