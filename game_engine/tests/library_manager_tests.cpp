@@ -193,6 +193,7 @@ TEST_CASE("InputManager loads action bindings from a config file",
     REQUIRE(manager.isActionDown(Action::Shoot));
     REQUIRE_FALSE(manager.isActionDown(Action::MoveDown));
 }
+
 TEST_CASE("InputManager accepts named device inputs in a config file",
     "[input][manager][config]")
 {

@@ -71,6 +71,7 @@ void InputManager::loadConfigFile(const std::filesystem::path &configFile)
             bind(action, entry.id);
     }
 }
+
 std::string InputManager::keyCodeId(InputManager::KeyCode key)
 {
     return "KEY_CODE_" + std::to_string(key);
@@ -122,8 +123,8 @@ void InputManager::setInputState(std::string_view input, bool pressed)
 bool InputManager::isActionDown(Action action) const
 {
     const auto &inputs = _bindings[static_cast<std::size_t>(action)];
-    return std::ranges::any_of(
-        inputs, [this](const InputId &input) { return _pressed.contains(input); });
+    return std::ranges::any_of(inputs,
+        [this](const InputId &input) { return _pressed.contains(input); });
 }
 
 std::uint8_t InputManager::actionMask() const

@@ -99,8 +99,8 @@ public:
     std::uint8_t actionMask() const;
 
     static std::string keyCodeId(InputManager::KeyCode key);
-private:
 
+private:
     static constexpr std::size_t actionCount =
         static_cast<std::size_t>(Action::Count);
 
