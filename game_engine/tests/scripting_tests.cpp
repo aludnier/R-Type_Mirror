@@ -13,7 +13,9 @@
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "scripting/ScriptComponent.h"
 #include "scripting/ScriptEngine.h"
+#include "scripting/ScriptSystem.h"
 
 namespace {
 class TempDirectory {
@@ -68,6 +70,7 @@ TEST_CASE("Scripts spawn entities and add core components", "[scripting]")
     RType::Registry registry;
     registerCoreComponents(registry);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     REQUIRE(scripts.loadString(R"(
         player = world.spawn()
@@ -92,6 +95,7 @@ TEST_CASE("world.get returns a live reference to the component", "[scripting]")
     registry.emplaceComponent<RType::Transform2D>(entity);
     registry.emplaceComponent<RType::Health>(entity, 5);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
     scripts.lua()["e"] = static_cast<RType::entity_id_type>(entity);
 
     REQUIRE(scripts.loadString(R"(
@@ -118,6 +122,7 @@ TEST_CASE("Script systems run with the registry and receive the delta time",
     RType::Registry registry;
     registerCoreComponents(registry);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     REQUIRE(scripts.loadString(R"(
         ship = world.spawn()
@@ -145,6 +150,7 @@ TEST_CASE(
     RType::Registry registry;
     registerCoreComponents(registry);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     REQUIRE(scripts.loadString(R"(
         local a = world.spawn()
@@ -172,6 +178,7 @@ TEST_CASE("Killed entities lose their components at the end of the frame",
     RType::Registry registry;
     registerCoreComponents(registry);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     REQUIRE(scripts.loadString(R"(
         enemy = world.spawn()
@@ -196,6 +203,7 @@ TEST_CASE("world.data keeps per-entity Lua fields", "[scripting]")
 {
     RType::Registry registry;
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     REQUIRE(scripts.loadString(R"(
         local e = world.spawn()
@@ -214,6 +222,7 @@ TEST_CASE("Controllable exposes the input actions", "[scripting]")
     const auto entity = registry.spawnEntity();
     registry.emplaceComponent<RType::Controllable>(entity);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
     scripts.lua()["e"] = static_cast<RType::entity_id_type>(entity);
 
     REQUIRE(scripts.loadString(R"(
@@ -235,6 +244,7 @@ TEST_CASE(
     RType::Registry registry;
     registry.registerComponent<Score>();
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
     scripts.lua().new_usertype<Score>("Score", "value", &Score::value);
     scripts.bindComponent<Score>("Score");
 
@@ -253,6 +263,7 @@ TEST_CASE("Script errors are reported without crashing the host", "[scripting]")
     RType::Registry registry;
     registerCoreComponents(registry);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     SECTION("syntax error")
     {
@@ -304,6 +315,7 @@ TEST_CASE("Scripts run in a sandbox", "[scripting]")
 {
     RType::Registry registry;
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     REQUIRE(scripts.loadString(R"(
         sandboxed = io == nil and os == nil and package == nil
@@ -327,6 +339,7 @@ TEST_CASE("Scripts are loaded from a JSON config file and can be reloaded",
         "game.json", R"({"directory": "scripts", "scripts": ["game.lua"]})");
     RType::Registry registry;
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
 
     scripts.loadConfigFile(config);
     REQUIRE(scripts.lua()["counter"].get<int>() == 1);
@@ -353,6 +366,7 @@ TEST_CASE("Destroying the engine before the registry is safe", "[scripting]")
     RType::Registry registry;
     {
         RType::ScriptEngine scripts(registry);
+        RType::addScriptSystem(registry, scripts);
         REQUIRE(scripts.loadString(R"(
             world.data(world.spawn()).x = 1
             world.add_system("noop", function(dt) end)
@@ -366,6 +380,8 @@ TEST_CASE("The example wave script runs a small game", "[scripting]")
     RType::Registry registry;
     registerCoreComponents(registry);
     RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
+    scripts.setScriptDirectory(EXAMPLE_SCRIPT_DIRECTORY);
     REQUIRE(scripts.loadFile(
         std::filesystem::path(EXAMPLE_SCRIPT_DIRECTORY) / "waves.lua"));
 
@@ -384,4 +400,120 @@ TEST_CASE("The example wave script runs a small game", "[scripting]")
     CHECK(scripts.lastError().empty());
     CHECK(scripts.lua()["waves_spawned"].get<int>() == 2);
     CHECK(alive == 8);
+}
+
+TEST_CASE("Script components run scripts on a single entity", "[scripting]")
+{
+    TempDirectory directory;
+    directory.write("mover.lua", R"(
+        local mover = {}
+        function mover.on_start(e)
+            world.data(e).starts = (world.data(e).starts or 0) + 1
+        end
+        function mover.on_update(e, dt)
+            local t = world.get(e, "Transform2D")
+            t.position.x = t.position.x + 10 * dt
+        end
+        return mover
+    )");
+    directory.write("counter.lua", R"(
+        return {
+            on_update = function(e, dt)
+                world.data(e).frames = (world.data(e).frames or 0) + 1
+            end
+        }
+    )");
+    RType::Registry registry;
+    registerCoreComponents(registry);
+    RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
+    scripts.setScriptDirectory(directory.path());
+    const auto scripted = registry.spawnEntity();
+    const auto plain = registry.spawnEntity();
+    registry.emplaceComponent<RType::Transform2D>(scripted);
+    registry.emplaceComponent<RType::Transform2D>(plain);
+    registry.addComponent<RType::ScriptComponent>(
+        scripted, RType::ScriptComponent {{"mover.lua", "counter.lua"}});
+
+    scripts.setDeltaTime(1.f);
+    for (int frame = 0; frame < 3; ++frame)
+        registry.runSystems();
+
+    const auto &transforms = registry.getComponents<RType::Transform2D>();
+    CHECK(transforms[scripted]->position.x == 30.f);
+    CHECK(transforms[plain]->position.x == 0.f);
+    REQUIRE(scripts.loadString(
+        "e = " + std::to_string(static_cast<RType::entity_id_type>(scripted)) +
+        "\nstarts = world.data(e).starts\nframes = world.data(e).frames"));
+    CHECK(scripts.lua()["starts"].get<int>() == 1);
+    CHECK(scripts.lua()["frames"].get<int>() == 3);
+    CHECK(scripts.lastError().empty());
+}
+
+TEST_CASE("Scripts attach entity scripts with world.add", "[scripting]")
+{
+    TempDirectory directory;
+    directory.write("tag.lua", R"(
+        return { on_start = function(e) world.data(e).tagged = true end }
+    )");
+    RType::Registry registry;
+    RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
+    scripts.setScriptDirectory(directory.path());
+
+    REQUIRE(scripts.loadString(R"(
+        e = world.spawn()
+        paths = world.add(e, "Script", {"tag.lua"})
+    )"));
+    registry.runSystems();
+    REQUIRE(scripts.loadString("tagged = world.data(e).tagged"));
+
+    CHECK(scripts.lua()["paths"][1].get<std::string>() == "tag.lua");
+    CHECK(scripts.lua()["tagged"].get<bool>());
+}
+
+TEST_CASE("A failing entity script only stops on that entity", "[scripting]")
+{
+    TempDirectory directory;
+    directory.write("fragile.lua", R"(
+        return {
+            on_update = function(e, dt)
+                world.data(e).calls = (world.data(e).calls or 0) + 1
+                if world.data(e).broken then error("boom") end
+            end
+        }
+    )");
+    directory.write("no_table.lua", "local x = 1");
+    RType::Registry registry;
+    RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
+    scripts.setScriptDirectory(directory.path());
+
+    REQUIRE(scripts.loadString(R"(
+        broken = world.spawn()
+        world.data(broken).broken = true
+        world.add(broken, "Script", "fragile.lua")
+        fine = world.spawn()
+        world.add(fine, "Script", "fragile.lua")
+    )"));
+    registry.runSystems();
+    registry.runSystems();
+    REQUIRE(scripts.loadString(R"(
+        broken_calls = world.data(broken).calls
+        fine_calls = world.data(fine).calls
+    )"));
+
+    CHECK(scripts.lua()["broken_calls"].get<int>() == 1);
+    CHECK(scripts.lua()["fine_calls"].get<int>() == 2);
+    CHECK_THAT(scripts.lastError(),
+        Catch::Matchers::ContainsSubstring("fragile.lua' on_update"));
+
+    SECTION("a script must return a table")
+    {
+        REQUIRE(scripts.loadString(
+            "world.add(world.spawn(), 'Script', 'no_table.lua')"));
+        registry.runSystems();
+        CHECK_THAT(scripts.lastError(),
+            Catch::Matchers::ContainsSubstring("must return a table"));
+    }
 }
