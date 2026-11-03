@@ -101,7 +101,7 @@ if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
 
     add_executable(game_engine_tests
-            test/TempConfigFile.hpp
+            test/TempConfigFile.h
             tests/ecs_unit_tests.cpp
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
