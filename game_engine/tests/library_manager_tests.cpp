@@ -176,6 +176,67 @@ TEST_CASE(
     REQUIRE(manager.isActionDown(Action::MoveDown));
 }
 
+TEST_CASE("InputManager loads action bindings from a config file",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": [10, 11],
+            "Shoot": [32]
+        }
+    })");
+    InputManager manager(config.path());
+
+    manager.setKeyState(11, true);
+    manager.setKeyState(32, true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    REQUIRE(manager.isActionDown(Action::Shoot));
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveDown));
+}
+
+TEST_CASE("InputManager config replaces listed bindings and preserves others",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": [3]
+        }
+    })");
+    InputManager manager;
+    manager.bind(Action::MoveUp, 1);
+    manager.bind(Action::Shoot, 2);
+
+    manager.loadConfigFile(config.path());
+
+    manager.setKeyState(1, true);
+    manager.setKeyState(2, true);
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
+    REQUIRE(manager.isActionDown(Action::Shoot));
+    manager.setKeyState(3, true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+}
+
+TEST_CASE("InputManager rejects unknown actions without partial changes",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "MoveUp": [3],
+            "Unknown": [4]
+        }
+    })");
+    InputManager manager;
+    manager.bind(Action::MoveUp, 1);
+
+    REQUIRE_THROWS_AS(
+        manager.loadConfigFile(config.path()), std::invalid_argument);
+    manager.setKeyState(1, true);
+    REQUIRE(manager.isActionDown(Action::MoveUp));
+    manager.setKeyState(1, false);
+    manager.setKeyState(3, true);
+    REQUIRE_FALSE(manager.isActionDown(Action::MoveUp));
+}
+
 // ---------------------------------------------------------------------------
 // ResourceManager
 // ---------------------------------------------------------------------------

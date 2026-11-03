@@ -11,17 +11,27 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <unordered_set>
 #include <vector>
 
 #include "components/Action.h"
+#include "NlohmanReader.h"
 
 class InputManager {
 public:
     using KeyCode = int;
 
     InputManager() = default;
+    explicit InputManager(const std::filesystem::path &configFile);
     ~InputManager() = default;
+
+    /**
+     * @brief Loads action-to-key bindings from a JSON config file.
+     * @param configFile JSON file with a "bindings" object keyed by action
+     * names; each value is an array of integer key codes.
+     */
+    void loadConfigFile(const std::filesystem::path &configFile);
 
     /**
      * @brief Binds a key to an action.
@@ -76,6 +86,7 @@ private:
 
     std::array<std::vector<KeyCode>, actionCount> _bindings;
     std::unordered_set<KeyCode> _pressed;
+    RType::nlohamReader _reader;
 };
 
 #endif
