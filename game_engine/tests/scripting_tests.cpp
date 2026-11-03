@@ -32,7 +32,7 @@ public:
         std::filesystem::remove_all(_path, error);
     }
 
-    std::filesystem::path write(
+    [[nodiscard]] std::filesystem::path write(
         const std::string &name, const std::string &contents) const
     {
         const auto file = _path / name;

@@ -167,10 +167,11 @@ void RType::ScriptEngine::bindWorld()
         return binding(name).has(_registry, toEntityId(e));
     });
     world.set_function("get", [this](lua_Integer e, const std::string &name) {
-        return binding(name).get(_registry, toEntityId(e), _lua);
+        return binding(name).get(_registry, toEntityId(e), _lua.lua_state());
     });
     world.set_function("add",
-        [this](lua_Integer e, const std::string &name, sol::object value) {
+        [this](
+            lua_Integer e, const std::string &name, const sol::object &value) {
             const auto &component = binding(name);
             const auto id = toEntityId(e);
             try {
@@ -178,7 +179,7 @@ void RType::ScriptEngine::bindWorld()
             } catch (const std::runtime_error &) {
                 throw std::runtime_error("world.add: value is not a " + name);
             }
-            return component.get(_registry, id, _lua);
+            return component.get(_registry, id, _lua.lua_state());
         });
     world.set_function(
         "remove", [this](lua_Integer e, const std::string &name) {
@@ -240,7 +241,7 @@ void RType::ScriptEngine::each(
             continue;
         args[0] = sol::make_object(_lua, static_cast<lua_Integer>(id));
         for (std::size_t i = 0; i < components.size(); ++i)
-            args[i + 1] = components[i]->get(_registry, id, _lua);
+            args[i + 1] = components[i]->get(_registry, id, _lua.lua_state());
         auto result = fn(sol::as_args(args));
         if (!result.valid()) {
             sol::error error = result;
@@ -252,6 +253,7 @@ void RType::ScriptEngine::each(
 void RType::ScriptEngine::runSystems()
 {
     // Index loop: a system may add another one while it runs.
+    // NOLINTNEXTLINE(modernize-loop-convert)
     for (std::size_t i = 0; i < _systems.size(); ++i) {
         if (!_systems[i].enabled)
             continue;

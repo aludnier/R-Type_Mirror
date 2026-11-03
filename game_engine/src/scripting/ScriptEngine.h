@@ -77,7 +77,7 @@ public:
                         auto &storage = r.getComponents<C>();
                         return id < storage.size() && storage[id].has_value();
                     },
-                .get = [](Registry &r, entity_id_type id, sol::state_view lua)
+                .get = [](Registry &r, entity_id_type id, lua_State *lua)
                     -> sol::object {
                     auto &storage = r.getComponents<C>();
                     if (id >= storage.size() || !storage[id].has_value())
@@ -85,7 +85,9 @@ public:
                     return sol::make_object(lua, &storage[id].value());
                 },
                 .add =
-                    [](Registry &r, entity_id_type id, sol::object value) {
+                    [](Registry &r,
+                        entity_id_type id,
+                        const sol::object &value) {
                         if (value.is<C>()) {
                             r.addComponent<C>(Registry::entityFromIndex(id),
                                 C(value.as<C>()));
@@ -162,9 +164,9 @@ public:
 private:
     struct ComponentBinding {
         std::function<bool(Registry &, entity_id_type)> has;
-        std::function<sol::object(Registry &, entity_id_type, sol::state_view)>
-            get;
-        std::function<void(Registry &, entity_id_type, sol::object)> add;
+        std::function<sol::object(Registry &, entity_id_type, lua_State *)> get;
+        std::function<void(Registry &, entity_id_type, const sol::object &)>
+            add;
         std::function<void(Registry &, entity_id_type)> remove;
         std::function<std::size_t(Registry &)> size;
     };
