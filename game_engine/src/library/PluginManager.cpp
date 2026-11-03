@@ -3,11 +3,19 @@
 #include <algorithm>
 #include <stdexcept>
 #include <utility>
+#include "NlohmanReader.h"
 
 namespace {
 using ModuleEntryPoint = const RType::ModuleDescriptor *(*) ();
 using DescriptorRef =
     std::optional<std::reference_wrapper<const RType::ModuleDescriptor>>;
+
+struct PluginConfig {
+    std::string directory;
+    std::vector<std::string> modules;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PluginConfig, directory, modules)
 
 bool isApiCompatible(
     RType::ModuleApiVersion actual, RType::ModuleApiVersion required)
@@ -35,6 +43,12 @@ void validateDescriptor(
             path.string());
 }
 } // namespace
+
+RType::PluginManager::PluginManager(
+    const std::filesystem::path &configFile, RType::Registry &registry)
+{
+    loadConfigFile(configFile, registry);
+}
 
 RType::PluginManager::Loader RType::PluginManager::openLibrary(
     const std::filesystem::path &path)
@@ -196,6 +210,19 @@ bool RType::PluginManager::isLoaded(const std::string &name) const
 {
     return std::ranges::any_of(_loadedModules,
         [&name](const auto &module) { return module.name == name; });
+}
+
+void RType::PluginManager::loadConfigFile(
+    const std::filesystem::path &configFile, RType::Registry &registry)
+{
+    RType::nlohamReader reader;
+    if (!reader.readFile(configFile))
+        throw std::runtime_error(
+            "[PluginManager] cannot read " + configFile.string());
+
+    const auto config = reader.convertJson<PluginConfig>();
+    loadRequiredModules(
+        std::filesystem::path(config.directory), config.modules, registry);
 }
 
 void RType::PluginManager::loadRequiredModules(

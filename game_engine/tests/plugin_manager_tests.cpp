@@ -7,6 +7,7 @@
 
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "TempConfigFile.hpp"
 #include "library/PluginManager.h"
 #include "plugins/TestDependencyComponent.h"
 #include "plugins/TestFailingComponent.h"
@@ -46,6 +47,33 @@ TEST_CASE("PluginManager loads requested modules and dependencies in "
     registry.runSystems();
 
     REQUIRE(registry.getComponents<TestPluginComponent>()[entity]->value == 42);
+}
+
+TEST_CASE("PluginManager loads module requirements from a config file",
+    "[plugins][config]")
+{
+    TempConfigFile config(
+        R"({"directory":")" TEST_PLUGIN_DIRECTORY R"(","modules":["test_module"]})");
+    RType::Registry registry;
+
+    RType::PluginManager manager(config.path(), registry);
+
+    REQUIRE(manager.isLoaded("test_dependency_module"));
+    REQUIRE(manager.isLoaded("test_module"));
+}
+
+TEST_CASE("PluginManager rejects an invalid config before configuring itself",
+    "[plugins][config]")
+{
+    TempConfigFile config(
+        R"({"directory":")" TEST_PLUGIN_DIRECTORY R"(","modules":[12]})");
+    RType::Registry registry;
+    RType::PluginManager manager;
+
+    REQUIRE_THROWS_AS(
+        manager.loadConfigFile(config.path(), registry), std::runtime_error);
+    REQUIRE_NOTHROW(
+        manager.loadRequiredModules({}, {}, registry));
 }
 
 TEST_CASE(
