@@ -12,10 +12,10 @@
 #include <filesystem>
 #include <functional>
 #include <nlohmann/json_fwd.hpp>
-#include "NlohmanReader.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include "NlohmanReader.h"
 
 class ResourceManager {
 public:
@@ -87,8 +87,7 @@ public:
     std::optional<std::reference_wrapper<const Asset>> getAssetById(
         std::uint32_t id) const;
 
-    private:
-
+private:
     RType::nlohamReader _reader;
     std::unordered_map<std::string, Asset> _assets;
     std::unordered_map<std::uint32_t, std::string> _namesById;

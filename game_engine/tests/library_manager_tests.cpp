@@ -13,6 +13,7 @@
 #include <stdexcept>
 
 #include <SFML/Graphics.hpp>
+#include "TempConfigFile.hpp"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
@@ -20,7 +21,6 @@
 #include "library/InputManager.h"
 #include "library/RessourceManager.h"
 #include "systems/RenderSystem.h"
-#include "TempConfigFile.hpp"
 
 #include "catch2/internal/catch_getenv.hpp"
 
@@ -237,9 +237,12 @@ TEST_CASE("ResourceManager constructor loads assets from a config file",
 
     REQUIRE(manager.hasAsset("background"));
     REQUIRE(manager.getAsset("background").path == "assets/background.png");
-    REQUIRE(manager.getAsset("background").type ==ResourceManager::AssetType::Texture);
-    REQUIRE(manager.getAsset("laser").type == ResourceManager::AssetType::Sound);
-    REQUIRE(manager.getAsset("theme").type == ResourceManager::AssetType::Music);
+    REQUIRE(manager.getAsset("background").type ==
+        ResourceManager::AssetType::Texture);
+    REQUIRE(
+        manager.getAsset("laser").type == ResourceManager::AssetType::Sound);
+    REQUIRE(
+        manager.getAsset("theme").type == ResourceManager::AssetType::Music);
     REQUIRE(manager.getAsset("font").type == ResourceManager::AssetType::Font);
 }
 
@@ -259,9 +262,10 @@ TEST_CASE("ResourceManager loadConfigFile preserves existing asset storage",
 
     REQUIRE(manager.getAsset("ship").id == shipId);
     REQUIRE(manager.getAsset("ship").path == "assets/ship_updated.png");
-    REQUIRE(manager.getAssetById(shipId)->get().path ==
-        "assets/ship_updated.png");
-    REQUIRE(manager.getAsset("laser").type == ResourceManager::AssetType::Sound);
+    REQUIRE(
+        manager.getAssetById(shipId)->get().path == "assets/ship_updated.png");
+    REQUIRE(
+        manager.getAsset("laser").type == ResourceManager::AssetType::Sound);
 }
 
 TEST_CASE("ResourceManager rejects invalid config without partial changes",
@@ -275,8 +279,8 @@ TEST_CASE("ResourceManager rejects invalid config without partial changes",
     })");
     ResourceManager manager;
 
-    REQUIRE_THROWS_AS(manager.loadConfigFile(config.path()),
-        std::invalid_argument);
+    REQUIRE_THROWS_AS(
+        manager.loadConfigFile(config.path()), std::invalid_argument);
     REQUIRE_FALSE(manager.hasAsset("valid"));
     REQUIRE_FALSE(manager.hasAsset("invalid"));
 }
