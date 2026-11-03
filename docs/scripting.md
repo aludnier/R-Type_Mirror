@@ -1,8 +1,14 @@
 # Scripting games in Lua
 
-The engine can run games written in Lua. A script spawns entities, sets their
-components and adds systems; the C++ side only owns the `Registry`, registers
-the component storages and runs the frame.
+The engine can run games written in Lua. Scripts come in two kinds:
+
+- **entity scripts**, attached to one entity with a `ScriptComponent` (a list of
+  script paths), for the behaviour of that entity;
+- **game scripts**, loaded once, which spawn entities and add game-wide systems
+  (waves, score, level flow).
+
+The C++ side only owns the `Registry`, registers the component storages and
+runs the frame.
 
 The scripting layer lives in `game_engine/src/scripting` and is built as the
 `engine_scripting` static library. It only depends on `engine_core`, so both
@@ -12,6 +18,7 @@ The scripting layer lives in `game_engine/src/scripting` and is built as the
 
 ```cpp
 #include "scripting/ScriptEngine.h"
+#include "scripting/ScriptSystem.h"
 
 RType::Registry registry;
 registry.registerComponent<RType::Transform2D>();
@@ -19,7 +26,12 @@ registry.registerComponent<RType::Health>();
 
 // Declared after the registry: it must be destroyed first.
 RType::ScriptEngine scripts(registry);
+RType::addScriptSystem(registry, scripts);   // like any other system
 scripts.loadConfigFile("assets/config/scripts.json");
+
+// An entity script attached from C++ (relative to the script directory).
+registry.addComponent<RType::ScriptComponent>(player,
+    RType::ScriptComponent {{"player.lua", "blink.lua"}});
 
 while (running) {
     scripts.setDeltaTime(dt);   // seconds since the last frame
@@ -27,8 +39,14 @@ while (running) {
 }
 ```
 
-`scripts.json` lists the files to run, in order. A relative `directory` is
-resolved from the config file location:
+`ScriptEngine` holds the Lua state and the script data; the work of each frame
+is done by the system added with `addScriptSystem`, which runs the game-wide
+script systems, then the `ScriptComponent` of every entity. The host decides
+where it runs among the other systems.
+
+`scripts.json` gives the script directory and lists the game scripts to run,
+in order (`scripts` may be omitted). A relative `directory` is resolved from
+the config file location:
 
 ```json
 { "directory": "../scripts", "scripts": ["enemies.lua", "waves.lua"] }
@@ -41,7 +59,8 @@ resolved from the config file location:
 | `loadFile(path)` | Runs a file and remembers it for `reload()`. Returns `false` on error. |
 | `loadString(code, name)` | Runs a chunk of code (not replayed by `reload()`). |
 | `loadConfigFile(path)` | Runs every script listed in a JSON config. Throws on error. |
-| `reload()` | Drops the script systems and runs the files again (hot reload). Entities and `world.data` are kept. |
+| `setScriptDirectory(dir)` | Directory relative `ScriptComponent` paths are read from. |
+| `reload()` | Drops the script systems, runs the files again and reloads entity scripts (hot reload). Entities and `world.data` are kept. |
 | `setDeltaTime(dt)` | Delta time passed to the script systems on the next `runSystems()`. |
 | `bindComponent<C>(name)` | Makes a C++ component usable from scripts. |
 | `lastError()` | Last script error, empty if none. |
@@ -59,6 +78,35 @@ scripts.bindComponent<Score>("Score");
 ```
 
 ## 2. Script side (Lua)
+
+### Entity scripts
+
+An entity script returns a table with optional `on_start(e)`, called once when
+the script starts on the entity, and `on_update(e, dt)`, called every frame.
+Each file is loaded once and shared by every entity using it, so per-entity
+state goes in `world.data(e)`:
+
+```lua
+-- bydo.lua
+local bydo = {}
+
+function bydo.on_start(e)
+    world.data(e).kind = "bydo"
+end
+
+function bydo.on_update(e, dt)
+    local t = world.get(e, "Transform2D")
+    t.position.x = t.position.x - 200 * dt
+end
+
+return bydo
+```
+
+Attached with `world.add(e, "Script", {"bydo.lua", "blink.lua"})` (or a single
+path string), or with a `ScriptComponent` from C++. `world.get(e, "Script")`
+returns a copy of the paths.
+
+### The world API
 
 Entities are integers. Components are accessed by name.
 
@@ -84,7 +132,9 @@ Bound types: `Vector2` (`x`, `y`, `+`, `-`, `* number`), `Transform2D`
 `is_active(Action.X)`, `set_active(Action.X, bool)`) and the `Action` enum
 (`MoveUp`, `MoveDown`, `MoveLeft`, `MoveRight`, `Shoot`).
 
-A complete example is in [`scripts/examples/waves.lua`](../scripts/examples/waves.lua).
+A complete example is in [`scripts/examples/waves.lua`](../scripts/examples/waves.lua)
+(game script spawning waves) and [`scripts/examples/bydo.lua`](../scripts/examples/bydo.lua)
+(entity script of each enemy).
 
 ## 3. Safety
 
@@ -95,6 +145,7 @@ A complete example is in [`scripts/examples/waves.lua`](../scripts/examples/wave
 - **Errors never crash the host**: every script call is protected. A load error
   makes `loadFile` return `false`; a system that raises an error is disabled
   and reported through `lastError()` instead of flooding the logs every frame.
+  A failing entity script is disabled on that entity only.
   `reload()` enables it again.
 - **Checked API**: sol2 is built with `SOL_ALL_SAFETIES_ON`, so wrong argument
   types, unknown components and negative entity ids raise Lua errors instead
