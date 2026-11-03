@@ -9,7 +9,10 @@
 #define RESOURCEMANAGER_H_
 
 #include <cstdint>
+#include <filesystem>
 #include <functional>
+#include <nlohmann/json_fwd.hpp>
+#include "NlohmanReader.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -25,7 +28,18 @@ public:
     };
 
     ResourceManager() = default;
+    explicit ResourceManager(const std::filesystem::path &configFile);
     ~ResourceManager() = default;
+
+    /**
+     * @brief Loads assets from a JSON config file.
+     * @param configFile JSON file with an "assets" object keyed by asset name.
+     * Each entry requires a "path" and may specify a "type" (Texture, Sound,
+     * Music, or Font).
+     * @throws std::runtime_error If the file cannot be read.
+     * @throws std::invalid_argument If the config has an invalid asset entry.
+     */
+    void loadConfigFile(const std::filesystem::path &configFile);
 
     /**
      * @brief Registers an asset, or updates it if the name already exists.
@@ -73,7 +87,9 @@ public:
     std::optional<std::reference_wrapper<const Asset>> getAssetById(
         std::uint32_t id) const;
 
-private:
+    private:
+
+    RType::nlohamReader _reader;
     std::unordered_map<std::string, Asset> _assets;
     std::unordered_map<std::uint32_t, std::string> _namesById;
     std::uint32_t _nextId = 1;
