@@ -102,7 +102,7 @@ A complete example is in [`scripts/examples/waves.lua`](../scripts/examples/wave
 
 ## 4. Why Lua (comparative study)
 
-| Criteria | Lua 5.4 + sol2 | Python + pybind11 | AngelScript / ChaiScript | JavaScript (QuickJS) |
+| Criteria | Lua 5.5 + sol2 | Python + pybind11 | AngelScript / ChaiScript | JavaScript (QuickJS) |
 |---|---|---|---|---|
 | Embedding | Designed to be embedded; ~300 KB C library | Designed to be extended; embedding drags the whole CPython runtime and its standard library | Designed to be embedded | Embeddable |
 | Binary size / runtime | Tiny | Large (tens of MB with the stdlib to ship) | Small | Small |
@@ -119,5 +119,4 @@ every platform we target. Python would be more familiar, but the GIL, the
 runtime size and the lack of sandboxing are real problems for a multithreaded
 game server that must not trust its content. LuaJIT was considered for speed;
 it is stuck on the Lua 5.1 language and the game logic is not CPU-bound, so the
-standard Lua 5.4 interpreter is used. The version is pinned with a vcpkg
-override (`lua` 5.4.8): sol2 3.5 targets Lua up to 5.4, and the vcpkg baseline already ships Lua 5.5.
+standard Lua interpreter (5.5, from the vcpkg baseline) is used.

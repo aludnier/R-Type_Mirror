@@ -22,11 +22,5 @@
       "version>=": "3.5.0"
     }
   ],
-  "builtin-baseline": "e456309491fd875487bf02b8a0dca76c1b1b00cc",
-  "overrides": [
-    {
-      "name": "lua",
-      "version": "5.4.8"
-    }
-  ]
+  "builtin-baseline": "e456309491fd875487bf02b8a0dca76c1b1b00cc"
 }

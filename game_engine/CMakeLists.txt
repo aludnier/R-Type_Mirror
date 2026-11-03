@@ -91,7 +91,7 @@ add_library(engine_server STATIC ${SERVER_SRC})
 target_link_libraries(engine_server PUBLIC engine_core)
 
 # ---------------------------------------------------------------------------
-# engine_scripting: Lua scripting on top of the ECS (sol2 + Lua 5.4). No
+# engine_scripting: Lua scripting on top of the ECS (sol2 + Lua 5.5). No
 # graphics dependency, so both the server and the client can link it.
 # ---------------------------------------------------------------------------
 find_package(Lua REQUIRED)

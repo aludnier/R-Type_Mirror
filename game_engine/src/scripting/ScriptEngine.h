@@ -37,7 +37,7 @@ struct ScriptData {
 /**
  * @brief Runs Lua scripts on top of a Registry.
  *
- * Scripts get a sandboxed Lua 5.4 state (no io / os / package / debug) and a
+ * Scripts get a sandboxed Lua 5.5 state (no io / os / package / debug) and a
  * `world` table to spawn and kill entities, read and write the components
  * bound with bindComponent(), and add systems run by Registry::runSystems().
  * The whole Lua API is described in docs/scripting.md.
