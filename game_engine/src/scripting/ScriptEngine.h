@@ -14,12 +14,14 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <sol/sol.hpp>
 
+#include "ScriptComponent.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
 
@@ -39,16 +41,19 @@ struct ScriptData {
  *
  * Scripts get a sandboxed Lua 5.5 state (no io / os / package / debug) and a
  * `world` table to spawn and kill entities, read and write the components
- * bound with bindComponent(), and add systems run by Registry::runSystems().
- * The whole Lua API is described in docs/scripting.md.
+ * bound with bindComponent(), and add game-wide systems. Entity scripts are
+ * attached with a ScriptComponent. Nothing runs until addScriptSystem() adds
+ * the system calling update(). The whole Lua API is described in
+ * docs/scripting.md.
  *
- * @note The engine registers one system in the registry, so it must be
- *       destroyed before the registry, never after.
+ * @note The engine registers the ScriptData and ScriptComponent storages, and
+ *       must be destroyed before the registry, never after.
  */
 class ScriptEngine {
 public:
     /**
-     * @brief Creates the Lua state and binds the core components.
+     * @brief Creates the Lua state, binds the core components and registers
+     *        the ScriptData and ScriptComponent storages.
      * @param registry Registry the scripts act on. Must outlive the engine.
      */
     explicit ScriptEngine(Registry &registry);
@@ -129,17 +134,25 @@ public:
      * @brief Loads the scripts listed in a JSON config file.
      *
      * Format: `{"directory": "scripts", "scripts": ["a.lua", "b.lua"]}`.
-     * Relative directories are resolved from the config file location.
+     * Relative directories are resolved from the config file location. The
+     * directory also becomes the script directory (see setScriptDirectory()).
+     * `scripts` may be omitted when only entity scripts are used.
      *
      * @throws std::runtime_error If the config or one script cannot be loaded.
      */
     void loadConfigFile(const std::filesystem::path &configFile);
 
     /**
-     * @brief Drops every script system and runs the loaded files again.
+     * @brief Sets the directory relative ScriptComponent paths are read from.
+     */
+    void setScriptDirectory(const std::filesystem::path &directory);
+
+    /**
+     * @brief Drops every script system, runs the loaded files again and
+     *        reloads the entity scripts on their next update.
      *
-     * Per-entity `world.data` tables and the registry are kept, so a game
-     * can be edited while it runs.
+     * Per-entity `world.data` tables, the registry and the on_start already
+     * done are kept, so a game can be edited while it runs.
      *
      * @return false if a file failed, see lastError().
      */
@@ -150,6 +163,17 @@ public:
      *        next Registry::runSystems().
      */
     void setDeltaTime(float dt);
+
+    /**
+     * @brief Runs one frame: the `world.add_system` systems, then the scripts
+     *        of every entity having a ScriptComponent.
+     *
+     * Called by the system added with addScriptSystem().
+     */
+    void update(SparseArray<ScriptComponent> &scripts);
+
+    /** @return Expires when the engine is destroyed. */
+    [[nodiscard]] std::weak_ptr<bool> lifetime() const;
 
     /** @return The last error raised by a script, empty if none. */
     [[nodiscard]] const std::string &lastError() const;
@@ -181,6 +205,12 @@ private:
     void bindCoreTypes();
     void bindWorld();
     void runSystems();
+    void runEntityScripts(SparseArray<ScriptComponent> &scripts);
+    bool callEntityScript(entity_id_type id, const std::filesystem::path &path,
+        const char *function);
+    [[nodiscard]] std::optional<sol::table> entityScript(
+        const std::filesystem::path &path);
+    void bindScriptComponent();
     void reportError(const std::string &message);
 
     [[nodiscard]] const ComponentBinding &binding(
@@ -194,9 +224,14 @@ private:
     std::unordered_map<std::string, ComponentBinding> _components;
     std::vector<ScriptSystem> _systems;
     std::vector<std::filesystem::path> _files;
+    std::filesystem::path _scriptDirectory = ".";
+    // Entity scripts, loaded once per path.
+    std::unordered_map<std::string, std::optional<sol::table>> _entityScripts;
+    // Entity scripts disabled after an error, until reload().
+    std::set<std::pair<entity_id_type, std::string>> _failedEntityScripts;
     std::string _lastError;
     float _deltaTime = 0.f;
-    // Lets the registry system know whether the engine is still alive.
+    // Lets the script system know whether the engine is still alive.
     std::shared_ptr<bool> _alive = std::make_shared<bool>(true);
 };
 } // namespace RType

@@ -98,8 +98,11 @@ find_package(Lua REQUIRED)
 find_package(sol2 CONFIG REQUIRED)
 
 set(SCRIPTING_SRC
+        src/scripting/ScriptComponent.h
         src/scripting/ScriptEngine.cpp
         src/scripting/ScriptEngine.h
+        src/scripting/ScriptSystem.cpp
+        src/scripting/ScriptSystem.h
 )
 
 add_library(engine_scripting STATIC ${SCRIPTING_SRC})

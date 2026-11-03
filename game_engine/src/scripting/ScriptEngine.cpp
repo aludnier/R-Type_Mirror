@@ -38,19 +38,18 @@ RType::ScriptEngine::ScriptEngine(Registry &registry) :
     _registry(registry)
 {
     _registry.registerComponent<ScriptData>();
+    _registry.registerComponent<ScriptComponent>();
     openSandbox();
     bindCoreTypes();
+    bindScriptComponent();
     bindWorld();
-    _registry.addSystem<>([alive = std::weak_ptr<bool>(_alive), this]() {
-        if (!alive.expired())
-            runSystems();
-    });
 }
 
 RType::ScriptEngine::~ScriptEngine()
 {
     _alive.reset();
     _systems.clear();
+    _entityScripts.clear();
     // ScriptData holds Lua references: drop them while the state still exists.
     for (auto &data : _registry.getComponents<ScriptData>())
         data.reset();
@@ -197,6 +196,56 @@ void RType::ScriptEngine::bindWorld()
         });
 }
 
+void RType::ScriptEngine::bindScriptComponent()
+{
+    _components.insert_or_assign("Script",
+        ComponentBinding {
+            .has =
+                [](Registry &r, entity_id_type id) {
+                    auto &storage = r.getComponents<ScriptComponent>();
+                    return id < storage.size() && storage[id].has_value();
+                },
+            // A copy of the paths: edit them with world.add.
+            .get = [](Registry &r, entity_id_type id, lua_State *lua)
+                -> sol::object {
+                auto &storage = r.getComponents<ScriptComponent>();
+                if (id >= storage.size() || !storage[id].has_value())
+                    return sol::make_object(lua, sol::lua_nil);
+                sol::table paths = sol::state_view(lua).create_table();
+                for (const auto &path : storage[id]->scripts)
+                    paths.add(path.string());
+                return paths;
+            },
+            .add =
+                [](Registry &r, entity_id_type id, const sol::object &value) {
+                    ScriptComponent component;
+                    if (value.is<std::string>()) {
+                        component.scripts.emplace_back(value.as<std::string>());
+                    } else if (value.is<sol::table>()) {
+                        for (const auto &[_, path] : value.as<sol::table>()) {
+                            if (!path.is<std::string>())
+                                throw std::runtime_error("bad script path");
+                            component.scripts.emplace_back(
+                                path.as<std::string>());
+                        }
+                    } else {
+                        throw std::runtime_error("bad value for component");
+                    }
+                    r.addComponent<ScriptComponent>(
+                        Registry::entityFromIndex(id), std::move(component));
+                },
+            .remove =
+                [](Registry &r, entity_id_type id) {
+                    r.removeComponent<ScriptComponent>(
+                        Registry::entityFromIndex(id));
+                },
+            .size =
+                [](Registry &r) {
+                    return r.getComponents<ScriptComponent>().size();
+                },
+        });
+}
+
 const RType::ScriptEngine::ComponentBinding &RType::ScriptEngine::binding(
     const std::string &name) const
 {
@@ -268,6 +317,83 @@ void RType::ScriptEngine::runSystems()
     }
 }
 
+void RType::ScriptEngine::update(SparseArray<ScriptComponent> &scripts)
+{
+    runSystems();
+    runEntityScripts(scripts);
+}
+
+void RType::ScriptEngine::runEntityScripts(
+    SparseArray<ScriptComponent> &scripts)
+{
+    // Scripts may add components: the storage is indexed again after each
+    // call, and entities spawned during the loop wait for the next frame.
+    const std::size_t count = scripts.size();
+    for (entity_id_type id = 0; id < count; ++id) {
+        if (!scripts[id].has_value())
+            continue;
+        const auto paths = scripts[id]->scripts;
+        const auto started = scripts[id]->started;
+        for (std::size_t i = 0; i < paths.size(); ++i) {
+            auto key = std::make_pair(id, paths[i].string());
+            if (_failedEntityScripts.contains(key))
+                continue;
+            bool ok = i >= started ? callEntityScript(id, paths[i], "on_start")
+                                   : true;
+            ok = ok && callEntityScript(id, paths[i], "on_update");
+            if (!ok)
+                _failedEntityScripts.insert(std::move(key));
+        }
+        if (id < scripts.size() && scripts[id].has_value())
+            scripts[id]->started = std::max(scripts[id]->started, paths.size());
+    }
+}
+
+bool RType::ScriptEngine::callEntityScript(
+    entity_id_type id, const std::filesystem::path &path, const char *function)
+{
+    const auto script = entityScript(path);
+    if (!script.has_value())
+        return false;
+    const sol::object callback = (*script)[function];
+    if (callback.get_type() != sol::type::function)
+        return true;
+    auto result = callback.as<sol::protected_function>()(
+        static_cast<lua_Integer>(id), _deltaTime);
+    if (!result.valid()) {
+        sol::error error = result;
+        reportError("entity " + std::to_string(id) + " script '" +
+            path.string() + "' " + function + ": " + error.what());
+        return false;
+    }
+    return true;
+}
+
+std::optional<sol::table> RType::ScriptEngine::entityScript(
+    const std::filesystem::path &path)
+{
+    const auto file = path.is_relative() ? _scriptDirectory / path : path;
+    const auto key = file.string();
+    if (const auto it = _entityScripts.find(key); it != _entityScripts.end())
+        return it->second;
+    std::optional<sol::table> script;
+    if (!std::filesystem::is_regular_file(file)) {
+        reportError("cannot open script '" + key + "'");
+    } else {
+        auto result = _lua.safe_script_file(key, sol::script_pass_on_error);
+        if (!result.valid()) {
+            sol::error error = result;
+            reportError(error.what());
+        } else if (result.get_type() != sol::type::table) {
+            reportError("script '" + key + "' must return a table");
+        } else {
+            script = result.get<sol::table>();
+        }
+    }
+    _entityScripts.emplace(key, script);
+    return script;
+}
+
 bool RType::ScriptEngine::loadString(
     const std::string &code, const std::string &chunkName)
 {
@@ -305,7 +431,9 @@ void RType::ScriptEngine::loadConfigFile(
     std::filesystem::path directory = reader.get<std::string>("directory", ".");
     if (directory.is_relative())
         directory = configFile.parent_path() / directory;
-    for (const auto &script : reader.get<std::vector<std::string>>("scripts")) {
+    _scriptDirectory = directory;
+    for (const auto &script :
+        reader.get<std::vector<std::string>>("scripts", {})) {
         if (!loadFile(directory / script))
             throw std::runtime_error("[ScriptEngine] " + _lastError);
     }
@@ -314,12 +442,26 @@ void RType::ScriptEngine::loadConfigFile(
 bool RType::ScriptEngine::reload()
 {
     _systems.clear();
+    _entityScripts.clear();
+    _failedEntityScripts.clear();
     _lastError.clear();
     bool ok = true;
     const auto files = _files;
     for (const auto &file : files)
         ok = loadFile(file) && ok;
     return ok;
+}
+
+void RType::ScriptEngine::setScriptDirectory(
+    const std::filesystem::path &directory)
+{
+    _scriptDirectory = directory;
+    _entityScripts.clear();
+}
+
+std::weak_ptr<bool> RType::ScriptEngine::lifetime() const
+{
+    return _alive;
 }
 
 void RType::ScriptEngine::setDeltaTime(float dt)
