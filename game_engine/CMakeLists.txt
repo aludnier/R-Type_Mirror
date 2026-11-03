@@ -159,4 +159,15 @@ if (BUILD_TESTS)
     target_link_libraries(engine_server_tests PRIVATE engine_server Catch2::Catch2WithMain)
 
     add_test(NAME engine_server_tests COMMAND engine_server_tests)
+
+    add_executable(engine_scripting_tests
+            tests/scripting_tests.cpp
+    )
+
+    target_link_libraries(engine_scripting_tests PRIVATE engine_scripting Catch2::Catch2WithMain)
+
+    target_compile_definitions(engine_scripting_tests PRIVATE
+            EXAMPLE_SCRIPT_DIRECTORY="${CMAKE_SOURCE_DIR}/scripts/examples")
+
+    add_test(NAME engine_scripting_tests COMMAND engine_scripting_tests)
 endif ()
