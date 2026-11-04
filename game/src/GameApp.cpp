@@ -133,7 +133,8 @@ void GameApp::setupSystems()
     constexpr float playerSpeed = 300.0f;
 
     // Engine Controllable system (local client prediction)
-    RType::addControllableSystem(_registry, playerSpeed, _fixedDeltaTime);
+    RType::addControllableSystem(
+        _registry, playerSpeed, _fixedDeltaTime, RType::MovementActions {});
 
     // Modules systems
     _physics2DModuleLoader.getInstance().registerModule(_registry);
