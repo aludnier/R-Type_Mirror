@@ -375,7 +375,6 @@ void GameServer::applyControls()
         if (entity == _replicated.end()) {
             continue;
         }
-        // Controllable holds 8 actions: the higher bits are not used.
         controllables[entity->second] = Controllable {
             session.controls().actions};
     }
