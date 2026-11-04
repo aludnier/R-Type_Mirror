@@ -15,7 +15,9 @@
     {
       "name": "catch2",
       "version>=": "3.16.0"
-    }
+    },
+    "lua",
+    "sol2"
   ],
   "builtin-baseline": "e456309491fd875487bf02b8a0dca76c1b1b00cc"
 }

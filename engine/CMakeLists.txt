@@ -102,11 +102,37 @@ add_library(engine_server STATIC ${SERVER_SRC})
 target_link_libraries(engine_server PUBLIC engine_core)
 
 # ---------------------------------------------------------------------------
+# engine_scripting: Lua scripting on top of the ECS (sol2 + Lua 5.5). No
+# graphics dependency, so both the server and the client can link it.
+# ---------------------------------------------------------------------------
+find_package(Lua REQUIRED)
+find_package(sol2 CONFIG REQUIRED)
+
+set(SCRIPTING_SRC
+        src/scripting/ComponentBinding.cpp
+        src/scripting/ComponentBinding.h
+        src/scripting/CoreBindings.cpp
+        src/scripting/CoreBindings.h
+        src/scripting/ScriptComponent.h
+        src/scripting/ScriptEngine.cpp
+        src/scripting/ScriptEngine.h
+        src/scripting/ScriptSystem.cpp
+        src/scripting/ScriptSystem.h
+)
+
+add_library(engine_scripting STATIC ${SCRIPTING_SRC})
+
+target_include_directories(engine_scripting PUBLIC ${LUA_INCLUDE_DIR})
+target_link_libraries(engine_scripting PUBLIC engine_core sol2::sol2 ${LUA_LIBRARIES})
+target_compile_definitions(engine_scripting PUBLIC SOL_ALL_SAFETIES_ON=1)
+
+# ---------------------------------------------------------------------------
 # Namespaced names: games link Eng:: targets only.
 # ---------------------------------------------------------------------------
 add_library(Eng::core ALIAS engine_core)
 add_library(Eng::client ALIAS engine_client)
 add_library(Eng::server ALIAS engine_server)
+add_library(Eng::scripting ALIAS engine_scripting)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
@@ -153,6 +179,17 @@ if (BUILD_TESTS)
     target_link_libraries(engine_server_tests PRIVATE engine_server Catch2::Catch2WithMain)
 
     add_test(NAME engine_server_tests COMMAND engine_server_tests)
+
+    add_executable(engine_scripting_tests
+            tests/scripting_tests.cpp
+    )
+
+    target_link_libraries(engine_scripting_tests PRIVATE engine_scripting Catch2::Catch2WithMain)
+
+    target_compile_definitions(engine_scripting_tests PRIVATE
+            EXAMPLE_SCRIPT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/scripts/examples")
+
+    add_test(NAME engine_scripting_tests COMMAND engine_scripting_tests)
 endif ()
 
 add_subdirectory(modules/example)
