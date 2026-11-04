@@ -4,7 +4,7 @@
 |-------------------|-----------------------------------------------|
 | Status            | Draft, version 1                              |
 | Issue             | #11 Package Definition                        |
-| Implementation    | `game_engine/src/network/`                    |
+| Implementation    | `engine/src/network/`                         |
 | Sequence diagrams | `docs/architecture/06_network_sequences.puml` |
 
 ## Abstract

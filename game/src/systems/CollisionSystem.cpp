@@ -21,7 +21,7 @@ namespace Game {
 void CollisionSystem::addSystem(RType::Registry &registry)
 {
     // Note: Feature not available in engine_client: Collision events / physics
-    // pipeline is implemented in modules/physics2D, but client engine
+    // pipeline is implemented in engine/modules/physics2D, but client engine
     // standalone lacks built-in collision dispatching. We implement an ECS
     // collision check here.
     registry.addSystem<RType::Transform2D, Hitbox, Health>(
