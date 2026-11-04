@@ -8,7 +8,7 @@
 #include "CoreBindings.h"
 
 #include <array>
-#include <cstdint>
+#include <stdexcept>
 
 #include "components/Action.h"
 #include "components/Controllable.h"
@@ -76,22 +76,24 @@ void setSize(Hitbox &h, const Vector2 &v)
     h.size = v;
 }
 
-std::uint8_t actionBit(Action action)
+std::uint8_t actionBit(RType::ActionId action)
 {
-    return static_cast<std::uint8_t>(1U << static_cast<unsigned>(action));
+    if (action >= RType::MAX_ACTIONS)
+        throw std::out_of_range("action does not fit the mask");
+    return RType::ActionMask {1} << action;
 }
 
-bool isActive(const Controllable &c, Action action)
+bool isActive(const Controllable &c, RType::ActionId action)
 {
     return (c.actionMask & actionBit(action)) != 0;
 }
 
-void setActive(Controllable &c, Action action, bool active)
+void setActive(Controllable &c, RType::ActionId action, bool active)
 {
     if (active)
         c.actionMask |= actionBit(action);
     else
-        c.actionMask &= static_cast<std::uint8_t>(~actionBit(action));
+        c.actionMask &= ~actionBit(action);
 }
 
 void bindVector2(sol::state &lua)
@@ -151,18 +153,14 @@ void bindHitbox(sol::state &lua)
 
 void bindAction(sol::state &lua)
 {
-    lua.new_enum<Action>("Action",
-        {{"MoveUp", Action::MoveUp},
-            {"MoveDown", Action::MoveDown},
-            {"MoveLeft", Action::MoveLeft},
-            {"MoveRight", Action::MoveRight},
-            {"Shoot", Action::Shoot}});
+    // Filled by the game, see ScriptEngine::defineAction().
+    lua["Action"] = lua.create_table();
 }
 
 void bindControllable(sol::state &lua)
 {
     lua.new_usertype<Controllable>("Controllable",
-        sol::constructors<Controllable(), Controllable(std::uint8_t)>(),
+        sol::constructors<Controllable(), Controllable(RType::ActionMask)>(),
         "action_mask",
         &Controllable::actionMask,
         "is_active",

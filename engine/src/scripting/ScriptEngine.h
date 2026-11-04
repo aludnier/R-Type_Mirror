@@ -24,6 +24,7 @@
 #include "ScriptComponent.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "components/Action.h"
 
 namespace RType {
 /**
@@ -106,6 +107,14 @@ public:
      * @throws std::runtime_error If the config or one script cannot be loaded.
      */
     void loadConfigFile(const std::filesystem::path &configFile);
+
+    /**
+     * @brief Makes an action readable from scripts as `Action.<name>`.
+     * @param name Name of the action in scripts.
+     * @param action Bit of the action in the mask.
+     * @throws std::out_of_range if action is not below MAX_ACTIONS.
+     */
+    void defineAction(const std::string &name, ActionId action);
 
     /**
      * @brief Sets the directory relative ScriptComponent paths are read from.

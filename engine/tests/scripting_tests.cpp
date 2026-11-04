@@ -5,8 +5,9 @@
 #include <filesystem>
 #include <fstream>
 #include <string>
+#include <stdexcept>
 
-#include "components/Action.h"
+#include "TestActions.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
@@ -222,6 +223,8 @@ TEST_CASE("Controllable exposes the input actions", "[scripting]")
     const auto entity = registry.spawnEntity();
     registry.emplaceComponent<RType::Controllable>(entity);
     RType::ScriptEngine scripts(registry);
+    scripts.defineAction("MoveUp", Action::MoveUp);
+    scripts.defineAction("Shoot", Action::Shoot);
     RType::addScriptSystem(registry, scripts);
     scripts.lua()["e"] = static_cast<RType::entity_id_type>(entity);
 
@@ -515,4 +518,12 @@ TEST_CASE("A failing entity script only stops on that entity", "[scripting]")
         CHECK_THAT(scripts.lastError(),
             Catch::Matchers::ContainsSubstring("must return a table"));
     }
+}
+
+TEST_CASE("ScriptEngine rejects actions that do not fit the mask", "[scripting]")
+{
+    RType::Registry registry;
+    RType::ScriptEngine scripts(registry);
+
+    REQUIRE_THROWS_AS(scripts.defineAction("TooBig", 32), std::out_of_range);
 }
