@@ -11,9 +11,9 @@
 #include <cstdint>
 
 namespace RType {
-    using ActionId = std::uint8_t;
-    using ActionMask = std::uint32_t;
-}
+using ActionId = std::uint8_t;
+using ActionMask = std::uint32_t;
+} // namespace RType
 
 enum class Action : std::uint8_t {
     MoveUp,
