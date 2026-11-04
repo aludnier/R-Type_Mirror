@@ -49,6 +49,13 @@ RType::ScriptEngine::~ScriptEngine()
         data.reset();
 }
 
+void RType::ScriptEngine::defineAction(const std::string &name, ActionId action)
+{
+    if (action >= MAX_ACTIONS)
+        throw std::out_of_range("action '" + name + "' does not fit the mask");
+    _lua["Action"][name] = action;
+}
+
 void RType::ScriptEngine::openSandbox()
 {
     _lua.open_libraries(sol::lib::base,

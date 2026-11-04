@@ -13,7 +13,7 @@
 namespace RType::Scripting {
 /**
  * @brief Declares the Lua types of the engine core: Vector2, Transform2D,
- *        Health, Hitbox, Controllable and the Action enum.
+ *        Health, Hitbox, Controllable and the Action table.
  */
 void bindCoreTypes(sol::state &lua);
 } // namespace RType::Scripting

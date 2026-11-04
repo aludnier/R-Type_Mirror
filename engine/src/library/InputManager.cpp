@@ -34,22 +34,13 @@ struct InputConfig {
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(InputConfig, bindings)
-
-const std::map<std::string, Action> &actionNames()
-{
-    static const std::map<std::string, Action> actions = {
-        {"MoveUp", Action::MoveUp},
-        {"MoveDown", Action::MoveDown},
-        {"MoveLeft", Action::MoveLeft},
-        {"MoveRight", Action::MoveRight},
-        {"Shoot", Action::Shoot}};
-    return actions;
-}
 } // namespace
 
-InputManager::InputManager(const std::filesystem::path &configFile)
+void InputManager::defineAction(const std::string &name, RType::ActionId action)
 {
-    loadConfigFile(configFile);
+    if (action >= RType::MAX_ACTIONS)
+        throw std::out_of_range("action '" + name + "' does not fit the mask");
+    _actionNames.insert_or_assign(name, action);
 }
 
 void InputManager::loadConfigFile(const std::filesystem::path &configFile)
@@ -57,10 +48,11 @@ void InputManager::loadConfigFile(const std::filesystem::path &configFile)
     const auto config =
         RType::nlohamReader(configFile).convertJson<InputConfig>();
 
-    std::vector<std::pair<Action, const std::vector<InputEntry> *>> resolved;
+    std::vector<std::pair<RType::ActionId, const std::vector<InputEntry> *>>
+        resolved;
     for (const auto &[name, entries] : config.bindings) {
-        const auto action = actionNames().find(name);
-        if (action == actionNames().end())
+        const auto action = _actionNames.find(name);
+        if (action == _actionNames.end())
             throw std::invalid_argument("unknown action '" + name + "'");
         resolved.emplace_back(action->second, &entries);
     }
@@ -77,33 +69,33 @@ std::string InputManager::keyCodeId(InputManager::KeyCode key)
     return "KEY_CODE_" + std::to_string(key);
 }
 
-void InputManager::bind(Action action, KeyCode key)
+void InputManager::bind(RType::ActionId action, KeyCode key)
 {
     bind(action, keyCodeId(key));
 }
 
-void InputManager::bind(Action action, const std::string &input)
+void InputManager::bind(RType::ActionId action, const std::string &input)
 {
-    auto &inputs = _bindings[static_cast<std::size_t>(action)];
+    auto &inputs = _bindings.at(action);
     if (std::ranges::find(inputs, input) == inputs.end()) {
         inputs.push_back(input);
     }
 }
 
-void InputManager::unbind(Action action, KeyCode key)
+void InputManager::unbind(RType::ActionId action, KeyCode key)
 {
     unbind(action, keyCodeId(key));
 }
 
-void InputManager::unbind(Action action, std::string_view input)
+void InputManager::unbind(RType::ActionId action, std::string_view input)
 {
-    auto &inputs = _bindings[static_cast<std::size_t>(action)];
+    auto &inputs = _bindings.at(action);
     std::erase(inputs, InputId(input));
 }
 
-void InputManager::clearBindings(Action action)
+void InputManager::clearBindings(RType::ActionId action)
 {
-    _bindings[static_cast<std::size_t>(action)].clear();
+    _bindings.at(action).clear();
 }
 
 void InputManager::setKeyState(KeyCode key, bool pressed)
@@ -120,18 +112,18 @@ void InputManager::setInputState(std::string_view input, bool pressed)
     }
 }
 
-bool InputManager::isActionDown(Action action) const
+bool InputManager::isActionDown(RType::ActionId action) const
 {
-    const auto &inputs = _bindings[static_cast<std::size_t>(action)];
+    const auto &inputs = _bindings.at(action);
     return std::ranges::any_of(inputs,
         [this](const InputId &input) { return _pressed.contains(input); });
 }
 
-std::uint8_t InputManager::actionMask() const
+RType::ActionMask InputManager::actionMask() const
 {
-    std::uint8_t mask = 0;
-    for (std::size_t i = 0; i < actionCount; ++i) {
-        if (isActionDown(static_cast<Action>(i))) {
+    RType::ActionMask mask = 0;
+    for (std::size_t i = 0; i < RType::MAX_ACTIONS; ++i) {
+        if (isActionDown(static_cast<RType::ActionId>(i))) {
             mask |= 1u << i;
         }
     }

@@ -12,9 +12,9 @@
 #include <imgui.h>
 #include <iostream>
 #include "ecs/SparseArray.h"
+#include "network/GameProtocol.h"
 
 // Engine headers
-#include "components/Action.h"
 #include "components/Controllable.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -40,6 +40,8 @@
 #include "systems/PlayerWeaponSystem.h"
 
 namespace Game {
+
+namespace Action = Protocol::Action;
 
 GameApp::GameApp()
 {
@@ -110,6 +112,11 @@ void GameApp::setupResources()
 
 void GameApp::setupKeyBindings()
 {
+    _inputManager.defineAction("MoveUp", Action::MoveUp);
+    _inputManager.defineAction("MoveDown", Action::MoveDown);
+    _inputManager.defineAction("MoveLeft", Action::MoveLeft);
+    _inputManager.defineAction("MoveRight", Action::MoveRight);
+    _inputManager.defineAction("Shoot", Action::Shoot);
     _inputManager.bind(Action::MoveUp, static_cast<int>(sf::Keyboard::Key::Up));
     _inputManager.bind(Action::MoveUp, static_cast<int>(sf::Keyboard::Key::W));
     _inputManager.bind(
@@ -133,7 +140,8 @@ void GameApp::setupSystems()
     constexpr float playerSpeed = 300.0f;
 
     // Engine Controllable system (local client prediction)
-    RType::addControllableSystem(_registry, playerSpeed, _fixedDeltaTime);
+    RType::addControllableSystem(
+        _registry, playerSpeed, _fixedDeltaTime, Protocol::MOVEMENT_ACTIONS);
 
     // Modules systems
     _physics2DModuleLoader.getInstance().registerModule(_registry);
@@ -253,7 +261,7 @@ void GameApp::update(float dt)
     // Update action mask ONLY on the local controllable player entity
     auto &controllables = _registry.getComponents<RType::Controllable>();
     auto &netEntities = _registry.getComponents<NetworkEntity>();
-    std::uint8_t currentMask = _inputManager.actionMask();
+    RType::ActionMask currentMask = _inputManager.actionMask();
 
     for (std::size_t i = 0; i < controllables.size(); ++i) {
         if (controllables[i].has_value()) {

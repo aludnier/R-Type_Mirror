@@ -6,12 +6,12 @@
 */
 
 #include "systems/PlayerWeaponSystem.h"
-#include "components/Action.h"
 #include "components/Controllable.h"
 #include "components/Player.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
 #include "ecs/Zipper.h"
+#include "network/GameProtocol.h"
 
 namespace Game {
 
@@ -27,7 +27,7 @@ void PlayerWeaponSystem::addSystem(
                 }
 
                 // R-Type Wave Cannon Charging mechanic
-                if (input.isActionDown(Action::Shoot)) {
+                if (input.isActionDown(Protocol::Action::Shoot)) {
                     player.isCharging = true;
                     player.chargeTime += dt;
                 } else if (player.isCharging) {

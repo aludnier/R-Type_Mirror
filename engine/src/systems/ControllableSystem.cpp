@@ -1,6 +1,5 @@
 #include <cstdint>
 
-#include "components/Action.h"
 #include "components/Controllable.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
@@ -9,30 +8,30 @@
 
 namespace RType {
 namespace {
-    bool isActive(std::uint8_t mask, Action action)
+    bool isActive(ActionMask mask, ActionId action)
     {
-        const auto bit =
-            static_cast<std::uint8_t>(1u << static_cast<std::uint8_t>(action));
-        return (mask & bit) != 0;
+        return (mask & (ActionMask {1} << action)) != 0;
     }
 
-    Vector2 directionFrom(std::uint8_t mask)
+    Vector2 directionFrom(ActionMask mask, const MovementActions &actions)
     {
-        return {static_cast<float>(isActive(mask, Action::MoveRight)) -
-                static_cast<float>(isActive(mask, Action::MoveLeft)),
-            static_cast<float>(isActive(mask, Action::MoveDown)) -
-                static_cast<float>(isActive(mask, Action::MoveUp))};
+        return {static_cast<float>(isActive(mask, actions.right)) -
+                static_cast<float>(isActive(mask, actions.left)),
+            static_cast<float>(isActive(mask, actions.down)) -
+                static_cast<float>(isActive(mask, actions.up))};
     }
 } // namespace
 
-void addControllableSystem(Registry &registry, float speed, float dt)
+void addControllableSystem(
+    Registry &registry, float speed, float dt, MovementActions actions)
 {
     registry.addSystem<Transform2D, Controllable>(
-        [speed, dt](auto &transforms, auto &controllables) {
+        [speed, dt, actions](auto &transforms, auto &controllables) {
             for (auto [transform, controllable] :
                 Zipper(transforms, controllables)) {
                 transform.position +=
-                    directionFrom(controllable.actionMask) * (speed * dt);
+                    directionFrom(controllable.actionMask, actions) *
+                    (speed * dt);
             }
         });
 }

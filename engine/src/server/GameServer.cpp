@@ -298,7 +298,8 @@ void GameServer::setupRegistry()
     _registry.registerComponent<Controllable>();
     addControllableSystem(_registry,
         _config.playerSpeed,
-        1.f / static_cast<float>(_config.tickRate));
+        1.f / static_cast<float>(_config.tickRate),
+        _config.movementActions);
 }
 
 Network::NetworkId GameServer::spawnPlayer(Network::ClientId id)
@@ -375,9 +376,8 @@ void GameServer::applyControls()
         if (entity == _replicated.end()) {
             continue;
         }
-        // Controllable holds 8 actions: the higher bits are not used.
-        controllables[entity->second] = Controllable {
-            static_cast<std::uint8_t>(session.controls().actions)};
+        controllables[entity->second] =
+            Controllable {session.controls().actions};
     }
 }
 

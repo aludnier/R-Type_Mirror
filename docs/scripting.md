@@ -129,8 +129,8 @@ keep them across frames, store the entity id instead.
 Bound types: `Vector2` (`x`, `y`, `+`, `-`, `* number`), `Transform2D`
 (`position`, `scale`, `rotation`), `Health` (`current`, `max`, `is_dead()`,
 `take_damage(n)`), `Hitbox` (`size`), `Controllable` (`action_mask`,
-`is_active(Action.X)`, `set_active(Action.X, bool)`) and the `Action` enum
-(`MoveUp`, `MoveDown`, `MoveLeft`, `MoveRight`, `Shoot`).
+`is_active(Action.X)`, `set_active(Action.X, bool)`) and the `Action` table,
+which is empty until the game fills it with `ScriptEngine::defineAction()`.
 
 A complete example is in [`engine/scripts/examples/waves.lua`](../engine/scripts/examples/waves.lua)
 (game script spawning waves) and [`engine/scripts/examples/bydo.lua`](../engine/scripts/examples/bydo.lua)

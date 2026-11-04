@@ -49,6 +49,7 @@ int main(int argc, char **argv)
 {
     RType::ServerConfig config;
 
+    config.movementActions = Game::Protocol::MOVEMENT_ACTIONS;
     for (int i = 1; i < argc; ++i) {
         std::string_view arg = argv[i];
 

@@ -8,7 +8,7 @@
 #include <thread>
 #include <vector>
 
-#include "components/Action.h"
+#include "TestActions.h"
 #include "network/ByteReader.h"
 #include "network/ClientPackets.h"
 #include "network/Endpoint.h"

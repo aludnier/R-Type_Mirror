@@ -2,15 +2,16 @@
 #define CONTROLLABLE_H
 
 #include <cstdint>
+#include "components/Action.h"
 
 namespace RType {
 /** @brief Input actions currently active for an entity. */
 struct Controllable {
-    std::uint8_t actionMask = 0;
+    ActionMask actionMask = 0;
 
     constexpr Controllable() = default;
 
-    constexpr explicit Controllable(std::uint8_t actionMask) :
+    constexpr explicit Controllable(ActionMask actionMask) :
         actionMask(actionMask)
     {
     }
