@@ -1,0 +1,66 @@
+name: "Build engine"
+on:
+  workflow_call:
+
+jobs:
+  build-engine-standalone:
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-engine-linux-${{ hashFiles('engine/vcpkg.json') }}
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libudev-dev \
+            libgl1-mesa-dev
+
+      - name: Configure and build
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build/engine -j
+
+      - name: Test
+        run: ctest --test-dir build/engine --output-on-failure
+  build-engine-windows:
+    runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-engine-windows-${{ hashFiles('engine/vcpkg.json') }}
+
+      - name: Configure and build
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          cmake -S engine -B build/engine "-DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build/engine --config Release -j
+
+      - name: Test
+        run: ctest --test-dir build/engine -C Release --output-on-failure
