@@ -14,6 +14,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "TempConfigFile.hpp"
+#include "TestActions.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
@@ -25,9 +26,18 @@
 #include "catch2/internal/catch_getenv.hpp"
 
 namespace {
-constexpr std::uint8_t bit(Action action)
+constexpr RType::ActionMask bit(RType::ActionId action)
 {
-    return static_cast<std::uint8_t>(1u << static_cast<std::size_t>(action));
+    return RType::ActionMask {1} << action;
+}
+
+void defineActions(InputManager &manager)
+{
+    manager.defineAction("MoveUp", Action::MoveUp);
+    manager.defineAction("MoveDown", Action::MoveDown);
+    manager.defineAction("MoveLeft", Action::MoveLeft);
+    manager.defineAction("MoveRight", Action::MoveRight);
+    manager.defineAction("Shoot", Action::Shoot);
 }
 } // namespace
 
@@ -37,7 +47,7 @@ TEST_CASE("InputManager starts with no active action and an empty mask",
     InputManager manager;
 
     for (std::size_t i = 0; i < static_cast<std::size_t>(Action::Count); ++i) {
-        REQUIRE_FALSE(manager.isActionDown(static_cast<Action>(i)));
+        REQUIRE_FALSE(manager.isActionDown(static_cast<RType::ActionId>(i)));
     }
     REQUIRE(manager.actionMask() == 0);
 }
@@ -185,8 +195,10 @@ TEST_CASE("InputManager loads action bindings from a config file",
             "Shoot": [32]
         }
     })");
-    InputManager manager(config.path());
+    InputManager manager;
 
+    defineActions(manager);
+    manager.loadConfigFile(config.path());
     manager.setKeyState(11, true);
     manager.setKeyState(32, true);
     REQUIRE(manager.isActionDown(Action::MoveUp));
@@ -205,6 +217,7 @@ TEST_CASE("InputManager accepts named device inputs in a config file",
     })");
     InputManager manager;
 
+    defineActions(manager);
     manager.loadConfigFile(config.path());
 
     manager.setInputState("KEYBOARD_A", true);
@@ -227,6 +240,8 @@ TEST_CASE("InputManager config replaces listed bindings and preserves others",
         }
     })");
     InputManager manager;
+
+    defineActions(manager);
     manager.bind(Action::MoveUp, 1);
     manager.bind(Action::Shoot, 2);
 
@@ -250,6 +265,8 @@ TEST_CASE("InputManager rejects unknown actions without partial changes",
         }
     })");
     InputManager manager;
+
+    defineActions(manager);
     manager.bind(Action::MoveUp, 1);
 
     REQUIRE_THROWS_AS(
@@ -529,4 +546,28 @@ TEST_CASE("addRenderSystem registers rendering system into ECS registry",
 
     RType::addRenderSystem(registry, resources, renderTexture, renderSystem);
     REQUIRE_NOTHROW(registry.runSystems());
+}
+
+TEST_CASE("InputManager loads bindings for actions defined by the game",
+    "[input][manager]")
+{
+    constexpr RType::ActionId jump = 20;
+    TempConfigFile config(R"({"bindings": {"Jump": [42]}})");
+
+    InputManager manager;
+    manager.defineAction("Jump", jump);
+    manager.loadConfigFile(config.path());
+    manager.setKeyState(42, true);
+
+    REQUIRE(manager.isActionDown(jump));
+    REQUIRE(manager.actionMask() == bit(jump));
+}
+
+TEST_CASE("InputManager rejects actions that do not fit the mask",
+    "[input][manager]")
+{
+    InputManager manager;
+
+    REQUIRE_THROWS_AS(manager.defineAction("TooBig", 32), std::out_of_range);
+    REQUIRE_THROWS_AS(manager.bind(32, 42), std::out_of_range);
 }

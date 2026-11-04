@@ -12,9 +12,9 @@
 #include <imgui.h>
 #include <iostream>
 #include "ecs/SparseArray.h"
+#include "network/GameProtocol.h"
 
 // Engine headers
-#include "components/Action.h"
 #include "components/Controllable.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -41,6 +41,7 @@
 
 namespace Game {
 
+namespace Action = Protocol::Action;
 GameApp::GameApp()
 {
 #ifdef WIN32
@@ -110,6 +111,11 @@ void GameApp::setupResources()
 
 void GameApp::setupKeyBindings()
 {
+    _inputManager.defineAction("MoveUp", Action::MoveUp);
+    _inputManager.defineAction("MoveDown", Action::MoveDown);
+    _inputManager.defineAction("MoveLeft", Action::MoveLeft);
+    _inputManager.defineAction("MoveRight", Action::MoveRight);
+    _inputManager.defineAction("Shoot", Action::Shoot);
     _inputManager.bind(Action::MoveUp, static_cast<int>(sf::Keyboard::Key::Up));
     _inputManager.bind(Action::MoveUp, static_cast<int>(sf::Keyboard::Key::W));
     _inputManager.bind(
@@ -134,7 +140,7 @@ void GameApp::setupSystems()
 
     // Engine Controllable system (local client prediction)
     RType::addControllableSystem(
-        _registry, playerSpeed, _fixedDeltaTime, RType::MovementActions {});
+        _registry, playerSpeed, _fixedDeltaTime, Protocol::MOVEMENT_ACTIONS);
 
     // Modules systems
     _physics2DModuleLoader.getInstance().registerModule(_registry);

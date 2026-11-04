@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <unordered_set>
 
-#include "components/Action.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
@@ -22,6 +21,7 @@
 namespace RType {
 namespace {
     using Game::Protocol::EntityKind;
+    namespace Action = Game::Protocol::Action;
 
     // Play area, in pixels: the client window (docs/protocol.md,
     // Appendix B).
@@ -77,7 +77,7 @@ namespace {
 
     bool isShooting(ActionMask actionMask)
     {
-        return (actionMask & (1u << static_cast<unsigned>(Action::Shoot))) != 0;
+        return (actionMask & (ActionMask {1} << Action::Shoot)) != 0;
     }
 
     Network::ComponentData encodeKind(EntityKind kind)

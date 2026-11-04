@@ -16,6 +16,8 @@
 #include <string_view>
 #include <unordered_set>
 #include <vector>
+#include <functional>
+#include <map>
 
 #include "NlohmanReader.h"
 #include "components/Action.h"
@@ -25,8 +27,15 @@ public:
     using KeyCode = int;
 
     InputManager() = default;
-    explicit InputManager(const std::filesystem::path &configFile);
     ~InputManager() = default;
+
+    /**
+     * @brief Names an action so config files can refer to it.
+     * @param name Name used in the "bindings" object of a config file.
+     * @param action Bit of the action in the mask.
+     * @throws std::out_of_range if action is not below MAX_ACTIONS.
+     */
+    void defineAction(const std::string &name, RType::ActionId action);
 
     /**
      * @brief Loads action-to-input bindings from a JSON config file.
@@ -42,13 +51,13 @@ public:
      * @note An action can have several keys (e.g. arrows and WASD).
      *       Binding the same key twice to the same action has no effect.
      */
-    void bind(Action action, KeyCode key);
+    void bind(RType::ActionId action, KeyCode key);
 
     /**
      * @brief Binds a named device input to an action.
      * @param input Input identifier, such as "KEYBOARD_A" or "MOUSE_LEFT".
      */
-    void bind(Action action, const std::string &input);
+    void bind(RType::ActionId action, const std::string &input);
 
     /**
      * @brief Removes one key from an action.
@@ -56,19 +65,19 @@ public:
      * @param key Key to unbind.
      * @note Does nothing if the key was not bound to this action.
      */
-    void unbind(Action action, KeyCode key);
+    void unbind(RType::ActionId action, KeyCode key);
 
     /**
      * @brief Removes one named device input from an action.
      */
-    void unbind(Action action, std::string_view input);
+    void unbind(RType::ActionId action, std::string_view input);
 
     /**
      * @brief Removes every key bound to an action.
      * @param action Action to clear.
      * @note Typically used before rebinding an action to a new key.
      */
-    void clearBindings(Action action);
+    void clearBindings(RType::ActionId action);
 
     /**
      * @brief Records that a key was pressed or released.
@@ -88,7 +97,7 @@ public:
      * @param action Action to check.
      * @return true if at least one key bound to the action is down.
      */
-    bool isActionDown(Action action) const;
+    bool isActionDown(RType::ActionId action) const;
 
     /**
      * @brief Packs all active actions into a 32-bit mask.
@@ -101,11 +110,9 @@ public:
     static std::string keyCodeId(InputManager::KeyCode key);
 
 private:
-    static constexpr std::size_t actionCount =
-        static_cast<std::size_t>(Action::Count);
-
     using InputId = std::string;
-    std::array<std::vector<InputId>, actionCount> _bindings;
+    std::array<std::vector<InputId>, RType::MAX_ACTIONS> _bindings;
+    std::map<std::string, RType::ActionId, std::less<>> _actionNames;
     std::unordered_set<InputId> _pressed;
     RType::nlohamReader _reader;
 };

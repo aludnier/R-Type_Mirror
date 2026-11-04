@@ -9,19 +9,12 @@
 #define ACTION_H_
 
 #include <cstdint>
+#include <cstddef>
 
 namespace RType {
 using ActionId = std::uint8_t;
 using ActionMask = std::uint32_t;
+inline constexpr std::size_t MAX_ACTIONS = 32;
 } // namespace RType
-
-enum class Action : std::uint8_t {
-    MoveUp,
-    MoveDown,
-    MoveLeft,
-    MoveRight,
-    Shoot,
-    Count
-};
 
 #endif /* !ACTION_H_ */

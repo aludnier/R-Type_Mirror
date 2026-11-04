@@ -17,6 +17,7 @@
 #include "ecs/Zipper.h"
 #include "library/InputManager.h"
 #include "systems/ControllableSystem.h"
+#include "TestActions.h"
 
 namespace {
 struct Position {

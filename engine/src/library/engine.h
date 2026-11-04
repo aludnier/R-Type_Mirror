@@ -67,17 +67,17 @@ public:
             entity, RType::Sprite {_resources.getAsset(assetName).id});
     }
 
-    void bindAction(Action action, InputManager::KeyCode key)
+    void bindAction(RType::ActionId action, InputManager::KeyCode key)
     {
         _input.bind(action, key);
     }
 
-    void unbindAction(Action action, InputManager::KeyCode key)
+    void unbindAction(RType::ActionId action, InputManager::KeyCode key)
     {
         _input.unbind(action, key);
     }
 
-    void clearActionBindings(Action action)
+    void clearActionBindings(RType::ActionId action)
     {
         _input.clearBindings(action);
     }
@@ -87,7 +87,7 @@ public:
         _input.setKeyState(key, pressed);
     }
 
-    bool isActionDown(Action action) const
+    bool isActionDown(RType::ActionId action) const
     {
         return _input.isActionDown(action);
     }
