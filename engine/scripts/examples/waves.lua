@@ -1,5 +1,5 @@
 -- Minimal game written only with the scripting API: a game-wide system spawns
--- enemies on the right in waves, and each enemy runs bydo.lua, its entity
+-- enemies on the right in waves, and each enemy runs enemy.lua, its entity
 -- script, to move to the left and die when it leaves the screen.
 -- The host registers Transform2D, Health and Hitbox, adds the script system,
 -- then calls ScriptEngine::setDeltaTime(dt) and Registry::runSystems() every

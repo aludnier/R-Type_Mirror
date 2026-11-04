@@ -3,13 +3,13 @@
 
 local SPEED = 200
 
-local bydo = {}
+local enemy = {}
 
-function bydo.on_start(e)
-    world.data(e).kind = "bydo"
+function enemy.on_start(e)
+    world.data(e).kind = "enemy"
 end
 
-function bydo.on_update(e, dt)
+function enemy.on_update(e, dt)
     local transform = world.get(e, "Transform2D")
     transform.position.x = transform.position.x - SPEED * dt
     if transform.position.x < 0 or world.get(e, "Health"):is_dead() then
@@ -17,4 +17,4 @@ function bydo.on_update(e, dt)
     end
 end
 
-return bydo
+return enemy

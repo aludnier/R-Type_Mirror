@@ -87,22 +87,22 @@ Each file is loaded once and shared by every entity using it, so per-entity
 state goes in `world.data(e)`:
 
 ```lua
--- bydo.lua
-local bydo = {}
+-- enemy.lua
+local enemy = {}
 
-function bydo.on_start(e)
-    world.data(e).kind = "bydo"
+function enemy.on_start(e)
+    world.data(e).kind = "enemy"
 end
 
-function bydo.on_update(e, dt)
+function enemy.on_update(e, dt)
     local t = world.get(e, "Transform2D")
     t.position.x = t.position.x - 200 * dt
 end
 
-return bydo
+return enemy
 ```
 
-Attached with `world.add(e, "Script", {"bydo.lua", "blink.lua"})` (or a single
+Attached with `world.add(e, "Script", {"enemy.lua", "blink.lua"})` (or a single
 path string), or with a `ScriptComponent` from C++. `world.get(e, "Script")`
 returns a copy of the paths.
 
@@ -133,7 +133,7 @@ Bound types: `Vector2` (`x`, `y`, `+`, `-`, `* number`), `Transform2D`
 which is empty until the game fills it with `ScriptEngine::defineAction()`.
 
 A complete example is in [`engine/scripts/examples/waves.lua`](../engine/scripts/examples/waves.lua)
-(game script spawning waves) and [`engine/scripts/examples/bydo.lua`](../engine/scripts/examples/bydo.lua)
+(game script spawning waves) and [`engine/scripts/examples/enemy.lua`](../engine/scripts/examples/enemy.lua)
 (entity script of each enemy).
 
 ## 3. Safety
