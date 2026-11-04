@@ -19,7 +19,7 @@ local function spawn_enemy(y)
     world.add(enemy, "Transform2D", Transform2D.new(Vector2.new(SCREEN_WIDTH, y)))
     world.add(enemy, "Health", Health.new(2))
     world.add(enemy, "Hitbox", Hitbox.new(32, 32))
-    world.add(enemy, "Script", {"bydo.lua"})
+    world.add(enemy, "Script", {"enemy.lua"})
     return enemy
 end
 

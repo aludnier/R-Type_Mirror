@@ -32,7 +32,7 @@
 namespace RType {
 struct ServerConfig {
     std::uint16_t port = 4242;
-    /** @brief Player slots. R-Type is played by up to 4 players. */
+    /** @brief Player slots. */
     std::size_t maxPlayers = 4;
     std::uint16_t tickRate = Network::DEFAULT_TICK_RATE;
     /** @brief Speed of a player's entity, in units per second. */
