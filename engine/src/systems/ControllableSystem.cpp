@@ -26,7 +26,7 @@ void addControllableSystem(
     Registry &registry, float speed, float dt, MovementActions actions)
 {
     registry.addSystem<Transform2D, Controllable>(
-        [speed, dt](auto &transforms, auto &controllables) {
+        [speed, dt, actions](auto &transforms, auto &controllables) {
             for (auto [transform, controllable] :
                 Zipper(transforms, controllables)) {
                 transform.position +=
