@@ -12,12 +12,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <functional>
+#include <map>
 #include <string>
 #include <string_view>
 #include <unordered_set>
 #include <vector>
-#include <functional>
-#include <map>
 
 #include "NlohmanReader.h"
 #include "components/Action.h"

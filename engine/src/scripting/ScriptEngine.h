@@ -22,9 +22,9 @@
 
 #include "ComponentBinding.h"
 #include "ScriptComponent.h"
+#include "components/Action.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
-#include "components/Action.h"
 
 namespace RType {
 /**

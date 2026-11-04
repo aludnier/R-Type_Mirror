@@ -10,8 +10,8 @@
 
 #include <cstdint>
 
-#include "network/Protocol.h"
 #include "components/Action.h"
+#include "network/Protocol.h"
 #include "systems/ControllableSystem.h"
 
 /**

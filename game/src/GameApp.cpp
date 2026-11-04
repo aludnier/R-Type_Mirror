@@ -42,6 +42,7 @@
 namespace Game {
 
 namespace Action = Protocol::Action;
+
 GameApp::GameApp()
 {
 #ifdef WIN32

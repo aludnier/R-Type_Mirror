@@ -5,6 +5,7 @@
 #include <tuple>
 #include <vector>
 
+#include "TestActions.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
@@ -17,7 +18,6 @@
 #include "ecs/Zipper.h"
 #include "library/InputManager.h"
 #include "systems/ControllableSystem.h"
-#include "TestActions.h"
 
 namespace {
 struct Position {
@@ -248,8 +248,8 @@ TEST_CASE("Controllable system uses the movement actions it is given",
     registry.addComponent<RType::Transform2D>(entity, RType::Transform2D {});
     registry.addComponent<RType::Controllable>(
         entity, RType::Controllable {RType::ActionMask {1} << 20});
-    RType::addControllableSystem(registry, 10.f, 1.f,
-        {.up = 10, .down = 11, .left = 12, .right = 20});
+    RType::addControllableSystem(
+        registry, 10.f, 1.f, {.up = 10, .down = 11, .left = 12, .right = 20});
 
     registry.runSystems();
 

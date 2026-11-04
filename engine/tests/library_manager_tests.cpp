@@ -563,8 +563,8 @@ TEST_CASE("InputManager loads bindings for actions defined by the game",
     REQUIRE(manager.actionMask() == bit(jump));
 }
 
-TEST_CASE("InputManager rejects actions that do not fit the mask",
-    "[input][manager]")
+TEST_CASE(
+    "InputManager rejects actions that do not fit the mask", "[input][manager]")
 {
     InputManager manager;
 

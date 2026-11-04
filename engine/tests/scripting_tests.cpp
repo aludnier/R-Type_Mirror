@@ -4,8 +4,8 @@
 
 #include <filesystem>
 #include <fstream>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #include "TestActions.h"
 #include "components/Controllable.h"
@@ -520,7 +520,8 @@ TEST_CASE("A failing entity script only stops on that entity", "[scripting]")
     }
 }
 
-TEST_CASE("ScriptEngine rejects actions that do not fit the mask", "[scripting]")
+TEST_CASE(
+    "ScriptEngine rejects actions that do not fit the mask", "[scripting]")
 {
     RType::Registry registry;
     RType::ScriptEngine scripts(registry);

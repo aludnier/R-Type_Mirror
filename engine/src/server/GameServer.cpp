@@ -376,8 +376,8 @@ void GameServer::applyControls()
         if (entity == _replicated.end()) {
             continue;
         }
-        controllables[entity->second] = Controllable {
-            session.controls().actions};
+        controllables[entity->second] =
+            Controllable {session.controls().actions};
     }
 }
 

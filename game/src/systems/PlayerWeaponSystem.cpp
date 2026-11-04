@@ -6,12 +6,12 @@
 */
 
 #include "systems/PlayerWeaponSystem.h"
-#include "network/GameProtocol.h"
 #include "components/Controllable.h"
 #include "components/Player.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
 #include "ecs/Zipper.h"
+#include "network/GameProtocol.h"
 
 namespace Game {
 

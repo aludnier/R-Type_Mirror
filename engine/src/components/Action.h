@@ -8,8 +8,8 @@
 #ifndef ACTION_H_
 #define ACTION_H_
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace RType {
 using ActionId = std::uint8_t;
