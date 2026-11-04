@@ -12,13 +12,12 @@
 #include <limits>
 #include <stdexcept>
 
-#include "components/Action.h"
+#include "CoreBindings.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Transform2D.h"
 #include "library/NlohmanReader.h"
-#include "math/Vector2.h"
 
 namespace {
 RType::entity_id_type toEntityId(lua_Integer value)
@@ -26,11 +25,6 @@ RType::entity_id_type toEntityId(lua_Integer value)
     if (value < 0)
         throw std::runtime_error("invalid entity id " + std::to_string(value));
     return static_cast<RType::entity_id_type>(value);
-}
-
-std::uint8_t actionBit(Action action)
-{
-    return static_cast<std::uint8_t>(1U << static_cast<unsigned>(action));
 }
 } // namespace
 
@@ -40,14 +34,13 @@ RType::ScriptEngine::ScriptEngine(Registry &registry) :
     _registry.registerComponent<ScriptData>();
     _registry.registerComponent<ScriptComponent>();
     openSandbox();
-    bindCoreTypes();
-    bindScriptComponent();
+    Scripting::bindCoreTypes(_lua);
+    bindCoreComponents();
     bindWorld();
 }
 
 RType::ScriptEngine::~ScriptEngine()
 {
-    _alive.reset();
     _systems.clear();
     _entityScripts.clear();
     // ScriptData holds Lua references: drop them while the state still exists.
@@ -69,184 +62,80 @@ void RType::ScriptEngine::openSandbox()
     _lua["load"] = sol::lua_nil;
 }
 
-void RType::ScriptEngine::bindCoreTypes()
+void RType::ScriptEngine::bindCoreComponents()
 {
-    _lua.new_usertype<Vector2>(
-        "Vector2",
-        sol::constructors<Vector2(), Vector2(float, float)>(),
-        "x",
-        &Vector2::x,
-        "y",
-        &Vector2::y,
-        sol::meta_function::addition,
-        [](const Vector2 &a, const Vector2 &b) { return a + b; },
-        sol::meta_function::subtraction,
-        [](const Vector2 &a, const Vector2 &b) { return a - b; },
-        sol::meta_function::multiplication,
-        [](const Vector2 &v, float s) { return v * s; },
-        sol::meta_function::equal_to,
-        [](const Vector2 &a, const Vector2 &b) {
-            return a.x == b.x && a.y == b.y;
-        });
-
-    _lua.new_usertype<Transform2D>("Transform2D",
-        sol::constructors<Transform2D(),
-            Transform2D(Vector2),
-            Transform2D(Vector2, Vector2),
-            Transform2D(Vector2, Vector2, float)>(),
-        // Properties return pointers so that `t.position.x = 1` edits `t`.
-        "position",
-        sol::property([](Transform2D &t) { return &t.position; },
-            [](Transform2D &t, const Vector2 &v) { t.position = v; }),
-        "scale",
-        sol::property([](Transform2D &t) { return &t.scale; },
-            [](Transform2D &t, const Vector2 &v) { t.scale = v; }),
-        "rotation",
-        &Transform2D::rotation);
-
-    _lua.new_usertype<Health>("Health",
-        sol::constructors<Health(), Health(int), Health(int, int)>(),
-        "current",
-        &Health::current,
-        "max",
-        &Health::max,
-        "is_dead",
-        &Health::isDead,
-        "take_damage",
-        &Health::takeDamage);
-
-    _lua.new_usertype<Hitbox>("Hitbox",
-        sol::constructors<Hitbox(), Hitbox(Vector2), Hitbox(float, float)>(),
-        "size",
-        sol::property([](Hitbox &h) { return &h.size; },
-            [](Hitbox &h, const Vector2 &v) { h.size = v; }));
-
-    _lua.new_enum<Action>("Action",
-        {{"MoveUp", Action::MoveUp},
-            {"MoveDown", Action::MoveDown},
-            {"MoveLeft", Action::MoveLeft},
-            {"MoveRight", Action::MoveRight},
-            {"Shoot", Action::Shoot}});
-
-    _lua.new_usertype<Controllable>(
-        "Controllable",
-        sol::constructors<Controllable(), Controllable(std::uint8_t)>(),
-        "action_mask",
-        &Controllable::actionMask,
-        "is_active",
-        [](const Controllable &c, Action action) {
-            return (c.actionMask & actionBit(action)) != 0;
-        },
-        "set_active",
-        [](Controllable &c, Action action, bool active) {
-            if (active)
-                c.actionMask |= actionBit(action);
-            else
-                c.actionMask &= static_cast<std::uint8_t>(~actionBit(action));
-        });
-
     bindComponent<Transform2D>("Transform2D");
     bindComponent<Health>("Health");
     bindComponent<Hitbox>("Hitbox");
     bindComponent<Controllable>("Controllable");
+    bindComponent<ScriptComponent>("Script");
 }
 
 void RType::ScriptEngine::bindWorld()
 {
     sol::table world = _lua.create_named_table("world");
-
-    world.set_function("spawn", [this]() {
-        return static_cast<lua_Integer>(
-            static_cast<entity_id_type>(_registry.spawnEntity()));
-    });
-    world.set_function("kill", [this](lua_Integer e) {
-        _registry.killEntity(Registry::entityFromIndex(toEntityId(e)));
-    });
-    world.set_function("has", [this](lua_Integer e, const std::string &name) {
-        return binding(name).has(_registry, toEntityId(e));
-    });
-    world.set_function("get", [this](lua_Integer e, const std::string &name) {
-        return binding(name).get(_registry, toEntityId(e), _lua.lua_state());
-    });
-    world.set_function("add",
-        [this](
-            lua_Integer e, const std::string &name, const sol::object &value) {
-            const auto &component = binding(name);
-            const auto id = toEntityId(e);
-            try {
-                component.add(_registry, id, value);
-            } catch (const std::runtime_error &) {
-                throw std::runtime_error("world.add: value is not a " + name);
-            }
-            return component.get(_registry, id, _lua.lua_state());
-        });
-    world.set_function(
-        "remove", [this](lua_Integer e, const std::string &name) {
-            binding(name).remove(_registry, toEntityId(e));
-        });
-    world.set_function(
-        "data", [this](lua_Integer e) { return entityData(toEntityId(e)); });
-    world.set_function("each",
-        [this](const sol::table &names, const sol::protected_function &fn) {
-            each(names, fn);
-        });
-    world.set_function("add_system",
-        [this](const std::string &name, const sol::protected_function &fn) {
-            _systems.push_back({.name = name, .update = fn, .enabled = true});
-        });
+    world.set_function("spawn", &ScriptEngine::spawn, this);
+    world.set_function("kill", &ScriptEngine::kill, this);
+    world.set_function("has", &ScriptEngine::has, this);
+    world.set_function("get", &ScriptEngine::get, this);
+    world.set_function("add", &ScriptEngine::add, this);
+    world.set_function("remove", &ScriptEngine::remove, this);
+    world.set_function("data", &ScriptEngine::data, this);
+    world.set_function("each", &ScriptEngine::each, this);
+    world.set_function("add_system", &ScriptEngine::addSystem, this);
 }
 
-void RType::ScriptEngine::bindScriptComponent()
+lua_Integer RType::ScriptEngine::spawn()
 {
-    _components.insert_or_assign("Script",
-        ComponentBinding {
-            .has =
-                [](Registry &r, entity_id_type id) {
-                    auto &storage = r.getComponents<ScriptComponent>();
-                    return id < storage.size() && storage[id].has_value();
-                },
-            // A copy of the paths: edit them with world.add.
-            .get = [](Registry &r, entity_id_type id, lua_State *lua)
-                -> sol::object {
-                auto &storage = r.getComponents<ScriptComponent>();
-                if (id >= storage.size() || !storage[id].has_value())
-                    return sol::make_object(lua, sol::lua_nil);
-                sol::table paths = sol::state_view(lua).create_table();
-                for (const auto &path : storage[id]->scripts)
-                    paths.add(path.string());
-                return paths;
-            },
-            .add =
-                [](Registry &r, entity_id_type id, const sol::object &value) {
-                    ScriptComponent component;
-                    if (value.is<std::string>()) {
-                        component.scripts.emplace_back(value.as<std::string>());
-                    } else if (value.is<sol::table>()) {
-                        for (const auto &[_, path] : value.as<sol::table>()) {
-                            if (!path.is<std::string>())
-                                throw std::runtime_error("bad script path");
-                            component.scripts.emplace_back(
-                                path.as<std::string>());
-                        }
-                    } else {
-                        throw std::runtime_error("bad value for component");
-                    }
-                    r.addComponent<ScriptComponent>(
-                        Registry::entityFromIndex(id), std::move(component));
-                },
-            .remove =
-                [](Registry &r, entity_id_type id) {
-                    r.removeComponent<ScriptComponent>(
-                        Registry::entityFromIndex(id));
-                },
-            .size =
-                [](Registry &r) {
-                    return r.getComponents<ScriptComponent>().size();
-                },
-        });
+    return static_cast<lua_Integer>(
+        static_cast<entity_id_type>(_registry.spawnEntity()));
 }
 
-const RType::ScriptEngine::ComponentBinding &RType::ScriptEngine::binding(
+void RType::ScriptEngine::kill(lua_Integer e)
+{
+    _registry.killEntity(Registry::entityFromIndex(toEntityId(e)));
+}
+
+bool RType::ScriptEngine::has(lua_Integer e, const std::string &name)
+{
+    return binding(name).has(_registry, toEntityId(e));
+}
+
+sol::object RType::ScriptEngine::get(lua_Integer e, const std::string &name)
+{
+    return binding(name).get(_registry, toEntityId(e), _lua.lua_state());
+}
+
+sol::object RType::ScriptEngine::add(
+    lua_Integer e, const std::string &name, const sol::object &value)
+{
+    const auto &component = binding(name);
+    const auto id = toEntityId(e);
+    try {
+        component.add(_registry, id, value);
+    } catch (const std::runtime_error &) {
+        throw std::runtime_error("world.add: value is not a " + name);
+    }
+    return component.get(_registry, id, _lua.lua_state());
+}
+
+void RType::ScriptEngine::remove(lua_Integer e, const std::string &name)
+{
+    binding(name).remove(_registry, toEntityId(e));
+}
+
+sol::table RType::ScriptEngine::data(lua_Integer e)
+{
+    return entityData(toEntityId(e));
+}
+
+void RType::ScriptEngine::addSystem(
+    const std::string &name, const sol::protected_function &fn)
+{
+    _systems.push_back({.name = name, .update = fn, .enabled = true});
+}
+
+const RType::Scripting::ComponentBinding &RType::ScriptEngine::binding(
     const std::string &name) const
 {
     const auto it = _components.find(name);
@@ -269,7 +158,7 @@ sol::table RType::ScriptEngine::entityData(entity_id_type id)
 void RType::ScriptEngine::each(
     const sol::table &names, const sol::protected_function &fn)
 {
-    std::vector<const ComponentBinding *> components;
+    std::vector<const Scripting::ComponentBinding *> components;
     for (std::size_t i = 1; i <= names.size(); ++i)
         components.push_back(&binding(names.get<std::string>(i)));
     if (components.empty())
@@ -457,11 +346,6 @@ void RType::ScriptEngine::setScriptDirectory(
 {
     _scriptDirectory = directory;
     _entityScripts.clear();
-}
-
-std::weak_ptr<bool> RType::ScriptEngine::lifetime() const
-{
-    return _alive;
 }
 
 void RType::ScriptEngine::setDeltaTime(float dt)

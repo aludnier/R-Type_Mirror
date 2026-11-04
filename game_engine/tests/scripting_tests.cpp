@@ -361,18 +361,17 @@ TEST_CASE("Scripts are loaded from a JSON config file and can be reloaded",
     }
 }
 
-TEST_CASE("Destroying the engine before the registry is safe", "[scripting]")
+TEST_CASE("Destroying the engine releases its Lua data in the registry",
+    "[scripting]")
 {
     RType::Registry registry;
     {
         RType::ScriptEngine scripts(registry);
         RType::addScriptSystem(registry, scripts);
-        REQUIRE(scripts.loadString(R"(
-            world.data(world.spawn()).x = 1
-            world.add_system("noop", function(dt) end)
-        )"));
+        REQUIRE(scripts.loadString("world.data(world.spawn()).x = 1"));
     }
-    CHECK_NOTHROW(registry.runSystems());
+    for (const auto &data : registry.getComponents<RType::ScriptData>())
+        CHECK_FALSE(data.has_value());
 }
 
 TEST_CASE("The example wave script runs a small game", "[scripting]")

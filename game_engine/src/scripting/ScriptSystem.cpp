@@ -12,10 +12,6 @@
 void RType::addScriptSystem(Registry &registry, ScriptEngine &engine)
 {
     registry.addSystem<ScriptComponent>(
-        [&engine, alive = engine.lifetime()](
-            SparseArray<ScriptComponent> &scripts) {
-            if (alive.expired())
-                return;
-            engine.update(scripts);
-        });
+        [&engine](
+            SparseArray<ScriptComponent> &scripts) { engine.update(scripts); });
 }

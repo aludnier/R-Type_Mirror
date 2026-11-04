@@ -98,6 +98,10 @@ find_package(Lua REQUIRED)
 find_package(sol2 CONFIG REQUIRED)
 
 set(SCRIPTING_SRC
+        src/scripting/ComponentBinding.cpp
+        src/scripting/ComponentBinding.h
+        src/scripting/CoreBindings.cpp
+        src/scripting/CoreBindings.h
         src/scripting/ScriptComponent.h
         src/scripting/ScriptEngine.cpp
         src/scripting/ScriptEngine.h
