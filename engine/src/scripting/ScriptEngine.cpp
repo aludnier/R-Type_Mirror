@@ -74,6 +74,10 @@ void RType::ScriptEngine::bindCoreComponents()
 
 void RType::ScriptEngine::bindWorld()
 {
+    // Same binding as set_function(name, &ScriptEngine::fn, this).
+    const auto method = [this](auto fn) {
+        return sol::make_object(_lua, sol::as_function(fn, this));
+    };
     // Lua name -> ScriptEngine method. Add a world function here.
     const std::map<std::string, sol::object> functions = {
         {"spawn", method(&ScriptEngine::spawn)},

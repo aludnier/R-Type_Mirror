@@ -165,15 +165,6 @@ private:
         const std::filesystem::path &path);
     void reportError(const std::string &message);
 
-    /** @brief Wraps a method of this engine into a Lua function. */
-    template<typename R, typename... Args>
-    sol::object method(R (ScriptEngine::*fn)(Args...))
-    {
-        return sol::make_object(_lua, [this, fn](Args... args) -> R {
-            return (this->*fn)(std::forward<Args>(args)...);
-        });
-    }
-
     // Functions of the Lua `world` table.
     lua_Integer spawn();
     void kill(lua_Integer e);
