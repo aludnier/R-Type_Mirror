@@ -27,6 +27,7 @@
 #include "network/Packet.h"
 #include "network/Protocol.h"
 #include "network/ServerPackets.h"
+#include "systems/ControllableSystem.h"
 
 namespace RType {
 struct ServerConfig {
@@ -36,6 +37,7 @@ struct ServerConfig {
     std::uint16_t tickRate = Network::DEFAULT_TICK_RATE;
     /** @brief Speed of a player's entity, in units per second. */
     float playerSpeed = 300.f;
+    MovementActions movementActions;
 };
 
 /**

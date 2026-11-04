@@ -298,7 +298,8 @@ void GameServer::setupRegistry()
     _registry.registerComponent<Controllable>();
     addControllableSystem(_registry,
         _config.playerSpeed,
-        1.f / static_cast<float>(_config.tickRate));
+        1.f / static_cast<float>(_config.tickRate),
+        _config.movementActions);
 }
 
 Network::NetworkId GameServer::spawnPlayer(Network::ClientId id)
