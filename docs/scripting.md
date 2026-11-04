@@ -10,8 +10,8 @@ The engine can run games written in Lua. Scripts come in two kinds:
 The C++ side only owns the `Registry`, registers the component storages and
 runs the frame.
 
-The scripting layer lives in `game_engine/src/scripting` and is built as the
-`engine_scripting` static library. It only depends on `engine_core`, so both
+The scripting layer lives in `engine/src/scripting` and is built as the
+`engine_scripting` static library (`Eng::scripting`). It only depends on `engine_core`, so both
 `r-type_server` and `r-type_client` can link it.
 
 ## 1. Host side (C++)
@@ -132,8 +132,8 @@ Bound types: `Vector2` (`x`, `y`, `+`, `-`, `* number`), `Transform2D`
 `is_active(Action.X)`, `set_active(Action.X, bool)`) and the `Action` enum
 (`MoveUp`, `MoveDown`, `MoveLeft`, `MoveRight`, `Shoot`).
 
-A complete example is in [`scripts/examples/waves.lua`](../scripts/examples/waves.lua)
-(game script spawning waves) and [`scripts/examples/bydo.lua`](../scripts/examples/bydo.lua)
+A complete example is in [`engine/scripts/examples/waves.lua`](../engine/scripts/examples/waves.lua)
+(game script spawning waves) and [`engine/scripts/examples/bydo.lua`](../engine/scripts/examples/bydo.lua)
 (entity script of each enemy).
 
 ## 3. Safety

@@ -1,4 +1,15 @@
-cmake_minimum_required(VERSION 3.10.0)
+cmake_minimum_required(VERSION 3.21)
+project(Eng VERSION 0.1.0 LANGUAGES C CXX)
+
+if (PROJECT_IS_TOP_LEVEL)
+    set(CMAKE_CXX_STANDARD 23)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    option(BUILD_TESTS "Build the tests" ON)
+    include(CTest)
+endif ()
+
+# Every engine module (.so/.dll) is built into this folder.
+set(ENGINE_MODULE_DIR "${CMAKE_BINARY_DIR}/modules" CACHE INTERNAL "")
 
 # ---------------------------------------------------------------------------
 # engine_core: used by the server AND the client. Must never depend on a
@@ -116,11 +127,12 @@ target_link_libraries(engine_scripting PUBLIC engine_core sol2::sol2 ${LUA_LIBRA
 target_compile_definitions(engine_scripting PUBLIC SOL_ALL_SAFETIES_ON=1)
 
 # ---------------------------------------------------------------------------
-# Temporary: keeps the old target name working for branches opened before
-# the split. Remove once every branch links engine_core / engine_client.
+# Namespaced names: games link Eng:: targets only.
 # ---------------------------------------------------------------------------
-add_library(game_engine INTERFACE)
-target_link_libraries(game_engine INTERFACE engine_core engine_client)
+add_library(Eng::core ALIAS engine_core)
+add_library(Eng::client ALIAS engine_client)
+add_library(Eng::server ALIAS engine_server)
+add_library(Eng::scripting ALIAS engine_scripting)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
@@ -174,7 +186,11 @@ if (BUILD_TESTS)
     target_link_libraries(engine_scripting_tests PRIVATE engine_scripting Catch2::Catch2WithMain)
 
     target_compile_definitions(engine_scripting_tests PRIVATE
-            EXAMPLE_SCRIPT_DIRECTORY="${CMAKE_SOURCE_DIR}/scripts/examples")
+            EXAMPLE_SCRIPT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/scripts/examples")
 
     add_test(NAME engine_scripting_tests COMMAND engine_scripting_tests)
 endif ()
+
+add_subdirectory(modules/example)
+add_subdirectory(modules/physics2D)
+add_subdirectory(modules/environment2D)

@@ -6,7 +6,7 @@ send their controls and display what the server sends back over UDP.
 
 ## Project layout
 
-The project builds three engine libraries and two executables. The server
+The project builds four engine libraries and two executables. The server
 never links the client library, so it never depends on the graphics library.
 
 | Target                               | Kind             | Contents                                                          | Used by           |
@@ -14,17 +14,19 @@ never links the client library, so it never depends on the graphics library.
 | `engine_core`                        | static library   | ECS, math, shared components and systems, network (Asio), modules | server and client |
 | `engine_client`                      | static library   | engine loop, input, later rendering and audio                     | client            |
 | `engine_server`                      | static library   | server runtime: game loop, client sessions                        | server            |
+| `engine_scripting`                   | static library   | Lua scripting (sol2), see `docs/scripting.md`                     | server and client |
 | `r-type_server`                      | executable       | server entry point                                                |                   |
 | `r-type_client`                      | executable       | client entry point (work in progress)                             |                   |
 | `physics2d_module`, `example_module` | shared libraries | dynamically loaded modules                                        | server and client |
 
-| Folder         | Contents                                                |
-|----------------|---------------------------------------------------------|
-| `game_engine/` | `engine_core`, `engine_client` and their tests          |
-| `server/`      | `engine_server` and `r-type_server`                     |
-| `game/`        | `r-type_client`                                         |
-| `modules/`     | dynamic modules (see `docs/writing_dynamic_modules.md`) |
-| `docs/`        | network protocol (`protocol.md`), architecture diagrams |
+| Folder            | Contents                                                |
+|-------------------|---------------------------------------------------------|
+| `engine/`         | `engine_core`, `engine_client`, `engine_scripting` and their tests |
+| `server/`         | `engine_server` and `r-type_server`                     |
+| `game/`           | `r-type_client`                                         |
+| `engine/modules/` | dynamic modules (see `docs/writing_dynamic_modules.md`) |
+| `engine/scripts/` | example Lua scripts (see `docs/scripting.md`)           |
+| `docs/`           | network protocol (`protocol.md`), architecture diagrams |
 
 ## Requirements
 
