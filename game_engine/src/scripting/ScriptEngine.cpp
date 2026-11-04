@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <map>
 #include <stdexcept>
 
 #include "CoreBindings.h"
@@ -73,16 +74,21 @@ void RType::ScriptEngine::bindCoreComponents()
 
 void RType::ScriptEngine::bindWorld()
 {
+    // Lua name -> ScriptEngine method. Add a world function here.
+    const std::map<std::string, sol::object> functions = {
+        {"spawn", method(&ScriptEngine::spawn)},
+        {"kill", method(&ScriptEngine::kill)},
+        {"has", method(&ScriptEngine::has)},
+        {"get", method(&ScriptEngine::get)},
+        {"add", method(&ScriptEngine::add)},
+        {"remove", method(&ScriptEngine::remove)},
+        {"data", method(&ScriptEngine::data)},
+        {"each", method(&ScriptEngine::each)},
+        {"add_system", method(&ScriptEngine::addSystem)},
+    };
     sol::table world = _lua.create_named_table("world");
-    world.set_function("spawn", &ScriptEngine::spawn, this);
-    world.set_function("kill", &ScriptEngine::kill, this);
-    world.set_function("has", &ScriptEngine::has, this);
-    world.set_function("get", &ScriptEngine::get, this);
-    world.set_function("add", &ScriptEngine::add, this);
-    world.set_function("remove", &ScriptEngine::remove, this);
-    world.set_function("data", &ScriptEngine::data, this);
-    world.set_function("each", &ScriptEngine::each, this);
-    world.set_function("add_system", &ScriptEngine::addSystem, this);
+    for (const auto &[name, function] : functions)
+        world[name] = function;
 }
 
 lua_Integer RType::ScriptEngine::spawn()

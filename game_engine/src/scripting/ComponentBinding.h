@@ -10,6 +10,7 @@
 
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <stdexcept>
 
 #include <sol/sol.hpp>
@@ -23,11 +24,11 @@ namespace RType::Scripting {
  * @brief Type-erased access to one component storage, used by `world.*`.
  */
 struct ComponentBinding {
-    bool (*has)(Registry &, entity_id_type);
-    sol::object (*get)(Registry &, entity_id_type, lua_State *);
-    void (*add)(Registry &, entity_id_type, const sol::object &);
-    void (*remove)(Registry &, entity_id_type);
-    std::size_t (*size)(Registry &);
+    std::function<bool(Registry &, entity_id_type)> has;
+    std::function<sol::object(Registry &, entity_id_type, lua_State *)> get;
+    std::function<void(Registry &, entity_id_type, const sol::object &)> add;
+    std::function<void(Registry &, entity_id_type)> remove;
+    std::function<std::size_t(Registry &)> size;
 };
 
 /**
@@ -93,7 +94,7 @@ void ComponentOps<ScriptComponent>::add(
     Registry &registry, entity_id_type id, const sol::object &value);
 
 template<Component C>
-constexpr ComponentBinding makeComponentBinding()
+ComponentBinding makeComponentBinding()
 {
     return {
         .has = &ComponentOps<C>::has,
