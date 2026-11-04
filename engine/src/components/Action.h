@@ -10,6 +10,11 @@
 
 #include <cstdint>
 
+namespace RType {
+    using ActionId = std::uint8_t;
+    using ActionMask = std::uint32_t;
+}
+
 enum class Action : std::uint8_t {
     MoveUp,
     MoveDown,

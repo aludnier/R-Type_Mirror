@@ -91,12 +91,12 @@ public:
     bool isActionDown(Action action) const;
 
     /**
-     * @brief Packs all active actions into a single byte.
+     * @brief Packs all active actions into a 32-bit mask.
      * @return Bitmask where bit N is set if the action with value N is active.
      * @note Compact form meant for the network protocol: the client sends this
      *       byte, and the server decodes it without knowing about keyboards.
      */
-    std::uint8_t actionMask() const;
+    RType::ActionMask actionMask() const;
 
     static std::string keyCodeId(InputManager::KeyCode key);
 

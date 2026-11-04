@@ -92,7 +92,7 @@ public:
         return _input.isActionDown(action);
     }
 
-    std::uint8_t actionMask() const
+    RType::ActionMask actionMask() const
     {
         return _input.actionMask();
     }

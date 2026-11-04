@@ -75,7 +75,7 @@ namespace {
         }
     }
 
-    bool isShooting(std::uint8_t actionMask)
+    bool isShooting(ActionMask actionMask)
     {
         return (actionMask & (1u << static_cast<unsigned>(Action::Shoot))) != 0;
     }

@@ -9,14 +9,13 @@
 
 namespace RType {
 namespace {
-    bool isActive(std::uint8_t mask, Action action)
+    bool isActive(ActionMask mask, Action action)
     {
-        const auto bit =
-            static_cast<std::uint8_t>(1u << static_cast<std::uint8_t>(action));
+        const auto bit = ActionMask {1} << static_cast<ActionId>(action);
         return (mask & bit) != 0;
     }
 
-    Vector2 directionFrom(std::uint8_t mask)
+    Vector2 directionFrom(ActionMask mask)
     {
         return {static_cast<float>(isActive(mask, Action::MoveRight)) -
                 static_cast<float>(isActive(mask, Action::MoveLeft)),

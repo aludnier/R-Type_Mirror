@@ -377,7 +377,7 @@ void GameServer::applyControls()
         }
         // Controllable holds 8 actions: the higher bits are not used.
         controllables[entity->second] = Controllable {
-            static_cast<std::uint8_t>(session.controls().actions)};
+            session.controls().actions};
     }
 }
 

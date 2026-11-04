@@ -127,9 +127,9 @@ bool InputManager::isActionDown(Action action) const
         [this](const InputId &input) { return _pressed.contains(input); });
 }
 
-std::uint8_t InputManager::actionMask() const
+RType::ActionMask InputManager::actionMask() const
 {
-    std::uint8_t mask = 0;
+    RType::ActionMask mask = 0;
     for (std::size_t i = 0; i < actionCount; ++i) {
         if (isActionDown(static_cast<Action>(i))) {
             mask |= 1u << i;
