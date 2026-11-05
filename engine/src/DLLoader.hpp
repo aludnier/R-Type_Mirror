@@ -8,6 +8,10 @@
 #ifndef DLLOADER_HPP
 #define DLLOADER_HPP
 #if defined(_WIN32) || defined(_WIN64)
+#ifndef NOMINMAX
+#define NOMINMAX // Prevents windows.h from defining min/max macros that
+                 // conflict with std::min/std::max
+#endif
 #include <windows.h>
 #else
 #include <dlfcn.h>
