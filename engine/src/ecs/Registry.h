@@ -8,12 +8,14 @@
 #ifndef REGISTRY_H
 #define REGISTRY_H
 
+#include <algorithm>
 #include <any>
 #include <functional>
 #include <queue>
 #include <ranges>
 #include <typeindex>
 #include <unordered_map>
+#include <vector>
 
 #include "Component.h"
 
@@ -62,9 +64,28 @@ public:
             _componentsStorage.at(key).storage);
     }
 
+    /**
+     * @brief Creates a new entity and adds it to the live entities.
+     */
     Entity spawnEntity()
     {
-        return Entity(_nextEntityId++);
+        Entity entity(_nextEntityId++);
+        _entities.push_back(entity);
+        return entity;
+    }
+
+    /**
+     * @brief Live entities, in spawn order.
+     * @note Killed entities leave this list as soon as killEntity() is called.
+     */
+    [[nodiscard]] const std::vector<Entity> &entities() const
+    {
+        return _entities;
+    }
+
+    [[nodiscard]] bool isAlive(Entity const &entity) const
+    {
+        return std::ranges::find(_entities, entity) != _entities.end();
     }
 
     static Entity entityFromIndex(entity_id_type id)
@@ -77,9 +98,11 @@ public:
      * @param entity Entity to destroy.
      * @note Destruction is deferred: components are removed at the end of
      *       runSystems(), so the entity stays valid during the current frame.
+     *       It is removed from entities() right away.
      */
     void killEntity(Entity const &entity)
     {
+        std::erase(_entities, entity);
         _entitiesToKill.push(entity);
     }
 
@@ -143,6 +166,7 @@ private:
     }
 
     entity_id_type _nextEntityId = 0;
+    std::vector<Entity> _entities;
     std::queue<Entity> _entitiesToKill;
 
     std::unordered_map<std::type_index, RegistryEntry> _componentsStorage;
