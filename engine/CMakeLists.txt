@@ -103,6 +103,8 @@ set(PLATFORM_SRC
 add_library(engine_platform STATIC ${PLATFORM_SRC})
 
 target_link_libraries(engine_platform PUBLIC engine_core glfw glad::glad)
+# glad provides the OpenGL headers: GLFW must not include its own.
+target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,

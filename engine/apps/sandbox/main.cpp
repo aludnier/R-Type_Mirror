@@ -9,8 +9,8 @@
 #include <exception>
 #include <iostream>
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 
 #include "platform/Application.h"
 
@@ -21,7 +21,8 @@ constexpr RType::ActionId Quit = 2;
 
 class Sandbox : public RType::Application {
 public:
-    Sandbox() : Application({.title = "Sandbox"})
+    Sandbox() :
+        Application({.title = "Sandbox"})
     {
         input().bind(Brighter, GLFW_KEY_UP);
         input().bind(Darker, GLFW_KEY_DOWN);

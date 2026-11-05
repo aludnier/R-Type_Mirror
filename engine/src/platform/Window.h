@@ -37,7 +37,7 @@ public:
     void close();
 
     /** @brief Handles the pending window and keyboard events. */
-    void pollEvents();
+    static void pollEvents();
     /** @brief Shows what was drawn during this frame. */
     void swapBuffers();
 
@@ -45,7 +45,7 @@ public:
     void setKeyCallback(KeyCallback callback);
 
     /** @return Seconds since the window was created. */
-    [[nodiscard]] double time() const;
+    [[nodiscard]] static double time();
 
 private:
     static void onKey(

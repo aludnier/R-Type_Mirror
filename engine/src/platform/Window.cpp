@@ -10,8 +10,8 @@
 #include <stdexcept>
 #include <utility>
 
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
 
 namespace RType {
 Window::Window(const WindowConfig &config)
@@ -31,8 +31,8 @@ Window::Window(const WindowConfig &config)
     }
 
     glfwMakeContextCurrent(_handle);
-    if (gladLoadGLLoader(
-            reinterpret_cast<GLADloadproc>(glfwGetProcAddress)) == 0) {
+    if (gladLoadGLLoader(reinterpret_cast<GLADloadproc>(glfwGetProcAddress)) ==
+        0) {
         glfwDestroyWindow(_handle);
         glfwTerminate();
         throw std::runtime_error("cannot load the OpenGL functions");
@@ -75,7 +75,7 @@ void Window::setKeyCallback(KeyCallback callback)
     _keyCallback = std::move(callback);
 }
 
-double Window::time() const
+double Window::time()
 {
     return glfwGetTime();
 }
