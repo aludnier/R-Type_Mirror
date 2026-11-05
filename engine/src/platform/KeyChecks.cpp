@@ -1,0 +1,135 @@
+/*
+** EPITECH PROJECT, 2026
+** R-Type
+** File description:
+** KeyChecks.cpp
+*/
+
+#include <GLFW/glfw3.h>
+
+#include "library/Keys.h"
+
+// Key codes are passed to InputManager unchanged, so they must match GLFW.
+namespace RType {
+static_assert(Key::Unknown == GLFW_KEY_UNKNOWN);
+static_assert(Key::Space == GLFW_KEY_SPACE);
+static_assert(Key::Apostrophe == GLFW_KEY_APOSTROPHE);
+static_assert(Key::Comma == GLFW_KEY_COMMA);
+static_assert(Key::Minus == GLFW_KEY_MINUS);
+static_assert(Key::Period == GLFW_KEY_PERIOD);
+static_assert(Key::Slash == GLFW_KEY_SLASH);
+static_assert(Key::Num0 == GLFW_KEY_0);
+static_assert(Key::Num1 == GLFW_KEY_1);
+static_assert(Key::Num2 == GLFW_KEY_2);
+static_assert(Key::Num3 == GLFW_KEY_3);
+static_assert(Key::Num4 == GLFW_KEY_4);
+static_assert(Key::Num5 == GLFW_KEY_5);
+static_assert(Key::Num6 == GLFW_KEY_6);
+static_assert(Key::Num7 == GLFW_KEY_7);
+static_assert(Key::Num8 == GLFW_KEY_8);
+static_assert(Key::Num9 == GLFW_KEY_9);
+static_assert(Key::Semicolon == GLFW_KEY_SEMICOLON);
+static_assert(Key::Equal == GLFW_KEY_EQUAL);
+static_assert(Key::A == GLFW_KEY_A);
+static_assert(Key::B == GLFW_KEY_B);
+static_assert(Key::C == GLFW_KEY_C);
+static_assert(Key::D == GLFW_KEY_D);
+static_assert(Key::E == GLFW_KEY_E);
+static_assert(Key::F == GLFW_KEY_F);
+static_assert(Key::G == GLFW_KEY_G);
+static_assert(Key::H == GLFW_KEY_H);
+static_assert(Key::I == GLFW_KEY_I);
+static_assert(Key::J == GLFW_KEY_J);
+static_assert(Key::K == GLFW_KEY_K);
+static_assert(Key::L == GLFW_KEY_L);
+static_assert(Key::M == GLFW_KEY_M);
+static_assert(Key::N == GLFW_KEY_N);
+static_assert(Key::O == GLFW_KEY_O);
+static_assert(Key::P == GLFW_KEY_P);
+static_assert(Key::Q == GLFW_KEY_Q);
+static_assert(Key::R == GLFW_KEY_R);
+static_assert(Key::S == GLFW_KEY_S);
+static_assert(Key::T == GLFW_KEY_T);
+static_assert(Key::U == GLFW_KEY_U);
+static_assert(Key::V == GLFW_KEY_V);
+static_assert(Key::W == GLFW_KEY_W);
+static_assert(Key::X == GLFW_KEY_X);
+static_assert(Key::Y == GLFW_KEY_Y);
+static_assert(Key::Z == GLFW_KEY_Z);
+static_assert(Key::LeftBracket == GLFW_KEY_LEFT_BRACKET);
+static_assert(Key::Backslash == GLFW_KEY_BACKSLASH);
+static_assert(Key::RightBracket == GLFW_KEY_RIGHT_BRACKET);
+static_assert(Key::GraveAccent == GLFW_KEY_GRAVE_ACCENT);
+static_assert(Key::World1 == GLFW_KEY_WORLD_1);
+static_assert(Key::World2 == GLFW_KEY_WORLD_2);
+static_assert(Key::Escape == GLFW_KEY_ESCAPE);
+static_assert(Key::Enter == GLFW_KEY_ENTER);
+static_assert(Key::Tab == GLFW_KEY_TAB);
+static_assert(Key::Backspace == GLFW_KEY_BACKSPACE);
+static_assert(Key::Insert == GLFW_KEY_INSERT);
+static_assert(Key::Delete == GLFW_KEY_DELETE);
+static_assert(Key::Right == GLFW_KEY_RIGHT);
+static_assert(Key::Left == GLFW_KEY_LEFT);
+static_assert(Key::Down == GLFW_KEY_DOWN);
+static_assert(Key::Up == GLFW_KEY_UP);
+static_assert(Key::PageUp == GLFW_KEY_PAGE_UP);
+static_assert(Key::PageDown == GLFW_KEY_PAGE_DOWN);
+static_assert(Key::Home == GLFW_KEY_HOME);
+static_assert(Key::End == GLFW_KEY_END);
+static_assert(Key::CapsLock == GLFW_KEY_CAPS_LOCK);
+static_assert(Key::ScrollLock == GLFW_KEY_SCROLL_LOCK);
+static_assert(Key::NumLock == GLFW_KEY_NUM_LOCK);
+static_assert(Key::PrintScreen == GLFW_KEY_PRINT_SCREEN);
+static_assert(Key::Pause == GLFW_KEY_PAUSE);
+static_assert(Key::F1 == GLFW_KEY_F1);
+static_assert(Key::F2 == GLFW_KEY_F2);
+static_assert(Key::F3 == GLFW_KEY_F3);
+static_assert(Key::F4 == GLFW_KEY_F4);
+static_assert(Key::F5 == GLFW_KEY_F5);
+static_assert(Key::F6 == GLFW_KEY_F6);
+static_assert(Key::F7 == GLFW_KEY_F7);
+static_assert(Key::F8 == GLFW_KEY_F8);
+static_assert(Key::F9 == GLFW_KEY_F9);
+static_assert(Key::F10 == GLFW_KEY_F10);
+static_assert(Key::F11 == GLFW_KEY_F11);
+static_assert(Key::F12 == GLFW_KEY_F12);
+static_assert(Key::F13 == GLFW_KEY_F13);
+static_assert(Key::F14 == GLFW_KEY_F14);
+static_assert(Key::F15 == GLFW_KEY_F15);
+static_assert(Key::F16 == GLFW_KEY_F16);
+static_assert(Key::F17 == GLFW_KEY_F17);
+static_assert(Key::F18 == GLFW_KEY_F18);
+static_assert(Key::F19 == GLFW_KEY_F19);
+static_assert(Key::F20 == GLFW_KEY_F20);
+static_assert(Key::F21 == GLFW_KEY_F21);
+static_assert(Key::F22 == GLFW_KEY_F22);
+static_assert(Key::F23 == GLFW_KEY_F23);
+static_assert(Key::F24 == GLFW_KEY_F24);
+static_assert(Key::F25 == GLFW_KEY_F25);
+static_assert(Key::Keypad0 == GLFW_KEY_KP_0);
+static_assert(Key::Keypad1 == GLFW_KEY_KP_1);
+static_assert(Key::Keypad2 == GLFW_KEY_KP_2);
+static_assert(Key::Keypad3 == GLFW_KEY_KP_3);
+static_assert(Key::Keypad4 == GLFW_KEY_KP_4);
+static_assert(Key::Keypad5 == GLFW_KEY_KP_5);
+static_assert(Key::Keypad6 == GLFW_KEY_KP_6);
+static_assert(Key::Keypad7 == GLFW_KEY_KP_7);
+static_assert(Key::Keypad8 == GLFW_KEY_KP_8);
+static_assert(Key::Keypad9 == GLFW_KEY_KP_9);
+static_assert(Key::KeypadDecimal == GLFW_KEY_KP_DECIMAL);
+static_assert(Key::KeypadDivide == GLFW_KEY_KP_DIVIDE);
+static_assert(Key::KeypadMultiply == GLFW_KEY_KP_MULTIPLY);
+static_assert(Key::KeypadSubtract == GLFW_KEY_KP_SUBTRACT);
+static_assert(Key::KeypadAdd == GLFW_KEY_KP_ADD);
+static_assert(Key::KeypadEnter == GLFW_KEY_KP_ENTER);
+static_assert(Key::KeypadEqual == GLFW_KEY_KP_EQUAL);
+static_assert(Key::LeftShift == GLFW_KEY_LEFT_SHIFT);
+static_assert(Key::LeftControl == GLFW_KEY_LEFT_CONTROL);
+static_assert(Key::LeftAlt == GLFW_KEY_LEFT_ALT);
+static_assert(Key::LeftSuper == GLFW_KEY_LEFT_SUPER);
+static_assert(Key::RightShift == GLFW_KEY_RIGHT_SHIFT);
+static_assert(Key::RightControl == GLFW_KEY_RIGHT_CONTROL);
+static_assert(Key::RightAlt == GLFW_KEY_RIGHT_ALT);
+static_assert(Key::RightSuper == GLFW_KEY_RIGHT_SUPER);
+static_assert(Key::Menu == GLFW_KEY_MENU);
+} // namespace RType

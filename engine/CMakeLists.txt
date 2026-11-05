@@ -99,6 +99,7 @@ set(PLATFORM_SRC
         src/platform/Window.h
         src/platform/Application.cpp
         src/platform/Application.h
+        src/platform/KeyChecks.cpp
 )
 
 add_library(engine_platform STATIC ${PLATFORM_SRC})

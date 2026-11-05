@@ -6,7 +6,6 @@
 */
 
 #include "Window.h"
-#include "library/Keys.h"
 
 #include <stdexcept>
 #include <utility>
@@ -15,29 +14,6 @@
 #include <glad/glad.h>
 
 namespace RType {
-static_assert(Key::Space == GLFW_KEY_SPACE);
-static_assert(Key::Num0 == GLFW_KEY_0);
-static_assert(Key::Num9 == GLFW_KEY_9);
-static_assert(Key::A == GLFW_KEY_A);
-static_assert(Key::D == GLFW_KEY_D);
-static_assert(Key::S == GLFW_KEY_S);
-static_assert(Key::W == GLFW_KEY_W);
-static_assert(Key::Z == GLFW_KEY_Z);
-static_assert(Key::Escape == GLFW_KEY_ESCAPE);
-static_assert(Key::Enter == GLFW_KEY_ENTER);
-static_assert(Key::Tab == GLFW_KEY_TAB);
-static_assert(Key::Backspace == GLFW_KEY_BACKSPACE);
-static_assert(Key::Delete == GLFW_KEY_DELETE);
-static_assert(Key::Right == GLFW_KEY_RIGHT);
-static_assert(Key::Left == GLFW_KEY_LEFT);
-static_assert(Key::Down == GLFW_KEY_DOWN);
-static_assert(Key::Up == GLFW_KEY_UP);
-static_assert(Key::F1 == GLFW_KEY_F1);
-static_assert(Key::F12 == GLFW_KEY_F12);
-static_assert(Key::LeftShift == GLFW_KEY_LEFT_SHIFT);
-static_assert(Key::LeftControl == GLFW_KEY_LEFT_CONTROL);
-static_assert(Key::LeftAlt == GLFW_KEY_LEFT_ALT);
-
 Window::Window(const WindowConfig &config)
 {
     if (glfwInit() != GLFW_TRUE)
