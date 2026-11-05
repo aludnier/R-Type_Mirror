@@ -6,11 +6,12 @@
 */
 
 #include "GameApp.h"
+#include "configuration/Configuration.hpp"
 
 int main(int argc, char **argv)
 {
-    (void) argc;
-    (void) argv;
-    Game::GameApp app;
+    const std::filesystem::path configFile = argc > 1 ? argv[1] : "../config/game.json";
+    const RType::Configuration configuration(configFile);
+    Game::GameApp app(configuration);
     return app.run();
 }
