@@ -96,6 +96,8 @@ find_package(glad CONFIG REQUIRED)
 set(PLATFORM_SRC
         src/platform/Window.cpp
         src/platform/Window.h
+        src/platform/Application.cpp
+        src/platform/Application.h
 )
 
 add_library(engine_platform STATIC ${PLATFORM_SRC})
@@ -211,6 +213,7 @@ if (BUILD_TESTS)
     add_test(NAME engine_scripting_tests COMMAND engine_scripting_tests)
 endif ()
 
+add_subdirectory(apps/sandbox)
 add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)
