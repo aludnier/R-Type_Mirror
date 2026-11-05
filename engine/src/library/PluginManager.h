@@ -62,8 +62,7 @@ public:
      */
     void loadConfig(
         const std::filesystem::path &configFile, RType::Registry &registry);
-    void loadConfig(
-        const Configuration &config, RType::Registry &registry);
+    void loadConfig(const Configuration &config, RType::Registry &registry);
 
     /**
      * @brief Loads a module library and the dependencies found next to it.

@@ -13,11 +13,11 @@
 
 #include "DLLoader.hpp"
 #include "Module.h"
+#include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
 #include "library/InputManager.h"
-#include "library/RessourceManager.h"
 #include "library/PluginManager.h"
-#include "configuration/Configuration.hpp"
+#include "library/RessourceManager.h"
 
 namespace RType::Game {
 
@@ -38,14 +38,36 @@ public:
     [[nodiscard]] sf::RenderWindow &getWindow() const;
 
 protected:
-    virtual void registerComponents() {}
-    virtual void setupResources() {}
+    virtual void registerComponents()
+    {
+    }
+
+    virtual void setupResources()
+    {
+    }
+
     virtual void setupSystems();
-    virtual void spawnInitialEntities() {}
-    virtual void updateGame(float) {}
-    virtual void renderGame() {}
-    virtual void onWindowCreated() {}
-    virtual void onShutdown() {}
+
+    virtual void spawnInitialEntities()
+    {
+    }
+
+    virtual void updateGame(float)
+    {
+    }
+
+    virtual void renderGame()
+    {
+    }
+
+    virtual void onWindowCreated()
+    {
+    }
+
+    virtual void onShutdown()
+    {
+    }
+
     virtual void handleEvent(const sf::Event &event);
 
     void setupKeyBindings();

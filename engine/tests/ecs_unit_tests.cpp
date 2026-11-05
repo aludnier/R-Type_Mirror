@@ -232,7 +232,7 @@ TEST_CASE("Controllable system cancels opposing actions and ignores shooting",
 
 TEST_CASE("Controllable keeps action bits above the first byte", "[ecs]")
 {
-    const RType::Controllable controllable {RType::ActionMask {1} << 31};
+    constexpr RType::Controllable controllable {RType::ActionMask {1} << 31};
 
     REQUIRE(controllable.actionMask == 0x80000000u);
 }

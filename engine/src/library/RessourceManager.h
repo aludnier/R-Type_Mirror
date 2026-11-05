@@ -11,7 +11,6 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
-#include <nlohmann/json_fwd.hpp>
 #include <optional>
 #include <string>
 #include <unordered_map>

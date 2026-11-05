@@ -7,9 +7,9 @@
 
 #include "GameApp.h"
 
+#include <SFML/Window/Keyboard.hpp>
 #include <imgui.h>
 #include <iostream>
-#include <SFML/Window/Keyboard.hpp>
 
 #include "components/Controllable.h"
 #include "components/Enemy.h"
@@ -20,10 +20,8 @@
 #include "components/Player.h"
 #include "components/Projectile.h"
 #include "components/Rigidbody2D.h"
-#include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Zipper.h"
-#include "network/GameProtocol.h"
 #include "systems/BoundaryCleanupSystem.h"
 #include "systems/CollisionSystem.h"
 #include "systems/ForcePodSystem.h"
@@ -50,15 +48,23 @@ void GameApp::setupResources()
 {
     auto &resources = getResourceManager();
     using Type = ResourceManager::AssetType;
-    resources.addAsset("player_ship", "assets/sprites/r_type_player.png", Type::Texture);
-    resources.addAsset("force_pod", "assets/sprites/force_pod.png", Type::Texture);
-    resources.addAsset("enemy_bydo_scout", "assets/sprites/bydo_scout.png", Type::Texture);
-    resources.addAsset("laser_bullet", "assets/sprites/laser_bullet.png", Type::Texture);
-    resources.addAsset("wave_cannon", "assets/sprites/wave_cannon.png", Type::Texture);
-    resources.addAsset("bg_space_stars", "assets/backgrounds/space_stars.png", Type::Texture);
-    resources.addAsset("bg_nebula", "assets/backgrounds/nebula.png", Type::Texture);
+    resources.addAsset(
+        "player_ship", "assets/sprites/r_type_player.png", Type::Texture);
+    resources.addAsset(
+        "force_pod", "assets/sprites/force_pod.png", Type::Texture);
+    resources.addAsset(
+        "enemy_bydo_scout", "assets/sprites/bydo_scout.png", Type::Texture);
+    resources.addAsset(
+        "laser_bullet", "assets/sprites/laser_bullet.png", Type::Texture);
+    resources.addAsset(
+        "wave_cannon", "assets/sprites/wave_cannon.png", Type::Texture);
+    resources.addAsset(
+        "bg_space_stars", "assets/backgrounds/space_stars.png", Type::Texture);
+    resources.addAsset(
+        "bg_nebula", "assets/backgrounds/nebula.png", Type::Texture);
     resources.addAsset("sfx_laser", "assets/audio/laser.wav", Type::Sound);
-    resources.addAsset("sfx_explosion", "assets/audio/explosion.wav", Type::Sound);
+    resources.addAsset(
+        "sfx_explosion", "assets/audio/explosion.wav", Type::Sound);
     resources.addAsset("bgm_stage1", "assets/audio/stage1.ogg", Type::Music);
 }
 
@@ -77,10 +83,10 @@ void GameApp::spawnInitialEntities()
     auto &registry = getRegistry();
     for (const float speed : {30.0f, 80.0f}) {
         const auto entity = registry.spawnEntity();
-        registry.addComponent<RType::Transform2D>(entity,
-            RType::Transform2D({0.0f, 0.0f}));
-        registry.addComponent<ParallaxBackground>(entity,
-            ParallaxBackground(speed));
+        registry.addComponent<RType::Transform2D>(
+            entity, RType::Transform2D({0.0f, 0.0f}));
+        registry.addComponent<ParallaxBackground>(
+            entity, ParallaxBackground(speed));
     }
 }
 
@@ -90,16 +96,18 @@ void GameApp::handleEvent(const sf::Event &event)
         ImGui::SFML::ProcessEvent(getWindow(), event);
     if (event.is<sf::Event::Closed>()) {
         RType::Game::GameApp::handleEvent(event);
-    } else if (const auto *key = event.getIf<sf::Event::KeyPressed>()) {
-        handleKeyPressed(*key);
-    } else if (const auto *key = event.getIf<sf::Event::KeyReleased>()) {
-        handleKeyReleased(*key);
+    } else if (const auto *keyPressed = event.getIf<sf::Event::KeyPressed>()) {
+        handleKeyPressed(*keyPressed);
+    } else if (const auto *keyReleased =
+                   event.getIf<sf::Event::KeyReleased>()) {
+        handleKeyReleased(*keyReleased);
     }
 }
 
 void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
 {
-    if (key.code == sf::Keyboard::Key::Escape && _screenState == ScreenState::Game)
+    if (key.code == sf::Keyboard::Key::Escape &&
+        _screenState == ScreenState::Game)
         _connectionDialog.toggleVisible();
     else if (!ImGui::GetIO().WantCaptureKeyboard)
         getInputManager().setKeyState(static_cast<int>(key.code), true);
@@ -117,9 +125,13 @@ void GameApp::updateGame(float dt)
     ImGui::SFML::Update(window, sf::seconds(dt));
     const auto size = window.getSize();
     if (_screenState == ScreenState::Connection)
-        _connectionDialog.renderScreen(_networkClient, size.x, size.y);
+        _connectionDialog.renderScreen(_networkClient,
+            static_cast<float>(size.x),
+            static_cast<float>(size.y));
     else
-        _connectionDialog.renderInGameOverlay(_networkClient, size.x, size.y);
+        _connectionDialog.renderInGameOverlay(_networkClient,
+            static_cast<float>(size.x),
+            static_cast<float>(size.y));
 
     auto &registry = getRegistry();
     if (_screenState == ScreenState::Connection) {
@@ -130,7 +142,8 @@ void GameApp::updateGame(float dt)
         }
         auto &transforms = registry.getComponents<RType::Transform2D>();
         auto &backgrounds = registry.getComponents<ParallaxBackground>();
-        for (auto [transform, background] : RType::Zipper(transforms, backgrounds)) {
+        for (auto [transform, background] :
+            RType::Zipper(transforms, backgrounds)) {
             transform.position.x -= background.scrollSpeed * dt;
             if (transform.position.x <= -1920.0f)
                 transform.position.x += 1920.0f;
@@ -156,13 +169,14 @@ void GameApp::updateGame(float dt)
             controllables[i]->actionMask = 0;
     }
     registry.runSystems();
-    _networkSyncSystem.syncWithServer(registry, getInputManager(),
-        getResourceManager(), _networkClient);
+    _networkSyncSystem.syncWithServer(
+        registry, getInputManager(), getResourceManager(), _networkClient);
 }
 
 void GameApp::renderGame()
 {
-    GameRenderSystem::renderFrame(getRegistry(), getResourceManager(), getWindow());
+    GameRenderSystem::renderFrame(
+        getRegistry(), getResourceManager(), getWindow());
     ImGui::SFML::Render(getWindow());
 }
 
@@ -174,10 +188,24 @@ void GameApp::onWindowCreated()
         ImGui::GetIO().Fonts->AddFontDefault()->Scale = 2;
 }
 
-void GameApp::onShutdown() { ImGui::SFML::Shutdown(getWindow()); }
+void GameApp::onShutdown()
+{
+    ImGui::SFML::Shutdown(getWindow());
+}
 
-ScreenState GameApp::getScreenState() const { return _screenState; }
-void GameApp::setScreenState(ScreenState state) { _screenState = state; }
-NetworkClient &GameApp::getNetworkClient() { return _networkClient; }
+ScreenState GameApp::getScreenState() const
+{
+    return _screenState;
+}
+
+void GameApp::setScreenState(ScreenState state)
+{
+    _screenState = state;
+}
+
+NetworkClient &GameApp::getNetworkClient()
+{
+    return _networkClient;
+}
 
 } // namespace Game

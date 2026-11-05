@@ -8,4 +8,4 @@
 #include "ProductVersion.hpp"
 
 namespace RType {
-} // RType
+} // namespace RType

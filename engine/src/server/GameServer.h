@@ -13,19 +13,19 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <memory>
-#include <string>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "ClientSession.h"
 #include "configuration/Configuration.hpp"
-#include "library/PluginManager.h"
 #include "ecs/Entity.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "library/PluginManager.h"
 #include "math/Vector2.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
