@@ -16,6 +16,7 @@
 #include "components/ForcePod.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Name.h"
 #include "components/NetworkEntity.h"
 #include "components/Player.h"
 #include "components/Projectile.h"

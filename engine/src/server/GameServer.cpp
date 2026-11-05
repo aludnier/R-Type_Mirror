@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "components/Controllable.h"
+#include "components/Name.h"
 #include "components/Transform2D.h"
 #include "network/ByteWriter.h"
 #include "network/ClientPackets.h"
@@ -315,6 +316,7 @@ void GameServer::setupRegistry()
 {
     _registry.registerComponent<Transform2D>();
     _registry.registerComponent<Controllable>();
+    _registry.registerComponent<Name>();
     addControllableSystem(_registry,
         _config.playerSpeed,
         1.f / static_cast<float>(_config.tickRate),

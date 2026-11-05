@@ -11,6 +11,7 @@
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Name.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
@@ -59,6 +60,7 @@ void registerCoreComponents(RType::Registry &registry)
     registry.registerComponent<RType::Health>();
     registry.registerComponent<RType::Hitbox>();
     registry.registerComponent<RType::Controllable>();
+    registry.registerComponent<RType::Name>();
 }
 
 struct Score {
@@ -78,6 +80,7 @@ TEST_CASE("Scripts spawn entities and add core components", "[scripting]")
         world.add(player, "Transform2D", Transform2D.new(Vector2.new(10, 20)))
         world.add(player, "Health", Health.new(3))
         world.add(player, "Hitbox")
+        world.add(player, "Name", Name.new("Player"))
     )"));
 
     const auto id = scripts.lua()["player"].get<RType::entity_id_type>();
@@ -86,6 +89,7 @@ TEST_CASE("Scripts spawn entities and add core components", "[scripting]")
     CHECK(transform->position == RType::Vector2 {10.f, 20.f});
     CHECK(registry.getComponents<RType::Health>()[id]->max == 3);
     CHECK(registry.getComponents<RType::Hitbox>()[id].has_value());
+    CHECK(registry.getComponents<RType::Name>()[id]->value == "Player");
 }
 
 TEST_CASE("world.get returns a live reference to the component", "[scripting]")
