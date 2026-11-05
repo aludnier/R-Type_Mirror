@@ -8,10 +8,10 @@
 #ifndef CONFIGURATION_HPP
 #define CONFIGURATION_HPP
 
-#include <nlohmann/json.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <vector>
 

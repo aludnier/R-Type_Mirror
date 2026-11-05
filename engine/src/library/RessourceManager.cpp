@@ -5,10 +5,10 @@
 ** resource manager
 */
 
+#include "RessourceManager.h"
 #include <map>
 #include <stdexcept>
 #include "NlohmanReader.h"
-#include "RessourceManager.h"
 
 namespace {
 struct AssetConfig {
