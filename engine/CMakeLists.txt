@@ -40,6 +40,7 @@ set(CORE_SRC
         src/library/NlohmanReader.h
         src/library/InputManager.cpp
         src/library/InputManager.h
+        src/library/Keys.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -98,6 +99,7 @@ set(PLATFORM_SRC
         src/platform/Window.h
         src/platform/Application.cpp
         src/platform/Application.h
+        src/platform/KeyChecks.cpp
 )
 
 add_library(engine_platform STATIC ${PLATFORM_SRC})
