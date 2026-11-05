@@ -125,7 +125,8 @@ TEST_CASE("Registry tracks spawned entities in order", "[ecs][registry]")
     REQUIRE(registry.isAlive(third));
 }
 
-TEST_CASE("Registry kill removes the entity from the list", "[ecs][registry]")
+TEST_CASE("Registry killed entity stays alive until the kills are applied",
+    "[ecs][registry]")
 {
     RType::Registry registry;
     auto first = registry.spawnEntity();
@@ -134,14 +135,60 @@ TEST_CASE("Registry kill removes the entity from the list", "[ecs][registry]")
 
     registry.killEntity(second);
 
-    REQUIRE_FALSE(registry.isAlive(second));
-    REQUIRE(registry.entities() == std::vector {first, third});
+    REQUIRE(registry.isAlive(second));
+    REQUIRE(registry.entities() == std::vector {first, second, third});
 
     registry.runSystems();
     auto fourth = registry.spawnEntity();
 
     REQUIRE_FALSE(registry.isAlive(second));
     REQUIRE(registry.entities() == std::vector {first, third, fourth});
+}
+
+TEST_CASE(
+    "Registry kills the entity referenced from entities()", "[ecs][registry]")
+{
+    RType::Registry registry;
+    auto first = registry.spawnEntity();
+    auto second = registry.spawnEntity();
+    auto third = registry.spawnEntity();
+
+    registry.killEntity(registry.entities().front());
+    registry.killAllEntities();
+
+    REQUIRE_FALSE(registry.isAlive(first));
+    REQUIRE(registry.entities() == std::vector {second, third});
+}
+
+TEST_CASE(
+    "Registry kills every entity in a loop over entities()", "[ecs][registry]")
+{
+    RType::Registry registry;
+    registry.registerComponent<Position>();
+    for (int i = 0; i < 6; ++i)
+        registry.addComponent(registry.spawnEntity(), Position {i, i});
+
+    for (const auto &entity : registry.entities())
+        registry.killEntity(entity);
+    registry.killAllEntities();
+
+    REQUIRE(registry.entities().empty());
+    for (const auto &position : registry.getComponents<Position>())
+        REQUIRE_FALSE(position.has_value());
+}
+
+TEST_CASE("Registry killing an entity twice is harmless", "[ecs][registry]")
+{
+    RType::Registry registry;
+    auto first = registry.spawnEntity();
+    auto second = registry.spawnEntity();
+
+    registry.killEntity(first);
+    registry.killEntity(first);
+    registry.killAllEntities();
+
+    REQUIRE_FALSE(registry.isAlive(first));
+    REQUIRE(registry.entities() == std::vector {second});
 }
 
 TEST_CASE("Registry never spawned entity is not alive", "[ecs][registry]")

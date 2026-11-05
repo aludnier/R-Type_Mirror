@@ -82,8 +82,8 @@ public:
     }
 
     /**
-     * @brief Live entities, in spawn order.
-     * @note Killed entities leave this list as soon as killEntity() is called.
+     * @brief Live entities, in spawn order (so sorted by id).
+     * @note A killed entity stays in this list until killAllEntities().
      */
     [[nodiscard]] const std::vector<Entity> &entities() const
     {
@@ -92,7 +92,8 @@ public:
 
     [[nodiscard]] bool isAlive(Entity const &entity) const
     {
-        return std::ranges::find(_entities, entity) != _entities.end();
+        auto it = this->findEntity(entity);
+        return it != _entities.end() && *it == entity;
     }
 
     static Entity entityFromIndex(entity_id_type id)
@@ -104,12 +105,11 @@ public:
      * @brief Schedules an entity for destruction.
      * @param entity Entity to destroy.
      * @note Destruction is deferred: components are removed at the end of
-     *       runSystems(), so the entity stays valid during the current frame.
-     *       It is removed from entities() right away.
+     *       runSystems() (or killAllEntities()), so the entity stays valid
+     *       and alive during the current frame. Killing it twice is harmless.
      */
-    void killEntity(Entity const &entity)
+    void killEntity(Entity entity)
     {
-        std::erase(_entities, entity);
         _entitiesToKill.push(entity);
     }
 
@@ -159,17 +159,36 @@ public:
         this->killAllEntities();
     }
 
-private:
+    /**
+     * @brief Destroys the entities passed to killEntity(): removes their
+     *        components and takes them out of entities().
+     * @note Called by runSystems(). Call it directly when systems do not run,
+     *       like in the editor.
+     */
     void killAllEntities()
     {
         while (!_entitiesToKill.empty()) {
             Entity entity = _entitiesToKill.front();
             _entitiesToKill.pop();
+            auto it = this->findEntity(entity);
+            if (it != _entities.end() && *it == entity)
+                _entities.erase(it);
             for (auto &[storage, erase] :
                 _componentsStorage | std::views::values) {
                 erase(*this, entity);
             }
         }
+    }
+
+private:
+    /** @brief Binary search: _entities is sorted since ids only grow. */
+    [[nodiscard]] std::vector<Entity>::const_iterator findEntity(
+        Entity const &entity) const
+    {
+        return std::ranges::lower_bound(_entities,
+            static_cast<entity_id_type>(entity),
+            {},
+            [](Entity const &e) { return static_cast<entity_id_type>(e); });
     }
 
     entity_id_type _nextEntityId = 0;
