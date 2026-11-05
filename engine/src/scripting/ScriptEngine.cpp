@@ -102,29 +102,29 @@ void RType::ScriptEngine::bindWorld()
         world[name] = function;
 }
 
-lua_Integer RType::ScriptEngine::spawn()
+lua_Integer RType::ScriptEngine::spawn() const
 {
     return static_cast<lua_Integer>(
         static_cast<entity_id_type>(_registry.spawnEntity()));
 }
 
-void RType::ScriptEngine::kill(lua_Integer e)
+void RType::ScriptEngine::kill(lua_Integer e) const
 {
     _registry.killEntity(Registry::entityFromIndex(toEntityId(e)));
 }
 
-bool RType::ScriptEngine::has(lua_Integer e, const std::string &name)
+bool RType::ScriptEngine::has(lua_Integer e, const std::string &name) const
 {
     return binding(name).has(_registry, toEntityId(e));
 }
 
-sol::object RType::ScriptEngine::get(lua_Integer e, const std::string &name)
+sol::object RType::ScriptEngine::get(lua_Integer e, const std::string &name) const
 {
     return binding(name).get(_registry, toEntityId(e), _lua.lua_state());
 }
 
 sol::object RType::ScriptEngine::add(
-    lua_Integer e, const std::string &name, const sol::object &value)
+    lua_Integer e, const std::string &name, const sol::object &value) const
 {
     const auto &component = binding(name);
     const auto id = toEntityId(e);
@@ -136,7 +136,7 @@ sol::object RType::ScriptEngine::add(
     return component.get(_registry, id, _lua.lua_state());
 }
 
-void RType::ScriptEngine::remove(lua_Integer e, const std::string &name)
+void RType::ScriptEngine::remove(lua_Integer e, const std::string &name) const
 {
     binding(name).remove(_registry, toEntityId(e));
 }

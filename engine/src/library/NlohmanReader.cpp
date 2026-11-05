@@ -44,7 +44,7 @@ nlohmann::json RType::nlohamReader::operator[](const std::string &param)
     return _data.at(param);
 }
 
-bool RType::nlohamReader::has(const std::string &param)
+bool RType::nlohamReader::has(const std::string &param) const
 {
     return _data.contains(param);
 }

@@ -175,13 +175,13 @@ private:
     void reportError(const std::string &message);
 
     // Functions of the Lua `world` table.
-    lua_Integer spawn();
-    void kill(lua_Integer e);
-    bool has(lua_Integer e, const std::string &name);
-    sol::object get(lua_Integer e, const std::string &name);
+    lua_Integer spawn() const;
+    void kill(lua_Integer e) const;
+    bool has(lua_Integer e, const std::string &name) const;
+    sol::object get(lua_Integer e, const std::string &name) const;
     sol::object add(
-        lua_Integer e, const std::string &name, const sol::object &value);
-    void remove(lua_Integer e, const std::string &name);
+        lua_Integer e, const std::string &name, const sol::object &value) const;
+    void remove(lua_Integer e, const std::string &name) const;
     sol::table data(lua_Integer e);
     void addSystem(const std::string &name, const sol::protected_function &fn);
 

@@ -36,7 +36,8 @@ void GameApp::init()
 void GameApp::setupSystems()
 {
     _pluginManager.loadConfig(_configuration, _registry);
-    RType::addControllableSystem(_registry, _configuration.game().playerSpeed,
+    RType::addControllableSystem(_registry,
+        _configuration.game().playerSpeed,
         _fixedDeltaTime,
         {0, 1, 2, 3});
 }
@@ -123,9 +124,24 @@ int GameApp::run()
     return 0;
 }
 
-RType::Registry &GameApp::getRegistry() { return _registry; }
-InputManager &GameApp::getInputManager() { return _inputManager; }
-ResourceManager &GameApp::getResourceManager() { return _resourceManager; }
-sf::RenderWindow &GameApp::getWindow() const { return *_window; }
+RType::Registry &GameApp::getRegistry()
+{
+    return _registry;
+}
+
+InputManager &GameApp::getInputManager()
+{
+    return _inputManager;
+}
+
+ResourceManager &GameApp::getResourceManager()
+{
+    return _resourceManager;
+}
+
+sf::RenderWindow &GameApp::getWindow() const
+{
+    return *_window;
+}
 
 } // namespace RType::Game

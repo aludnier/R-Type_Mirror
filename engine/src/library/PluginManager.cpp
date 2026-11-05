@@ -196,7 +196,7 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
         }
     } catch (std::runtime_error &e) {
         rollback(firstNew);
-        throw e;
+        throw;
     }
 }
 
@@ -263,7 +263,7 @@ void RType::PluginManager::loadModule(
     auto scan = scanDirectory(rootPath.parent_path());
 
     const auto rootIt =
-        std::find(scan.paths.begin(), scan.paths.end(), rootPath);
+        std::ranges::find(scan.paths, rootPath);
     if (rootIt == scan.paths.end())
         throw std::runtime_error(
             "Module is missing RTypeLibEntryPoint: " + path.string());
