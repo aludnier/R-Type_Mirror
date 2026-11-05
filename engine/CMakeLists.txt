@@ -40,6 +40,7 @@ set(CORE_SRC
         src/library/NlohmanReader.h
         src/library/InputManager.cpp
         src/library/InputManager.h
+        src/library/Keys.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
