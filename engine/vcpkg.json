@@ -15,7 +15,16 @@
         "lua",
         "sol2",
         "glfw3",
-        "glad"
+        "glad",
+        "stb",
+        {
+        "name": "imgui",
+        "features": [
+            "docking-experimental",
+            "glfw-binding",
+            "opengl3-binding"
+        ]
+        }
     ],
     "builtin-baseline": "e456309491fd875487bf02b8a0dca76c1b1b00cc"
 }

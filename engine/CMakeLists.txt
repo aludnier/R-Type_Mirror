@@ -42,6 +42,7 @@ set(CORE_SRC
         src/library/NlohmanReader.h
         src/library/InputManager.cpp
         src/library/InputManager.h
+        src/library/Keys.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -103,6 +104,7 @@ set(PLATFORM_SRC
         src/platform/Window.h
         src/platform/Application.cpp
         src/platform/Application.h
+        src/platform/KeyChecks.cpp
 )
 
 add_library(engine_platform STATIC ${PLATFORM_SRC})
@@ -110,6 +112,25 @@ add_library(engine_platform STATIC ${PLATFORM_SRC})
 target_link_libraries(engine_platform PUBLIC engine_core glfw glad::glad)
 # glad provides the OpenGL headers: GLFW must not include its own.
 target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
+
+# ---------------------------------------------------------------------------
+# engine_render2d: OpenGL sprites, camera and framebuffer. Client only.
+# ---------------------------------------------------------------------------
+find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
+
+add_library(engine_render2d INTERFACE)
+
+target_link_libraries(engine_render2d INTERFACE engine_platform)
+target_include_directories(engine_render2d INTERFACE ${STB_INCLUDE_DIRS})
+
+# ---------------------------------------------------------------------------
+# engine_editor: ImGui panels of the editor. Never linked by a game.
+# ---------------------------------------------------------------------------
+find_package(imgui CONFIG REQUIRED)
+
+add_library(engine_editor INTERFACE)
+
+target_link_libraries(engine_editor INTERFACE engine_render2d imgui::imgui)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
@@ -160,6 +181,8 @@ add_library(Eng::client ALIAS engine_client)
 add_library(Eng::server ALIAS engine_server)
 add_library(Eng::scripting ALIAS engine_scripting)
 add_library(Eng::platform ALIAS engine_platform)
+add_library(Eng::render2d ALIAS engine_render2d)
+add_library(Eng::editor ALIAS engine_editor)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
@@ -221,6 +244,7 @@ if (BUILD_TESTS)
 endif ()
 
 add_subdirectory(apps/sandbox)
+add_subdirectory(apps/editor)
 add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)

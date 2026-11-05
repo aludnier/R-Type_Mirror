@@ -9,9 +9,7 @@
 #include <exception>
 #include <iostream>
 
-#include <GLFW/glfw3.h>
-#include <glad/glad.h>
-
+#include "library/Keys.h"
 #include "platform/Application.h"
 
 namespace {
@@ -24,10 +22,9 @@ public:
     Sandbox() :
         Application({.title = "Sandbox"})
     {
-        input().bind(Brighter, GLFW_KEY_UP);
-        input().bind(Darker, GLFW_KEY_DOWN);
-        input().bind(Quit, GLFW_KEY_ESCAPE);
-        std::cout << "OpenGL " << glGetString(GL_VERSION) << "\n";
+        input().bind(Brighter, RType::Key::Up);
+        input().bind(Darker, RType::Key::Down);
+        input().bind(Quit, RType::Key::Escape);
     }
 
 protected:
