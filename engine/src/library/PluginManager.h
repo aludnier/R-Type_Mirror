@@ -16,6 +16,7 @@
 #include <vector>
 #include "DLLoader.hpp"
 #include "Module.h"
+#include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
 
 namespace RType {
@@ -59,8 +60,10 @@ public:
      * @param configFile JSON file with a "directory" and "modules" entry.
      * @param registry Registry passed to each module registration callback.
      */
-    void loadConfigFile(
+    void loadConfig(
         const std::filesystem::path &configFile, RType::Registry &registry);
+    void loadConfig(
+        const Configuration &config, RType::Registry &registry);
 
     /**
      * @brief Loads a module library and the dependencies found next to it.

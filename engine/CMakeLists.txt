@@ -34,6 +34,8 @@ set(CORE_SRC
         src/systems/ControllableSystem.h
         src/library/RessourceManager.cpp
         src/library/RessourceManager.h
+        src/configuration/Configuration.cpp
+        src/configuration/Configuration.hpp
         src/library/PluginManager.cpp
         src/library/PluginManager.h
         src/library/NlohmanReader.cpp
@@ -76,6 +78,8 @@ endif ()
 find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
 
 set(CLIENT_SRC
+        src/game/GameApp.cpp
+        src/game/GameApp.h
         src/library/engine.h
         src/components/Sprite.h
         src/systems/RenderSystem.cpp
@@ -85,6 +89,7 @@ set(CLIENT_SRC
 add_library(engine_client STATIC ${CLIENT_SRC})
 
 target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
+target_compile_definitions(engine_client PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
 
 # ---------------------------------------------------------------------------
 # engine_platform: window, OpenGL context and main loop (GLFW + glad). Client

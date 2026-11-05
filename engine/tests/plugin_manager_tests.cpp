@@ -71,7 +71,7 @@ TEST_CASE("PluginManager rejects an invalid config before configuring itself",
     RType::PluginManager manager;
 
     REQUIRE_THROWS_AS(
-        manager.loadConfigFile(config.path(), registry), std::runtime_error);
+        manager.loadConfig(config.path(), registry), std::runtime_error);
     REQUIRE_NOTHROW(manager.loadRequiredModules({}, {}, registry));
 }
 

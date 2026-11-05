@@ -4,18 +4,12 @@
 #include <stdexcept>
 #include <utility>
 #include "NlohmanReader.h"
+#include "configuration/Configuration.hpp"
 
 namespace {
 using ModuleEntryPoint = const RType::ModuleDescriptor *(*) ();
 using DescriptorRef =
     std::optional<std::reference_wrapper<const RType::ModuleDescriptor>>;
-
-struct PluginConfig {
-    std::string directory;
-    std::vector<std::string> modules;
-};
-
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(PluginConfig, directory, modules)
 
 bool isApiCompatible(
     RType::ModuleApiVersion actual, RType::ModuleApiVersion required)
@@ -47,7 +41,7 @@ void validateDescriptor(
 RType::PluginManager::PluginManager(
     const std::filesystem::path &configFile, RType::Registry &registry)
 {
-    loadConfigFile(configFile, registry);
+    loadConfig(configFile, registry);
 }
 
 RType::PluginManager::Loader RType::PluginManager::openLibrary(
@@ -212,17 +206,20 @@ bool RType::PluginManager::isLoaded(const std::string &name) const
         [&name](const auto &module) { return module.name == name; });
 }
 
-void RType::PluginManager::loadConfigFile(
+void RType::PluginManager::loadConfig(
     const std::filesystem::path &configFile, RType::Registry &registry)
 {
-    RType::nlohamReader reader;
-    if (!reader.readFile(configFile))
-        throw std::runtime_error(
-            "[PluginManager] cannot read " + configFile.string());
+    const Configuration config(configFile);
+    loadConfig(config, registry);
+}
 
-    const auto config = reader.convertJson<PluginConfig>();
+void RType::PluginManager::loadConfig(
+    const Configuration &config, RType::Registry &registry)
+{
     loadRequiredModules(
-        std::filesystem::path(config.directory), config.modules, registry);
+        config.path().parent_path() / config.game().pluginDirectory,
+        config.game().plugins,
+        registry);
 }
 
 void RType::PluginManager::loadRequiredModules(

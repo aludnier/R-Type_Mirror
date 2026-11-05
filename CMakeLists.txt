@@ -9,6 +9,8 @@ option(BUILD_TESTS "Build the tests" ON)
 include(CTest)
 enable_testing()
 
+configure_file(config/game.json ${CMAKE_BINARY_DIR}/config/game.json COPYONLY)
+
 add_subdirectory(engine)
 add_subdirectory(game)
 add_subdirectory(server)
