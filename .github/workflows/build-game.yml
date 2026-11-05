@@ -18,11 +18,14 @@ jobs:
       - name: Restore vcpkg binary cache
         uses: actions/cache@v6
         with:
-          path: |
-            ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-            ${{ env.VCPKG_DOWNLOADS }}
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-linux-
+      - name: Restore vcpkg download cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -63,13 +66,16 @@ jobs:
       - name: Restore vcpkg binary cache
         uses: actions/cache@v6
         with:
-          path: |
-            ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
-            ${{ env.VCPKG_DOWNLOADS }}
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
           restore-keys: |
             vcpkg-windows-
             vcpkg-engine-windows-
+      - name: Restore vcpkg download cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-windows-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
 
       - name: Configure and build
         shell: powershell

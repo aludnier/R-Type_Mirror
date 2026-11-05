@@ -18,14 +18,69 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  warmup-linux-vcpkg:
+    name: Warm up Linux vcpkg downloads
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/.vcpkg-downloads
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Download Lua source
+        run: |
+          mkdir -p "$VCPKG_DOWNLOADS"
+          if [ ! -f "$VCPKG_DOWNLOADS/lua-5.5.1.tar.gz" ]; then
+            curl --fail --location --retry 5 --retry-all-errors \
+              --connect-timeout 30 --max-time 300 \
+              https://www.lua.org/ftp/lua-5.5.1.tar.gz \
+              --output "$VCPKG_DOWNLOADS/lua-5.5.1.tar.gz"
+          fi
+
+  warmup-windows-vcpkg:
+    name: Warm up Windows vcpkg downloads
+    runs-on: windows-latest
+    env:
+      VCPKG_DOWNLOADS: ${{ github.workspace }}\.vcpkg-downloads
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-windows-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Download Lua source
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$env:VCPKG_DOWNLOADS" | Out-Null
+          $luaArchive = Join-Path $env:VCPKG_DOWNLOADS "lua-5.5.1.tar.gz"
+          if (-not (Test-Path $luaArchive)) {
+            curl.exe --fail --location --retry 5 --retry-all-errors `
+              --connect-timeout 30 --max-time 300 `
+              https://www.lua.org/ftp/lua-5.5.1.tar.gz `
+              --output $luaArchive
+          }
+
   build-game:
+    needs: [ warmup-linux-vcpkg, warmup-windows-vcpkg ]
     uses: ./.github/workflows/build-game.yml
 
   build-engine:
+    needs: [ warmup-linux-vcpkg, warmup-windows-vcpkg ]
     uses: ./.github/workflows/build-engine.yml
 
   linter:
     name: "CPP Linter"
+    needs: warmup-linux-vcpkg
     uses: ./.github/workflows/linter.yml
     permissions:
       contents: write
