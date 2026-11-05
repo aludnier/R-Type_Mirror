@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/.vcpkg-downloads
     steps:
       - uses: "actions/checkout@v7"
         with:
@@ -15,7 +16,9 @@ jobs:
       - name: Restore vcpkg binary cache
         uses: actions/cache@v6
         with:
-          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          path: |
+            ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+            ${{ env.VCPKG_DOWNLOADS }}
           key: vcpkg-engine-linux-${{ hashFiles('engine/vcpkg.json') }}
           restore-keys: vcpkg-engine-linux-
 
@@ -50,6 +53,7 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}\.vcpkg-downloads
     steps:
       - uses: "actions/checkout@v7"
         with:
@@ -58,7 +62,9 @@ jobs:
       - name: Restore vcpkg binary cache
         uses: actions/cache@v6
         with:
-          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          path: |
+            ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+            ${{ env.VCPKG_DOWNLOADS }}
           key: vcpkg-engine-windows-${{ hashFiles('engine/vcpkg.json') }}
           restore-keys: vcpkg-engine-windows-
 
