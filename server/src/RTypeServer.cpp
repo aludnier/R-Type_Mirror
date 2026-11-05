@@ -130,6 +130,17 @@ RTypeServer::RTypeServer(const ServerConfig &config) :
     reg.addSystem<Transform2D>([this](auto &) { step(); });
 }
 
+RTypeServer::RTypeServer(const Configuration &configuration) :
+    GameServer(configuration)
+{
+    Registry &reg = registry();
+    reg.registerComponent<Projectile>();
+    reg.registerComponent<Enemy>();
+    reg.registerComponent<Health>();
+    reg.registerComponent<Hitbox>();
+    reg.addSystem<Transform2D>([this](auto &) { step(); });
+}
+
 void RTypeServer::step()
 {
     updateWeapons();

@@ -9,6 +9,7 @@
 #define RTYPESERVER_H
 
 #include <cstddef>
+#include <filesystem>
 #include <random>
 #include <unordered_map>
 #include <vector>
@@ -26,6 +27,7 @@ namespace RType {
 class RTypeServer : public GameServer {
 public:
     explicit RTypeServer(const ServerConfig &config);
+    explicit RTypeServer(const Configuration &configuration);
 
 private:
     /** @brief A projectile or an enemy to spawn once the loop is over. */
