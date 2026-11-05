@@ -13,6 +13,7 @@
 #include <glad/glad.h>
 
 #include "platform/Application.h"
+#include "render/Renderer.h"
 
 namespace {
 constexpr RType::ActionId Brighter = 0;
@@ -43,8 +44,7 @@ protected:
 
     void render() override
     {
-        glClearColor(0.1f, 0.2f * _brightness, _brightness, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        RType::Renderer::clear({0.1f, 0.2f * _brightness, _brightness, 1.f});
     }
 
 private:

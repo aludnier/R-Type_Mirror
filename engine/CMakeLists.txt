@@ -106,6 +106,10 @@ target_link_libraries(engine_platform PUBLIC engine_core glfw glad::glad)
 # glad provides the OpenGL headers: GLFW must not include its own.
 target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
 
+add_library(engine_render2d STATIC src/render/Renderer.cpp src/render/Renderer.h)
+target_link_libraries(engine_render2d PUBLIC engine_core PRIVATE glad::glad)
+add_library(Eng::render2d ALIAS engine_render2d)
+
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
 # never links engine_client.
