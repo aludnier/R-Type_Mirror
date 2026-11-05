@@ -407,7 +407,7 @@ TEST_CASE("The example wave script runs a small game", "[scripting]")
 TEST_CASE("Script components run scripts on a single entity", "[scripting]")
 {
     TempDirectory directory;
-    directory.write("mover.lua", R"(
+    auto _ = directory.write("mover.lua", R"(
         local mover = {}
         function mover.on_start(e)
             world.data(e).starts = (world.data(e).starts or 0) + 1
@@ -418,7 +418,7 @@ TEST_CASE("Script components run scripts on a single entity", "[scripting]")
         end
         return mover
     )");
-    directory.write("counter.lua", R"(
+    _ = directory.write("counter.lua", R"(
         return {
             on_update = function(e, dt)
                 world.data(e).frames = (world.data(e).frames or 0) + 1
@@ -455,7 +455,7 @@ TEST_CASE("Script components run scripts on a single entity", "[scripting]")
 TEST_CASE("Scripts attach entity scripts with world.add", "[scripting]")
 {
     TempDirectory directory;
-    directory.write("tag.lua", R"(
+    auto _ = directory.write("tag.lua", R"(
         return { on_start = function(e) world.data(e).tagged = true end }
     )");
     RType::Registry registry;
@@ -477,7 +477,7 @@ TEST_CASE("Scripts attach entity scripts with world.add", "[scripting]")
 TEST_CASE("A failing entity script only stops on that entity", "[scripting]")
 {
     TempDirectory directory;
-    directory.write("fragile.lua", R"(
+    auto _ = directory.write("fragile.lua", R"(
         return {
             on_update = function(e, dt)
                 world.data(e).calls = (world.data(e).calls or 0) + 1
@@ -485,7 +485,7 @@ TEST_CASE("A failing entity script only stops on that entity", "[scripting]")
             end
         }
     )");
-    directory.write("no_table.lua", "local x = 1");
+    _ = directory.write("no_table.lua", "local x = 1");
     RType::Registry registry;
     RType::ScriptEngine scripts(registry);
     RType::addScriptSystem(registry, scripts);
