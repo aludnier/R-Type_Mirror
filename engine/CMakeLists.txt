@@ -38,6 +38,8 @@ set(CORE_SRC
         src/library/PluginManager.h
         src/library/NlohmanReader.cpp
         src/library/NlohmanReader.h
+        src/library/InputManager.cpp
+        src/library/InputManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -46,6 +48,7 @@ set(CORE_SRC
         src/network/PacketHeader.cpp
         src/network/ServerPackets.cpp
         src/network/UdpSocket.cpp
+        src/time/FixedStep.h
 )
 
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -74,8 +77,6 @@ find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
 
 set(CLIENT_SRC
         src/library/engine.h
-        src/library/InputManager.cpp
-        src/library/InputManager.h
         src/components/Sprite.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
@@ -147,6 +148,7 @@ if (BUILD_TESTS)
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
             tests/nlohman_reader_test.cpp
+            tests/fixed_step_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
