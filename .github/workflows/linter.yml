@@ -46,6 +46,7 @@ jobs:
       - name: "Generate compilation_command.json"
         run: |
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          mkdir -p "$VCPKG_DOWNLOADS"
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
           cmake --preset release
           cmake --build --preset release -j

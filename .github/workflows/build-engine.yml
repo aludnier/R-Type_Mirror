@@ -42,6 +42,7 @@ jobs:
       - name: Configure and build
         run: |
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          mkdir -p "$VCPKG_DOWNLOADS"
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
           cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -72,6 +73,7 @@ jobs:
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          New-Item -ItemType Directory -Force "$env:VCPKG_DOWNLOADS" | Out-Null
           .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
           cmake -S engine -B build/engine "-DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake"
           cmake --build build/engine --config Release -j
