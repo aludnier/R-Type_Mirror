@@ -70,12 +70,12 @@ protected:
 
     virtual void handleEvent(const sf::Event &event);
 
-    void setupKeyBindings();
+    virtual void setupKeyBindings();
     void close();
 
     InputManager _inputManager {};
     ResourceManager _resourceManager {};
-    const Configuration &_configuration;
+    Configuration _configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};
     Registry _registry {};

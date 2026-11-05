@@ -26,6 +26,19 @@ void onSignal(int /* signal */)
     stopRequested = true;
 }
 
+std::optional<std::uint16_t> parsePort(std::string_view text)
+{
+    unsigned int port = 0;
+    auto [end, error] =
+        std::from_chars(text.data(), text.data() + text.size(), port);
+
+    if (error != std::errc {} || end != text.data() + text.size() ||
+        port == 0 || port > 65535) {
+        return std::nullopt;
+        }
+    return static_cast<std::uint16_t>(port);
+}
+
 void printUsage(std::string_view program)
 {
     std::cout << "USAGE: " << program << " [-c config]\n"
@@ -35,7 +48,8 @@ void printUsage(std::string_view program)
 
 int main(int argc, char **argv)
 {
-    std::filesystem::path configFile = "../config/game.json";
+    std::filesystem::path configFile = ENGINE_MODULE_DIR "/../config/game.json";
+    std::optional<std::uint16_t> port;
 
     for (int i = 1; i < argc; ++i) {
         std::string_view arg = argv[i];
@@ -48,13 +62,24 @@ int main(int argc, char **argv)
             configFile = argv[++i];
             continue;
         }
+        if (arg == "-p" && i + 1 < argc) {
+            port = parsePort(argv[++i]);
+
+            if (!port) {
+                std::cerr << "Invalid port: " << argv[i] << '\n';
+                return 84;
+            }
+        }
         printUsage(argv[0]);
         return 84;
     }
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
     try {
-        const RType::Configuration configuration(configFile);
+        RType::Configuration configuration(configFile);
+        if (port) {
+            configuration.game().port = *port;
+        }
         RType::RTypeServer server(configuration);
 
         server.run(stopRequested);

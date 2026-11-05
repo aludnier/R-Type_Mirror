@@ -24,7 +24,6 @@ struct GameConfig {
     std::size_t maxPlayers = 4;
     std::uint16_t tickRate = 60;
     float playerSpeed = 300.f;
-    std::string gameName = "R-Type";
 };
 
 class Configuration {
@@ -34,6 +33,9 @@ public:
 
     [[nodiscard]] const GameConfig &game() const;
     [[nodiscard]] const std::filesystem::path &path() const;
+
+    [[nodiscard]] GameConfig &game();
+    [[nodiscard]] std::filesystem::path &path();
 
 private:
     std::filesystem::path _path;

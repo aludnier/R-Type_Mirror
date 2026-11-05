@@ -38,8 +38,7 @@ void GameApp::setupSystems()
     _pluginManager.loadConfig(_configuration, _registry);
     addControllableSystem(_registry,
         _configuration.game().playerSpeed,
-        _fixedDeltaTime,
-        {0, 1, 2, 3});
+        _fixedDeltaTime, {});
 }
 
 void GameApp::setupKeyBindings()
@@ -109,7 +108,7 @@ int GameApp::run()
 {
     init();
     _window = std::make_unique<sf::RenderWindow>(sf::VideoMode({1920, 1080}),
-        _configuration.game().gameName,
+        _configuration.game().name,
         sf::Style::Titlebar | sf::Style::Close);
     _window->setFramerateLimit(static_cast<unsigned int>(_frameRate));
     onWindowCreated();

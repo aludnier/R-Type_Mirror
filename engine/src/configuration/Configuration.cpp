@@ -22,7 +22,7 @@ Configuration::Configuration(const std::filesystem::path &configFilePath) :
         nlohmann::json json;
         file >> json;
         _game.name = json.value("name", _game.name);
-        _game.gameName = _game.name;
+        _game.name = _game.name;
         _game.pluginDirectory = json.value(
             "plugin_directory", json.value("directory", _game.pluginDirectory));
         _game.plugins =
@@ -43,6 +43,16 @@ const GameConfig &Configuration::game() const
 }
 
 const std::filesystem::path &Configuration::path() const
+{
+    return _path;
+}
+
+GameConfig &Configuration::game()
+{
+    return _game;
+}
+
+std::filesystem::path &Configuration::path()
 {
     return _path;
 }

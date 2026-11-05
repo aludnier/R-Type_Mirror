@@ -55,15 +55,15 @@ namespace {
     }
 } // namespace
 
-ServerConfig::ServerConfig(const Configuration &configuration)
+ServerConfig ServerConfig::fromConfig(const Configuration &configuration)
 {
     const auto &game = configuration.game();
-    gameName = game.gameName;
-    port = game.port;
-    maxPlayers = game.maxPlayers;
-    tickRate = game.tickRate;
-    playerSpeed = game.playerSpeed;
-    movementActions = {0, 1, 2, 3};
+    return {.gameName = game.name,
+        .port = game.port,
+        .maxPlayers = game.maxPlayers,
+        .tickRate = game.tickRate,
+        .playerSpeed = game.playerSpeed,
+        .movementActions = {}};
 }
 
 GameServer::GameServer(const ServerConfig &config) :
@@ -73,7 +73,7 @@ GameServer::GameServer(const ServerConfig &config) :
 }
 
 GameServer::GameServer(const Configuration &configuration) :
-    GameServer(ServerConfig(configuration))
+    GameServer(ServerConfig::fromConfig(configuration))
 {
     _pluginManager = std::make_unique<PluginManager>();
     _pluginManager->loadConfig(configuration, _registry);

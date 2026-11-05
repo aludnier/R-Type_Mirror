@@ -36,8 +36,6 @@
 
 namespace RType {
 struct ServerConfig {
-    explicit ServerConfig() = default;
-    explicit ServerConfig(const Configuration &configuration);
 
     std::string gameName = "R-Type";
     std::uint16_t port = 4242;
@@ -47,6 +45,8 @@ struct ServerConfig {
     /** @brief Speed of a player's entity, in units per second. */
     float playerSpeed = 300.f;
     MovementActions movementActions;
+
+    static ServerConfig fromConfig(const Configuration &configuration);
 };
 
 /**

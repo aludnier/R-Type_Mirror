@@ -24,10 +24,7 @@ using ParallaxBackground = RType::Environment::ParallaxBackground;
 
 class GameApp : public RType::Game::GameApp {
 public:
-    explicit GameApp(const RType::Configuration &configuration) :
-        RType::Game::GameApp(configuration)
-    {
-    }
+    explicit GameApp(const RType::Configuration &configuration);
 
     ~GameApp() override = default;
 

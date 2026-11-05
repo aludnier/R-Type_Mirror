@@ -194,6 +194,11 @@ void GameApp::onShutdown()
     ImGui::SFML::Shutdown(getWindow());
 }
 
+GameApp::GameApp(const RType::Configuration &configuration) :
+    RType::Game::GameApp(configuration)
+{
+}
+
 ScreenState GameApp::getScreenState() const
 {
     return _screenState;

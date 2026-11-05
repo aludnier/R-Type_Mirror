@@ -11,7 +11,7 @@
 int main(int argc, char **argv)
 {
     const std::filesystem::path configFile =
-        argc > 1 ? argv[1] : "../config/game.json";
+        argc > 1 ? argv[1] : ENGINE_MODULE_DIR "/../config/game.json";
     const RType::Configuration configuration(configFile);
     Game::GameApp app(configuration);
     return app.run();

@@ -68,6 +68,7 @@ target_link_libraries(engine_core
         PRIVATE asio::asio
         PUBLIC Threads::Threads nlohmann_json::nlohmann_json)
 target_link_libraries(engine_core PUBLIC ${CMAKE_DL_LIBS})
+target_compile_definitions(engine_core PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
 if (WIN32)
     target_compile_definitions(engine_core PRIVATE _WIN32_WINNT=0x0A00)
 endif ()
@@ -90,7 +91,6 @@ set(CLIENT_SRC
 add_library(engine_client STATIC ${CLIENT_SRC})
 
 target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
-target_compile_definitions(engine_client PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
 
 # ---------------------------------------------------------------------------
 # engine_platform: window, OpenGL context and main loop (GLFW + glad). Client

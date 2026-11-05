@@ -11,3 +11,4 @@ target_include_directories(r-type_server PRIVATE
         ${PROJECT_SOURCE_DIR}/game/src/network
 )
 target_link_libraries(r-type_server PRIVATE Eng::server)
+target_compile_definitions(r-type_server PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")

@@ -176,12 +176,12 @@ private:
 
     // Functions of the Lua `world` table.
     lua_Integer spawn() const;
-    void kill(lua_Integer e) const;
+    void kill(lua_Integer e);
     bool has(lua_Integer e, const std::string &name) const;
     sol::object get(lua_Integer e, const std::string &name) const;
     sol::object add(
-        lua_Integer e, const std::string &name, const sol::object &value) const;
-    void remove(lua_Integer e, const std::string &name) const;
+        lua_Integer e, const std::string &name, const sol::object &value);
+    void remove(lua_Integer e, const std::string &name);
     sol::table data(lua_Integer e);
     void addSystem(const std::string &name, const sol::protected_function &fn);
 

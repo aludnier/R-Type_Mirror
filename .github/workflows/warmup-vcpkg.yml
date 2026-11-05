@@ -28,12 +28,6 @@ jobs:
       - name: Download Lua source
         run: |
           mkdir -p "$VCPKG_DOWNLOADS"
-          if [ ! -f "$VCPKG_DOWNLOADS/lua-5.5.1.tar.gz" ]; then
-            curl --fail --location --retry 5 --retry-all-errors \
-              --connect-timeout 30 --max-time 300 \
-              https://www.lua.org/ftp/lua-5.5.1.tar.gz \
-              --output "$VCPKG_DOWNLOADS/lua-5.5.1.tar.gz"
-          fi
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
           ./vcpkg/vcpkg install --x-manifest-root="$PWD" --triplet x64-linux

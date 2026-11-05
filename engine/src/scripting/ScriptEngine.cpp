@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <iostream>
 #include <limits>
+#include <lua.h>
 #include <map>
 #include <stdexcept>
 
@@ -26,7 +27,7 @@ RType::entity_id_type toEntityId(lua_Integer value)
 {
     if (value < 0)
         throw std::runtime_error("invalid entity id " + std::to_string(value));
-    return value;
+    return static_cast<RType::entity_id_type>(value);
 }
 } // namespace
 
@@ -110,7 +111,7 @@ lua_Integer RType::ScriptEngine::spawn() const
         static_cast<entity_id_type>(_registry.spawnEntity()));
 }
 
-void RType::ScriptEngine::kill(lua_Integer e) const
+void RType::ScriptEngine::kill(lua_Integer e)
 {
     _registry.killEntity(Registry::entityFromIndex(toEntityId(e)));
 }
@@ -127,7 +128,7 @@ sol::object RType::ScriptEngine::get(
 }
 
 sol::object RType::ScriptEngine::add(
-    lua_Integer e, const std::string &name, const sol::object &value) const
+    lua_Integer e, const std::string &name, const sol::object &value)
 {
     const auto &component = binding(name);
     const auto id = toEntityId(e);
@@ -139,7 +140,7 @@ sol::object RType::ScriptEngine::add(
     return component.get(_registry, id, _lua.lua_state());
 }
 
-void RType::ScriptEngine::remove(lua_Integer e, const std::string &name) const
+void RType::ScriptEngine::remove(lua_Integer e, const std::string &name)
 {
     binding(name).remove(_registry, toEntityId(e));
 }
