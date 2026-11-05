@@ -36,9 +36,8 @@ void GameApp::init()
 void GameApp::setupSystems()
 {
     _pluginManager.loadConfig(_configuration, _registry);
-    addControllableSystem(_registry,
-        _configuration.game().playerSpeed,
-        _fixedDeltaTime, {});
+    addControllableSystem(
+        _registry, _configuration.game().playerSpeed, _fixedDeltaTime, {});
 }
 
 void GameApp::setupKeyBindings()

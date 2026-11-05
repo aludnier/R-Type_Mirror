@@ -35,7 +35,7 @@ std::optional<std::uint16_t> parsePort(std::string_view text)
     if (error != std::errc {} || end != text.data() + text.size() ||
         port == 0 || port > 65535) {
         return std::nullopt;
-        }
+    }
     return static_cast<std::uint16_t>(port);
 }
 
