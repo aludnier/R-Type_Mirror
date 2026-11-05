@@ -32,7 +32,7 @@ public:
     void render();
     int run();
 
-    [[nodiscard]] RType::Registry &getRegistry();
+    [[nodiscard]] Registry &getRegistry();
     [[nodiscard]] InputManager &getInputManager();
     [[nodiscard]] ResourceManager &getResourceManager();
     [[nodiscard]] sf::RenderWindow &getWindow() const;
@@ -78,7 +78,7 @@ protected:
     const Configuration &_configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};
-    RType::Registry _registry {};
+    Registry _registry {};
     bool _running = false;
     float _frameRate = 60.0f;
     float _fixedDeltaTime = 1.0f / 60.0f;

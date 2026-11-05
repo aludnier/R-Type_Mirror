@@ -1,3 +1,6 @@
+#ifndef TEMPCONFIGFILE_HPP
+#define TEMPCONFIGFILE_HPP
+
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -34,3 +37,5 @@ public:
 private:
     std::filesystem::path _path;
 };
+
+#endif // TEMPCONFIGFILE_HPP

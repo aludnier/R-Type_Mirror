@@ -17,15 +17,15 @@
 namespace RType::Game {
 
 GameApp::GameApp(const Configuration &configuration) :
-    _configuration(configuration), _pluginManager()
+    _configuration(configuration)
 {
 }
 
 void GameApp::init()
 {
-    _registry.registerComponent<RType::Transform2D>();
-    _registry.registerComponent<RType::Sprite>();
-    _registry.registerComponent<RType::Controllable>();
+    _registry.registerComponent<Transform2D>();
+    _registry.registerComponent<Sprite>();
+    _registry.registerComponent<Controllable>();
     registerComponents();
     setupResources();
     setupKeyBindings();
@@ -36,7 +36,7 @@ void GameApp::init()
 void GameApp::setupSystems()
 {
     _pluginManager.loadConfig(_configuration, _registry);
-    RType::addControllableSystem(_registry,
+    addControllableSystem(_registry,
         _configuration.game().playerSpeed,
         _fixedDeltaTime,
         {0, 1, 2, 3});
@@ -44,11 +44,11 @@ void GameApp::setupSystems()
 
 void GameApp::setupKeyBindings()
 {
-    constexpr RType::ActionId moveUp = 0;
-    constexpr RType::ActionId moveDown = 1;
-    constexpr RType::ActionId moveLeft = 2;
-    constexpr RType::ActionId moveRight = 3;
-    constexpr RType::ActionId shoot = 4;
+    constexpr ActionId moveUp = 0;
+    constexpr ActionId moveDown = 1;
+    constexpr ActionId moveLeft = 2;
+    constexpr ActionId moveRight = 3;
+    constexpr ActionId shoot = 4;
     _inputManager.defineAction("MoveUp", moveUp);
     _inputManager.defineAction("MoveDown", moveDown);
     _inputManager.defineAction("MoveLeft", moveLeft);
@@ -77,10 +77,10 @@ void GameApp::handleEvent(const sf::Event &event)
 {
     if (event.is<sf::Event::Closed>()) {
         close();
-    } else if (const auto *key = event.getIf<sf::Event::KeyPressed>()) {
-        _inputManager.setKeyState(static_cast<int>(key->code), true);
-    } else if (const auto *key = event.getIf<sf::Event::KeyReleased>()) {
-        _inputManager.setKeyState(static_cast<int>(key->code), false);
+    } else if (const auto *keyPressed = event.getIf<sf::Event::KeyPressed>()) {
+        _inputManager.setKeyState(static_cast<int>(keyPressed->code), true);
+    } else if (const auto *keyReleased = event.getIf<sf::Event::KeyReleased>()) {
+        _inputManager.setKeyState(static_cast<int>(keyReleased->code), false);
     }
 }
 
@@ -124,7 +124,7 @@ int GameApp::run()
     return 0;
 }
 
-RType::Registry &GameApp::getRegistry()
+Registry &GameApp::getRegistry()
 {
     return _registry;
 }

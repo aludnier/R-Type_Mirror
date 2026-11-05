@@ -25,7 +25,7 @@ RType::entity_id_type toEntityId(lua_Integer value)
 {
     if (value < 0)
         throw std::runtime_error("invalid entity id " + std::to_string(value));
-    return static_cast<RType::entity_id_type>(value);
+    return value;
 }
 } // namespace
 

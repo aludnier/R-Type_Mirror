@@ -107,7 +107,7 @@ public:
      */
     RType::ActionMask actionMask() const;
 
-    static std::string keyCodeId(InputManager::KeyCode key);
+    static std::string keyCodeId(KeyCode key);
 
 private:
     using InputId = std::string;

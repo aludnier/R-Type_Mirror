@@ -64,7 +64,7 @@ void InputManager::loadConfigFile(const std::filesystem::path &configFile)
     }
 }
 
-std::string InputManager::keyCodeId(InputManager::KeyCode key)
+std::string InputManager::keyCodeId(KeyCode key)
 {
     return "KEY_CODE_" + std::to_string(key);
 }

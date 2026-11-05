@@ -39,7 +39,7 @@ void validateDescriptor(
 } // namespace
 
 RType::PluginManager::PluginManager(
-    const std::filesystem::path &configFile, RType::Registry &registry)
+    const std::filesystem::path &configFile, Registry &registry)
 {
     loadConfig(configFile, registry);
 }
@@ -97,9 +97,9 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
         if (!entryPoint)
             continue;
 
-        const RType::ModuleDescriptor *descriptor = (*entryPoint)();
+        const ModuleDescriptor *descriptor = (*entryPoint)();
         validateDescriptor(path,
-            (descriptor) ? DescriptorRef(std::cref(*descriptor))
+            descriptor ? DescriptorRef(std::cref(*descriptor))
                          : std::nullopt);
         if (!scan.index.emplace(descriptor->name, scan.modules.size()).second)
             throw std::runtime_error(
@@ -160,7 +160,7 @@ std::vector<std::size_t> RType::PluginManager::resolveLoadOrder(
     const std::vector<Module> &candidates, const NameIndex &,
     const std::vector<std::size_t> &roots) const
 {
-    std::vector<VisitState> state(candidates.size(), VisitState::Unvisited);
+    std::vector state(candidates.size(), VisitState::Unvisited);
     std::vector<std::size_t> order;
 
     for (const auto root : roots)
@@ -179,7 +179,7 @@ void RType::PluginManager::rollback(std::size_t firstNew) noexcept
 }
 
 void RType::PluginManager::registerModules(std::vector<Module> &candidates,
-    const std::vector<std::size_t> &order, RType::Registry &registry)
+    const std::vector<std::size_t> &order, Registry &registry)
 {
     _loadedModules.reserve(_loadedModules.size() + order.size());
     _retiredLibraries.reserve(_retiredLibraries.size() + order.size());
@@ -190,11 +190,11 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
         for (const auto index : order) {
             _loadedModules.push_back(std::move(candidates[index]));
             auto &module = _loadedModules.back();
-            if (module.registerModule(registry) != RType::ModuleStatus::Success)
+            if (module.registerModule(registry) != ModuleStatus::Success)
                 throw std::runtime_error(
                     "Module '" + module.name + "' failed to initialize");
         }
-    } catch (std::runtime_error &e) {
+    } catch (std::runtime_error &) {
         rollback(firstNew);
         throw;
     }
@@ -207,14 +207,14 @@ bool RType::PluginManager::isLoaded(const std::string &name) const
 }
 
 void RType::PluginManager::loadConfig(
-    const std::filesystem::path &configFile, RType::Registry &registry)
+    const std::filesystem::path &configFile, Registry &registry)
 {
     const Configuration config(configFile);
     loadConfig(config, registry);
 }
 
 void RType::PluginManager::loadConfig(
-    const Configuration &config, RType::Registry &registry)
+    const Configuration &config, Registry &registry)
 {
     loadRequiredModules(
         config.path().parent_path() / config.game().pluginDirectory,
@@ -224,7 +224,7 @@ void RType::PluginManager::loadConfig(
 
 void RType::PluginManager::loadRequiredModules(
     const std::filesystem::path &directory,
-    const std::vector<std::string> &moduleNames, RType::Registry &registry)
+    const std::vector<std::string> &moduleNames, Registry &registry)
 {
     if (_configured)
         throw std::logic_error(
@@ -253,7 +253,7 @@ void RType::PluginManager::loadRequiredModules(
 }
 
 void RType::PluginManager::loadModule(
-    const std::filesystem::path &path, RType::Registry &registry)
+    const std::filesystem::path &path, Registry &registry)
 {
     if (_registry && &_registry->get() != &registry)
         throw std::logic_error(
