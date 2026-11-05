@@ -183,7 +183,7 @@ private:
         return handle;
 #else
         const int flags =
-            persistent ? (RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE) : RTLD_LAZY;
+            persistent ? RTLD_NOW | RTLD_LOCAL | RTLD_NODELETE : RTLD_LAZY;
         return dlopen(libFile.c_str(), flags);
 #endif
     }
