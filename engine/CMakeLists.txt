@@ -100,16 +100,9 @@ set(PLATFORM_SRC
         src/platform/Application.h
 )
 
-add_library(engine_render2d STATIC
-        src/render/RenderTarget.cpp
-        src/render/RenderTarget.h
-)
-
-target_link_libraries(engine_render2d PUBLIC engine_core PRIVATE glad::glad)
-
 add_library(engine_platform STATIC ${PLATFORM_SRC})
 
-target_link_libraries(engine_platform PUBLIC engine_core engine_render2d glfw glad::glad)
+target_link_libraries(engine_platform PUBLIC engine_core glfw glad::glad)
 # glad provides the OpenGL headers: GLFW must not include its own.
 target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
 
@@ -162,7 +155,6 @@ add_library(Eng::client ALIAS engine_client)
 add_library(Eng::server ALIAS engine_server)
 add_library(Eng::scripting ALIAS engine_scripting)
 add_library(Eng::platform ALIAS engine_platform)
-add_library(Eng::render2d ALIAS engine_render2d)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)

@@ -11,11 +11,16 @@
 #include <functional>
 #include <string>
 
-#include "render/RenderTarget.h"
-
 struct GLFWwindow;
 
 namespace RType {
+struct Color {
+    float r = 0.f;
+    float g = 0.f;
+    float b = 0.f;
+    float a = 1.f;
+};
+
 struct WindowConfig {
     std::string title = "Engine";
     int width = 1280;
@@ -24,19 +29,22 @@ struct WindowConfig {
 };
 
 /** @brief An operating system window with an OpenGL 3.3 core context. */
-class Window : public RenderTarget {
+class Window {
 public:
     using KeyCallback = std::function<void(int key, bool pressed)>;
 
     /** @throws std::runtime_error if the window or context cannot be made. */
     explicit Window(const WindowConfig &config);
-    ~Window() override;
+    ~Window();
 
     Window(const Window &) = delete;
     Window &operator=(const Window &) = delete;
 
     [[nodiscard]] bool isOpen() const;
     void close();
+
+    /** @brief Fills the window with a color. */
+    void clear(const Color &color);
 
     /** @brief Handles the pending window and keyboard events. */
     static void pollEvents();
@@ -48,9 +56,6 @@ public:
 
     /** @return Seconds since the window was created. */
     [[nodiscard]] static double time();
-
-protected:
-    void activate() override;
 
 private:
     static void onKey(
