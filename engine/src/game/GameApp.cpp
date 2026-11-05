@@ -79,7 +79,8 @@ void GameApp::handleEvent(const sf::Event &event)
         close();
     } else if (const auto *keyPressed = event.getIf<sf::Event::KeyPressed>()) {
         _inputManager.setKeyState(static_cast<int>(keyPressed->code), true);
-    } else if (const auto *keyReleased = event.getIf<sf::Event::KeyReleased>()) {
+    } else if (const auto *keyReleased =
+                   event.getIf<sf::Event::KeyReleased>()) {
         _inputManager.setKeyState(static_cast<int>(keyReleased->code), false);
     }
 }

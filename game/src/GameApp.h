@@ -11,8 +11,8 @@
 #include <imgui-SFML.h>
 #include <memory>
 
-#include "game/GameApp.h"
 #include "components/ParallaxBackground.h"
+#include "game/GameApp.h"
 #include "network/NetworkClient.h"
 #include "systems/NetworkSyncSystem.h"
 #include "ui/ConnectionDialog.h"
@@ -25,7 +25,10 @@ using ParallaxBackground = RType::Environment::ParallaxBackground;
 class GameApp : public RType::Game::GameApp {
 public:
     explicit GameApp(const RType::Configuration &configuration) :
-        RType::Game::GameApp(configuration) {}
+        RType::Game::GameApp(configuration)
+    {
+    }
+
     ~GameApp() override = default;
 
     [[nodiscard]] ScreenState getScreenState() const;

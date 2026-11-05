@@ -99,8 +99,7 @@ RType::PluginManager::Scan RType::PluginManager::scanDirectory(
 
         const ModuleDescriptor *descriptor = (*entryPoint)();
         validateDescriptor(path,
-            descriptor ? DescriptorRef(std::cref(*descriptor))
-                         : std::nullopt);
+            descriptor ? DescriptorRef(std::cref(*descriptor)) : std::nullopt);
         if (!scan.index.emplace(descriptor->name, scan.modules.size()).second)
             throw std::runtime_error(
                 "Duplicate module name: " + descriptor->name);
@@ -262,8 +261,7 @@ void RType::PluginManager::loadModule(
     const auto rootPath = std::filesystem::canonical(path);
     auto scan = scanDirectory(rootPath.parent_path());
 
-    const auto rootIt =
-        std::ranges::find(scan.paths, rootPath);
+    const auto rootIt = std::ranges::find(scan.paths, rootPath);
     if (rootIt == scan.paths.end())
         throw std::runtime_error(
             "Module is missing RTypeLibEntryPoint: " + path.string());

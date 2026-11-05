@@ -118,7 +118,8 @@ bool RType::ScriptEngine::has(lua_Integer e, const std::string &name) const
     return binding(name).has(_registry, toEntityId(e));
 }
 
-sol::object RType::ScriptEngine::get(lua_Integer e, const std::string &name) const
+sol::object RType::ScriptEngine::get(
+    lua_Integer e, const std::string &name) const
 {
     return binding(name).get(_registry, toEntityId(e), _lua.lua_state());
 }

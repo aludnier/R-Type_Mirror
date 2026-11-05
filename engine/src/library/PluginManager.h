@@ -32,8 +32,7 @@ public:
      * @param configFile JSON file with a "directory" and "modules" entry.
      * @param registry Registry passed to each module registration callback.
      */
-    PluginManager(
-        const std::filesystem::path &configFile, Registry &registry);
+    PluginManager(const std::filesystem::path &configFile, Registry &registry);
 
     ~PluginManager() = default;
 
@@ -69,8 +68,7 @@ public:
      * @param path     Path to the root module's shared library.
      * @param registry Registry passed to each registerModule callback.
      */
-    void loadModule(
-        const std::filesystem::path &path, Registry &registry);
+    void loadModule(const std::filesystem::path &path, Registry &registry);
 
     /**
      * @brief Checks whether a module with this name is loaded.
@@ -85,8 +83,7 @@ private:
 
     /** @brief A module library, either read-only (candidate) or registered. */
     struct Module {
-        Module(Loader lib,
-            const ModuleDescriptor *descriptor)
+        Module(Loader lib, const ModuleDescriptor *descriptor)
         {
             library = std::move(lib);
             name = descriptor->name;
