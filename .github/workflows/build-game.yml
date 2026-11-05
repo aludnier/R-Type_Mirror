@@ -19,6 +19,7 @@ jobs:
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-
       - name: Install Linux dependencies
         run: |
           sudo apt-get update
@@ -59,6 +60,9 @@ jobs:
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+          restore-keys: |
+            vcpkg-windows-
+            vcpkg-engine-windows-
 
       - name: Configure and build
         shell: powershell
