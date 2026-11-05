@@ -21,6 +21,7 @@ jobs:
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-linux-
 
       - name: Install Linux dependencies
         run: |
@@ -31,7 +32,13 @@ jobs:
             libxrandr-dev \
             libxcursor-dev \
             libudev-dev \
-            libgl1-mesa-dev
+            libgl1-mesa-dev \
+            libxinerama-dev \
+            pkg-config \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool \
 
       - name: "Generate compilation_command.json"
         run: |

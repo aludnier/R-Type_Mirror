@@ -38,6 +38,8 @@ set(CORE_SRC
         src/library/PluginManager.h
         src/library/NlohmanReader.cpp
         src/library/NlohmanReader.h
+        src/library/InputManager.cpp
+        src/library/InputManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -46,6 +48,7 @@ set(CORE_SRC
         src/network/PacketHeader.cpp
         src/network/ServerPackets.cpp
         src/network/UdpSocket.cpp
+        src/time/FixedStep.h
 )
 
 find_package(nlohmann_json CONFIG REQUIRED)
@@ -74,8 +77,6 @@ find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
 
 set(CLIENT_SRC
         src/library/engine.h
-        src/library/InputManager.cpp
-        src/library/InputManager.h
         src/components/Sprite.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
@@ -84,6 +85,26 @@ set(CLIENT_SRC
 add_library(engine_client STATIC ${CLIENT_SRC})
 
 target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
+
+# ---------------------------------------------------------------------------
+# engine_platform: window, OpenGL context and main loop (GLFW + glad). Client
+# only, never linked by the server.
+# ---------------------------------------------------------------------------
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
+
+set(PLATFORM_SRC
+        src/platform/Window.cpp
+        src/platform/Window.h
+        src/platform/Application.cpp
+        src/platform/Application.h
+)
+
+add_library(engine_platform STATIC ${PLATFORM_SRC})
+
+target_link_libraries(engine_platform PUBLIC engine_core glfw glad::glad)
+# glad provides the OpenGL headers: GLFW must not include its own.
+target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
@@ -133,6 +154,7 @@ add_library(Eng::core ALIAS engine_core)
 add_library(Eng::client ALIAS engine_client)
 add_library(Eng::server ALIAS engine_server)
 add_library(Eng::scripting ALIAS engine_scripting)
+add_library(Eng::platform ALIAS engine_platform)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
@@ -147,6 +169,7 @@ if (BUILD_TESTS)
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
             tests/nlohman_reader_test.cpp
+            tests/fixed_step_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
@@ -192,6 +215,7 @@ if (BUILD_TESTS)
     add_test(NAME engine_scripting_tests COMMAND engine_scripting_tests)
 endif ()
 
+add_subdirectory(apps/sandbox)
 add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)
