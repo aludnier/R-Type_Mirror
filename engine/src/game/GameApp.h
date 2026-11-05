@@ -16,12 +16,14 @@
 #include "ecs/Registry.h"
 #include "library/InputManager.h"
 #include "library/RessourceManager.h"
+#include "library/PluginManager.h"
+#include "configuration/Configuration.hpp"
 
-namespace Game {
+namespace RType::Game {
 
 class GameApp {
 public:
-    GameApp();
+    explicit GameApp(const Configuration &configuration);
     virtual ~GameApp() = default;
 
     void init();
@@ -38,7 +40,7 @@ public:
 protected:
     virtual void registerComponents() {}
     virtual void setupResources() {}
-    virtual void setupSystems() {}
+    virtual void setupSystems();
     virtual void spawnInitialEntities() {}
     virtual void updateGame(float) {}
     virtual void renderGame() {}
@@ -51,15 +53,15 @@ protected:
 
     InputManager _inputManager {};
     ResourceManager _resourceManager {};
+    const Configuration &_configuration;
+    PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};
     RType::Registry _registry {};
-    RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader {};
-    RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader {};
     bool _running = false;
     float _frameRate = 60.0f;
     float _fixedDeltaTime = 1.0f / 60.0f;
 };
 
-} // namespace Game
+} // namespace RType::Game
 
 #endif // ENGINE_GAMEAPP_H
