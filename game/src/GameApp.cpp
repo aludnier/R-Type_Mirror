@@ -25,6 +25,7 @@
 #include "components/ForcePod.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Name.h"
 #include "components/NetworkEntity.h"
 #include "components/Player.h"
 #include "components/Projectile.h"
@@ -67,6 +68,7 @@ void GameApp::init()
     _registry.registerComponent<Projectile>();
     _registry.registerComponent<Health>();
     _registry.registerComponent<Hitbox>();
+    _registry.registerComponent<RType::Name>();
     _registry.registerComponent<ParallaxBackground>();
     _registry.registerComponent<ForcePod>();
 

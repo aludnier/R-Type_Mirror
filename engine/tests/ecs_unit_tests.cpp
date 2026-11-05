@@ -9,6 +9,7 @@
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Name.h"
 #include "components/Transform2D.h"
 #include "ecs/Component.h"
 #include "ecs/Entity.h"
@@ -108,6 +109,107 @@ TEST_CASE("Registry spawns entities", "[ecs][registry]")
     REQUIRE(first != second);
     REQUIRE(static_cast<RType::entity_id_type>(first) == 0u);
     REQUIRE(static_cast<RType::entity_id_type>(second) == 1u);
+}
+
+TEST_CASE("Registry tracks spawned entities in order", "[ecs][registry]")
+{
+    RType::Registry registry;
+
+    REQUIRE(registry.entities().empty());
+    auto first = registry.spawnEntity();
+    auto second = registry.spawnEntity();
+    auto third = registry.spawnEntity();
+
+    REQUIRE(registry.entities() == std::vector {first, second, third});
+    REQUIRE(registry.isAlive(first));
+    REQUIRE(registry.isAlive(third));
+}
+
+TEST_CASE("Registry killed entity stays alive until the kills are applied",
+    "[ecs][registry]")
+{
+    RType::Registry registry;
+    auto first = registry.spawnEntity();
+    auto second = registry.spawnEntity();
+    auto third = registry.spawnEntity();
+
+    registry.killEntity(second);
+
+    REQUIRE(registry.isAlive(second));
+    REQUIRE(registry.entities() == std::vector {first, second, third});
+
+    registry.runSystems();
+    auto fourth = registry.spawnEntity();
+
+    REQUIRE_FALSE(registry.isAlive(second));
+    REQUIRE(registry.entities() == std::vector {first, third, fourth});
+}
+
+TEST_CASE(
+    "Registry kills the entity referenced from entities()", "[ecs][registry]")
+{
+    RType::Registry registry;
+    auto first = registry.spawnEntity();
+    auto second = registry.spawnEntity();
+    auto third = registry.spawnEntity();
+
+    registry.killEntity(registry.entities().front());
+    registry.killAllEntities();
+
+    REQUIRE_FALSE(registry.isAlive(first));
+    REQUIRE(registry.entities() == std::vector {second, third});
+}
+
+TEST_CASE(
+    "Registry kills every entity in a loop over entities()", "[ecs][registry]")
+{
+    RType::Registry registry;
+    registry.registerComponent<Position>();
+    for (int i = 0; i < 6; ++i)
+        registry.addComponent(registry.spawnEntity(), Position {i, i});
+
+    for (const auto &entity : registry.entities())
+        registry.killEntity(entity);
+    registry.killAllEntities();
+
+    REQUIRE(registry.entities().empty());
+    for (const auto &position : registry.getComponents<Position>())
+        REQUIRE_FALSE(position.has_value());
+}
+
+TEST_CASE("Registry killing an entity twice is harmless", "[ecs][registry]")
+{
+    RType::Registry registry;
+    auto first = registry.spawnEntity();
+    auto second = registry.spawnEntity();
+
+    registry.killEntity(first);
+    registry.killEntity(first);
+    registry.killAllEntities();
+
+    REQUIRE_FALSE(registry.isAlive(first));
+    REQUIRE(registry.entities() == std::vector {second});
+}
+
+TEST_CASE("Registry never spawned entity is not alive", "[ecs][registry]")
+{
+    RType::Registry registry;
+    registry.spawnEntity();
+
+    REQUIRE_FALSE(registry.isAlive(RType::Registry::entityFromIndex(5)));
+}
+
+TEST_CASE("Name component can be added and read", "[ecs][components]")
+{
+    RType::Registry registry;
+    auto &names = registry.registerComponent<RType::Name>();
+    auto entity = registry.spawnEntity();
+
+    registry.addComponent(entity, RType::Name {"Player"});
+
+    REQUIRE(names[entity].has_value());
+    REQUIRE(names[entity]->value == "Player");
+    REQUIRE(RType::Name {}.value.empty());
 }
 
 TEST_CASE("Registry registers components", "[ecs][registry]")

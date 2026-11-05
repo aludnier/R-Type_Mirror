@@ -14,6 +14,7 @@
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Name.h"
 #include "components/Transform2D.h"
 #include "math/Vector2.h"
 
@@ -21,6 +22,7 @@ namespace {
 using RType::Controllable;
 using RType::Health;
 using RType::Hitbox;
+using RType::Name;
 using RType::Transform2D;
 using RType::Vector2;
 
@@ -151,6 +153,14 @@ void bindHitbox(sol::state &lua)
         sol::property(&size, &setSize));
 }
 
+void bindName(sol::state &lua)
+{
+    lua.new_usertype<Name>("Name",
+        sol::constructors<Name(), Name(std::string)>(),
+        "value",
+        &Name::value);
+}
+
 void bindAction(sol::state &lua)
 {
     // Filled by the game, see ScriptEngine::defineAction().
@@ -175,6 +185,7 @@ constexpr std::array coreTypes = {
     &bindTransform2D,
     &bindHealth,
     &bindHitbox,
+    &bindName,
     &bindAction,
     &bindControllable,
 };
