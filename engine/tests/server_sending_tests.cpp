@@ -55,7 +55,7 @@ public:
 
 private:
     std::atomic<bool> _stopRequested {false};
-    GameServer _server {ServerConfig {.port = 0}};
+    GameServer _server {ServerConfig{}};
     std::thread _thread;
 };
 
