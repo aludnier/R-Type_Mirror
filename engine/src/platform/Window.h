@@ -11,6 +11,8 @@
 #include <functional>
 #include <string>
 
+#include "render/RenderTarget.h"
+
 struct GLFWwindow;
 
 namespace RType {
@@ -22,13 +24,13 @@ struct WindowConfig {
 };
 
 /** @brief An operating system window with an OpenGL 3.3 core context. */
-class Window {
+class Window : public RenderTarget {
 public:
     using KeyCallback = std::function<void(int key, bool pressed)>;
 
     /** @throws std::runtime_error if the window or context cannot be made. */
     explicit Window(const WindowConfig &config);
-    ~Window();
+    ~Window() override;
 
     Window(const Window &) = delete;
     Window &operator=(const Window &) = delete;
@@ -46,6 +48,9 @@ public:
 
     /** @return Seconds since the window was created. */
     [[nodiscard]] static double time();
+
+protected:
+    void activate() override;
 
 private:
     static void onKey(

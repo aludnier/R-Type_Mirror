@@ -13,7 +13,6 @@
 #include <glad/glad.h>
 
 #include "platform/Application.h"
-#include "render/Renderer.h"
 
 namespace {
 constexpr RType::ActionId Brighter = 0;
@@ -44,7 +43,7 @@ protected:
 
     void render() override
     {
-        RType::Renderer::clear({0.1f, 0.2f * _brightness, _brightness, 1.f});
+        window().clear({0.1f, 0.2f * _brightness, _brightness, 1.f});
     }
 
 private:

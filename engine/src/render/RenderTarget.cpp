@@ -1,17 +1,18 @@
 /*
 ** EPITECH PROJECT, 2026
-** r-type
+** R-Type
 ** File description:
-** Renderer.cpp
+** RenderTarget.cpp
 */
 
-#include "Renderer.h"
+#include "RenderTarget.h"
 
 #include <glad/glad.h>
 
 namespace RType {
-void Renderer::clear(const Color &color)
+void RenderTarget::clear(const Color &color)
 {
+    activate();
     glClearColor(color.r, color.g, color.b, color.a);
     glClear(GL_COLOR_BUFFER_BIT);
 }

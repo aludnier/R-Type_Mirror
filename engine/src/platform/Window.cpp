@@ -70,6 +70,13 @@ void Window::swapBuffers()
     glfwSwapBuffers(_handle);
 }
 
+void Window::activate()
+{
+    if (glfwGetCurrentContext() != _handle)
+        glfwMakeContextCurrent(_handle);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 void Window::setKeyCallback(KeyCallback callback)
 {
     _keyCallback = std::move(callback);

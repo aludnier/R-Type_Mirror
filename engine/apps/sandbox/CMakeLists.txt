@@ -1,4 +1,4 @@
 # sandbox: small program to try the engine features without a game.
 add_executable(sandbox main.cpp)
 
-target_link_libraries(sandbox PRIVATE Eng::platform Eng::render2d)
+target_link_libraries(sandbox PRIVATE Eng::platform)
