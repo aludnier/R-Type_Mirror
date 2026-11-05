@@ -87,6 +87,22 @@ add_library(engine_client STATIC ${CLIENT_SRC})
 target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
 
 # ---------------------------------------------------------------------------
+# engine_platform: window, OpenGL context and main loop (GLFW + glad). Client
+# only, never linked by the server.
+# ---------------------------------------------------------------------------
+find_package(glfw3 CONFIG REQUIRED)
+find_package(glad CONFIG REQUIRED)
+
+set(PLATFORM_SRC
+        src/platform/Window.cpp
+        src/platform/Window.h
+)
+
+add_library(engine_platform STATIC ${PLATFORM_SRC})
+
+target_link_libraries(engine_platform PUBLIC engine_core glfw glad::glad)
+
+# ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
 # never links engine_client.
 # ---------------------------------------------------------------------------
@@ -134,6 +150,7 @@ add_library(Eng::core ALIAS engine_core)
 add_library(Eng::client ALIAS engine_client)
 add_library(Eng::server ALIAS engine_server)
 add_library(Eng::scripting ALIAS engine_scripting)
+add_library(Eng::platform ALIAS engine_platform)
 
 if (BUILD_TESTS)
     find_package(Catch2 REQUIRED)
