@@ -12,6 +12,7 @@
 #include <iostream>
 #include <optional>
 #include <string_view>
+#include <filesystem>
 
 #include "RTypeServer.h"
 #include "configuration/Configuration.hpp"
