@@ -8,27 +8,17 @@
 #include "game/GameApp.h"
 
 #include <SFML/Window/Keyboard.hpp>
-#include <chrono>
-#include <iostream>
-
 #include "components/Controllable.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
+#include "ecs/SparseArray.h"
 #include "systems/ControllableSystem.h"
 
-namespace Game {
+namespace RType::Game {
 
-GameApp::GameApp()
+GameApp::GameApp(const Configuration &configuration) :
+    _configuration(configuration), _pluginManager()
 {
-#ifdef WIN32
-    _physics2DModuleLoader.loadFile(ENGINE_MODULE_DIR "/Physics2D_Module.dll");
-    _environmentModuleLoader.loadFile(
-        ENGINE_MODULE_DIR "/Environment2D_Module.dll");
-#else
-    _physics2DModuleLoader.loadFile(ENGINE_MODULE_DIR "/Physics2D_Module.so");
-    _environmentModuleLoader.loadFile(
-        ENGINE_MODULE_DIR "/Environment2D_Module.so");
-#endif
 }
 
 void GameApp::init()
@@ -45,9 +35,9 @@ void GameApp::init()
 
 void GameApp::setupSystems()
 {
-    _physics2DModuleLoader.getInstance().registerModule(_registry);
-    _environmentModuleLoader.getInstance().registerModule(_registry);
-    RType::addControllableSystem(_registry, 300.0f, _fixedDeltaTime,
+    _pluginManager.loadConfig(_configuration, _registry);
+    RType::addControllableSystem(_registry, _configuration.game().playerSpeed,
+        _fixedDeltaTime,
         {0, 1, 2, 3});
 }
 
@@ -117,7 +107,8 @@ int GameApp::run()
 {
     init();
     _window = std::make_unique<sf::RenderWindow>(sf::VideoMode({1920, 1080}),
-        "Game", sf::Style::Titlebar | sf::Style::Close);
+        _configuration.game().gameName,
+        sf::Style::Titlebar | sf::Style::Close);
     _window->setFramerateLimit(static_cast<unsigned int>(_frameRate));
     onWindowCreated();
     sf::Clock clock;
@@ -137,4 +128,4 @@ InputManager &GameApp::getInputManager() { return _inputManager; }
 ResourceManager &GameApp::getResourceManager() { return _resourceManager; }
 sf::RenderWindow &GameApp::getWindow() const { return *_window; }
 
-} // namespace Game
+} // namespace RType::Game
