@@ -239,6 +239,7 @@ if (BUILD_TESTS)
 endif ()
 
 add_subdirectory(apps/sandbox)
+add_subdirectory(apps/editor)
 add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)
