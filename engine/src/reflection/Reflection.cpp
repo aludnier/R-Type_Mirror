@@ -9,7 +9,9 @@
 
 #include <algorithm>
 
+#include "components/Controllable.h"
 #include "components/Health.h"
+#include "components/Hitbox.h"
 #include "components/Name.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -61,6 +63,10 @@ void RType::reflectCoreComponents(Reflection &reflection)
         .field("b", &Sprite::b)
         .field("a", &Sprite::a)
         .field("zIndex", &Sprite::zIndex);
+    reflection.reflect<Hitbox>("Hitbox").field("size", &Hitbox::size);
+    // actionMask is the input of the current frame: not worth editing or
+    // saving, only the presence of the component matters.
+    reflection.reflect<Controllable>("Controllable");
     reflection.reflect<ScriptComponent>("Script").field(
         "scripts", &ScriptComponent::scripts);
 }

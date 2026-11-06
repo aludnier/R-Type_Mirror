@@ -35,8 +35,8 @@
  *
  * Loading never throws on bad content: unknown components or fields, wrong
  * types and unknown assets are skipped with a warning, and what is missing
- * keeps its default value. A component whose storage is not registered is
- * skipped too.
+ * keeps its default value. The storage of a loaded component is registered
+ * if needed.
  */
 namespace RType::Scene {
 /**

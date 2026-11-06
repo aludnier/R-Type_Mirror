@@ -4,7 +4,9 @@
 #include <string>
 #include <vector>
 
+#include "components/Controllable.h"
 #include "components/Health.h"
+#include "components/Hitbox.h"
 #include "components/Name.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -22,6 +24,8 @@ void registerSceneComponents(RType::Registry &registry)
     registry.registerComponent<RType::Health>();
     registry.registerComponent<RType::Sprite>();
     registry.registerComponent<RType::ScriptComponent>();
+    registry.registerComponent<RType::Hitbox>();
+    registry.registerComponent<RType::Controllable>();
 }
 
 struct SceneFixture {
@@ -56,6 +60,8 @@ RType::Entity spawnPlayer(SceneFixture &scene)
     scene.source.addComponent(player,
         RType::ScriptComponent {
             .scripts = {"player.lua", "ai/shoot.lua"}, .started = 2});
+    scene.source.addComponent(player, RType::Hitbox {24.f, 12.f});
+    scene.source.addComponent(player, RType::Controllable {});
     return player;
 }
 } // namespace
@@ -86,6 +92,9 @@ TEST_CASE("Scene round trip keeps every reflected component", "[scene]")
     CHECK(script->scripts ==
         std::vector<std::filesystem::path> {"player.lua", "ai/shoot.lua"});
     CHECK(script->started == 0);
+    CHECK(scene.target.getComponents<RType::Hitbox>()[loaded] ==
+        scene.source.getComponents<RType::Hitbox>()[player]);
+    CHECK(scene.target.getComponents<RType::Controllable>()[loaded]);
     CHECK_FALSE(scene.target.getComponents<RType::Name>()[spawned[1]]);
 }
 
@@ -185,7 +194,7 @@ TEST_CASE("Scene keeps defaults for missing fields", "[scene]")
     CHECK(transform->scale == RType::Vector2 {1.f, 1.f});
 }
 
-TEST_CASE("Scene skips components without a storage", "[scene]")
+TEST_CASE("Scene registers missing storages", "[scene]")
 {
     RType::Registry registry;
     registry.registerComponent<RType::Health>();
@@ -199,6 +208,8 @@ TEST_CASE("Scene skips components without a storage", "[scene]")
 
     REQUIRE(spawned.size() == 1);
     CHECK(registry.getComponents<RType::Health>()[spawned[0]].has_value());
+    CHECK(registry.getComponents<RType::Sprite>()[spawned[0]]->zIndex == 1);
+    CHECK(registry.getComponents<RType::Name>()[spawned[0]]->value == "A");
 }
 
 TEST_CASE("Scene rejects invalid JSON", "[scene]")

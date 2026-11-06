@@ -31,6 +31,7 @@ set(CORE_SRC
         src/components/Health.h
         src/components/Hitbox.h
         src/components/Name.h
+        src/components/Sprite.h
         src/reflection/Reflection.cpp
         src/reflection/Reflection.h
         src/scene/Scene.cpp
@@ -88,7 +89,6 @@ set(CLIENT_SRC
         src/game/GameApp.cpp
         src/game/GameApp.h
         src/library/engine.h
-        src/components/Sprite.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
 )

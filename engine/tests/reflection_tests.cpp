@@ -158,3 +158,34 @@ TEST_CASE("FieldInfo edits the script paths", "[reflection]")
         std::vector<std::filesystem::path> {"player.lua", "ai/enemy.lua"});
     CHECK(stored->started == 0);
 }
+
+TEST_CASE("ComponentInfo registers the storage when adding", "[reflection]")
+{
+    RType::Registry registry;
+    RType::Reflection reflection;
+    RType::reflectCoreComponents(reflection);
+    auto entity = registry.spawnEntity();
+    RType::ComponentInfo &health = *reflection.find("Health");
+
+    REQUIRE_NOTHROW(health.remove(registry, entity));
+    REQUIRE_NOTHROW(health.add(registry, entity));
+
+    CHECK(registry.isRegistered<RType::Health>());
+    CHECK(health.has(registry, entity));
+    CHECK(registry.getComponents<RType::Health>()[entity] == RType::Health {});
+}
+
+TEST_CASE("Reflection declares Hitbox and Controllable", "[reflection]")
+{
+    RType::Reflection reflection;
+    RType::reflectCoreComponents(reflection);
+
+    const RType::ComponentInfo *hitbox = reflection.find("Hitbox");
+    REQUIRE(hitbox != nullptr);
+    REQUIRE(hitbox->fields.size() == 1);
+    CHECK(hitbox->fields[0].name == "size");
+    CHECK(hitbox->fields[0].type == RType::FieldType::Vector2);
+    const RType::ComponentInfo *controllable = reflection.find("Controllable");
+    REQUIRE(controllable != nullptr);
+    CHECK(controllable->fields.empty());
+}

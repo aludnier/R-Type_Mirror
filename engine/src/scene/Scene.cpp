@@ -165,12 +165,7 @@ void loadComponent(RType::Registry &registry, RType::Entity entity,
         warn("component '" + info.name + "' is not an object");
         return;
     }
-    try {
-        info.add(registry, entity);
-    } catch (const std::out_of_range &) {
-        warn("component '" + info.name + "' is not registered");
-        return;
-    }
+    info.add(registry, entity);
     void *component = info.get(registry, entity);
     for (const auto &[name, value] : fields.items()) {
         const FieldInfo *field = findField(info, name);

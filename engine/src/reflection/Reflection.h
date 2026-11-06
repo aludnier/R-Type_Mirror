@@ -8,6 +8,7 @@
 #ifndef REFLECTION_H
 #define REFLECTION_H
 
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
@@ -109,29 +110,37 @@ struct FieldInfo {
     FieldType type;
     std::function<void *(void *component)> get;
 
-    /** @brief Typed access to the member, @p T must match @ref type. */
+    /**
+     * @brief Typed access to the member, @p T must match @ref type.
+     * @note An AssetId field is read as `std::uint32_t`.
+     */
     template<typename T>
-    T &as(void *component) const
-    {
-        return *static_cast<T *>(get(component));
-    }
+    T &as(void *component) const;
 };
 
 /**
  * @brief Type-erased access to one component type of a Registry.
  *
- * Same idea as Scripting::ComponentBinding, without Lua. `get` returns a
- * pointer to the component of the entity, or nullptr when it has none.
- * `has` is false when the component storage is not registered.
+ * Same idea as Scripting::ComponentBinding, without Lua. `has` is false and
+ * `get` is nullptr when the entity has no such component, or when its storage
+ * is not registered.
  */
 struct ComponentInfo {
     std::string name;
     std::vector<FieldInfo> fields;
     std::function<bool(Registry &, Entity const &)> has;
+    /**
+     * @brief Pointer to the component of the entity.
+     * @warning Any add of this component type may move the storage and
+     *          invalidate it: get it again instead of keeping it across frames.
+     */
     std::function<void *(Registry &, Entity const &)> get;
-    /** @brief Adds a default constructed component (replaces an existing one).
+    /**
+     * @brief Adds a default constructed component (replaces an existing one).
+     *        Registers the storage first if needed.
      */
     std::function<void(Registry &, Entity const &)> add;
+    /** @brief Removes the component. Does nothing if it is not registered. */
     std::function<void(Registry &, Entity const &)> remove;
 };
 
@@ -210,8 +219,8 @@ private:
 };
 
 /**
- * @brief Declares the engine components: Name, Transform2D, Health, Sprite
- *        and Script (ScriptComponent).
+ * @brief Declares the engine components: Name, Transform2D, Health, Sprite,
+ *        Hitbox, Controllable and Script (ScriptComponent).
  * @note Sprite::assetId is an AssetId field: scene files save the asset name,
  *       ids are not stable between runs.
  * @note Only ScriptComponent::scripts is reflected: `started` is runtime state
@@ -243,11 +252,14 @@ Reflection::Builder<C> Reflection::reflect(const std::string &name)
         },
         .add =
             [](Registry &registry, Entity const &entity) {
+                if (!registry.isRegistered<C>())
+                    registry.registerComponent<C>();
                 registry.addComponent(entity, C {});
             },
         .remove =
             [](Registry &registry, Entity const &entity) {
-                registry.removeComponent<C>(entity);
+                if (registry.isRegistered<C>())
+                    registry.removeComponent<C>(entity);
             },
     };
     if (ComponentInfo *existing = find(name)) {
@@ -257,6 +269,17 @@ Reflection::Builder<C> Reflection::reflect(const std::string &name)
     }
     _components.push_back(std::move(info));
     return Builder<C>(*this, _components.size() - 1);
+}
+
+template<typename T>
+T &FieldInfo::as(void *component) const
+{
+    assert(component != nullptr && "FieldInfo::as on a missing component");
+    assert((fieldTypeOf<T>() == type ||
+               (type == FieldType::AssetId &&
+                   fieldTypeOf<T>() == FieldType::UInt32)) &&
+        "FieldInfo::as with a type that does not match the field");
+    return *static_cast<T *>(get(component));
 }
 } // namespace RType
 
