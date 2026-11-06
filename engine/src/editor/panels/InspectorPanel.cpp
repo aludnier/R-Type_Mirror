@@ -12,7 +12,7 @@
 namespace RType::Editor {
 void InspectorPanel::draw(EditorContext & /*context*/)
 {
-    ImGui::Begin(TITLE);
+    ImGui::Begin(_title);
     ImGui::End();
 }
 } // namespace RType::Editor

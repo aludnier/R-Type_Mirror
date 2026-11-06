@@ -17,6 +17,9 @@ public:
     static constexpr const char *TITLE = "Hierarchy";
 
     void draw(EditorContext &context);
+
+private:
+    const char *_title = TITLE;
 };
 } // namespace RType::Editor
 

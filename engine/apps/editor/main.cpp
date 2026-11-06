@@ -45,7 +45,7 @@ private:
     RType::Editor::ImGuiLayer _imgui;
     RType::Registry _registry;
     RType::Editor::EditorContext _context {.registry = _registry};
-    RType::Editor::EditorShell _shell;
+    RType::Editor::EditorShell _shell {};
 };
 } // namespace
 

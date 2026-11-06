@@ -12,7 +12,7 @@
 namespace RType::Editor {
 void HierarchyPanel::draw(EditorContext & /*context*/)
 {
-    ImGui::Begin(TITLE);
+    ImGui::Begin(_title);
     ImGui::End();
 }
 } // namespace RType::Editor
