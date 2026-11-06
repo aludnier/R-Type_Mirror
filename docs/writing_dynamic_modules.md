@@ -82,6 +82,12 @@ asset loaders, and rolls back loader registrations if module registration
 fails. Loaded libraries remain alive while their registered loaders or cached
 resources can call module code.
 
+Client-only modules may depend on concrete client libraries such as SFML.
+They must be loaded explicitly by the client rather than added to a shared
+server configuration. The built-in SFML asset module lives under
+`engine/modules/sfmlAssets` and is linked by the client target. The server and engine core should continue loading only
+modules whose descriptors and dependencies are backend-independent.
+
 ## 2. Define the module contract
 
 Put the public contract in a small, implementation-independent header. It

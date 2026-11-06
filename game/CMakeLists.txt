@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.10.0)
 
+find_package(SFML COMPONENTS Graphics Window Audio System CONFIG REQUIRED)
+find_package(ImGui-SFML CONFIG REQUIRED)
+
 set(SRC
         src/main.cpp
         src/GameApp.cpp
@@ -40,9 +43,10 @@ add_executable(r-type_client ${SRC})
 target_include_directories(r-type_client PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
-find_package(SFML COMPONENTS Graphics Window Audio System CONFIG REQUIRED)
-find_package(ImGui-SFML CONFIG REQUIRED)
-
-add_dependencies(r-type_client physics2d_module environment2d_module)
-target_compile_definitions(r-type_client PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
+add_dependencies(r-type_client physics2d_module environment2d_module
+        sfml_assets_module)
+target_compile_definitions(r-type_client PRIVATE
+        ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}"
+        GAME_ASSET_MODULE_PATH="$<TARGET_FILE:sfml_assets_module>")
 target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::environment2d SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
+target_link_libraries(r-type_client PRIVATE Eng::sfml_assets)

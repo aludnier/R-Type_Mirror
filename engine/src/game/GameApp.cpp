@@ -27,9 +27,9 @@ void GameApp::init()
     _registry.registerComponent<Sprite>();
     _registry.registerComponent<Controllable>();
     registerComponents();
-    setupResources();
     setupKeyBindings();
     setupSystems();
+    setupResources();
     spawnInitialEntities();
 }
 

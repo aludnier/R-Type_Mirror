@@ -8,7 +8,6 @@
 #ifndef CLIENTASSETMANAGER_H_
 #define CLIENTASSETMANAGER_H_
 
-#include <SFML/Graphics.hpp>
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -16,21 +15,6 @@
 #include <utility>
 #include "AssetLoaderRegistry.h"
 #include "AssetManager.h"
-
-struct SfmlTextureAsset {
-    static constexpr std::string_view JSON_TYPE = "Texture";
-    sf::Texture texture;
-
-    static SfmlTextureAsset load(const std::filesystem::path &path)
-    {
-        sf::Texture texture;
-        if (!texture.loadFromFile(path.string()))
-            throw std::runtime_error(
-                "ClientAssetManager: failed to load texture '" + path.string() +
-                "'");
-        return SfmlTextureAsset {std::move(texture)};
-    }
-};
 
 class ClientAssetManager {
 public:

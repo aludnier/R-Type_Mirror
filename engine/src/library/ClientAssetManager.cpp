@@ -1,14 +1,10 @@
 #include "ClientAssetManager.h"
 
-ClientAssetManager::ClientAssetManager()
-{
-    registerType<SfmlTextureAsset>();
-}
+ClientAssetManager::ClientAssetManager() = default;
 
 ClientAssetManager::ClientAssetManager(
     const std::filesystem::path &configFile) : _metadata(configFile)
 {
-    registerType<SfmlTextureAsset>();
 }
 
 void ClientAssetManager::preload(const std::string &name)
