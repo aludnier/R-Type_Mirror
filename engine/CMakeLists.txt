@@ -32,8 +32,8 @@ set(CORE_SRC
         src/components/Hitbox.h
         src/systems/ControllableSystem.cpp
         src/systems/ControllableSystem.h
-        src/library/RessourceManager.cpp
-        src/library/RessourceManager.h
+        src/library/AssetManager.cpp
+        src/library/AssetManager.h
         src/configuration/Configuration.cpp
         src/configuration/Configuration.hpp
         src/library/PluginManager.cpp

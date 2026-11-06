@@ -10,8 +10,8 @@
 
 #include <unordered_map>
 #include "ecs/Registry.h"
+#include "library/AssetManager.h"
 #include "library/InputManager.h"
-#include "library/RessourceManager.h"
 #include "network/ByteReader.h"
 #include "network/NetworkClient.h"
 
@@ -36,7 +36,7 @@ public:
      * @param client The network client managing the connection.
      */
     void syncWithServer(RType::Registry &registry, const InputManager &input,
-        ResourceManager &resources, NetworkClient &client);
+        AssetManager &resources, NetworkClient &client);
 
     /**
      * @brief Clears all replicated entities and resets network mappings on
@@ -54,11 +54,11 @@ private:
     struct ServerMessageVisitor;
 
     void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet,
-        RType::Registry &registry, const ResourceManager &resources);
+        RType::Registry &registry, const AssetManager &resources);
 
     void handlePlayerConnected(
         const RType::Network::PlayerConnectedPacket &packet,
-        RType::Registry &registry, const ResourceManager &resources,
+        RType::Registry &registry, const AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
     void handlePlayerDisconnected(
@@ -66,7 +66,7 @@ private:
         RType::Registry &registry);
 
     void handleEntitySpawn(const RType::Network::EntitySpawnPacket &packet,
-        RType::Registry &registry, const ResourceManager &resources,
+        RType::Registry &registry, const AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
     void handleEntityDespawn(const RType::Network::EntityDespawnPacket &packet,
@@ -86,7 +86,7 @@ private:
 
     void processServerMessages(
         const std::vector<NetworkClient::ServerMessage> &messages,
-        RType::Registry &registry, ResourceManager &resources,
+        RType::Registry &registry, AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
     static void sendLocalPlayerInput(

@@ -9,7 +9,7 @@
 #define GAME_AUDIOSYSTEM_H
 
 #include <string>
-#include "library/RessourceManager.h"
+#include "library/AssetManager.h"
 
 namespace Game {
 
@@ -21,17 +21,17 @@ public:
     /**
      * @brief Plays a sound effect by asset name.
      * Note: Feature not available in engine_client:
-     * - ResourceManager supports Sound and Music asset types, but engine_client
+     * - AssetManager supports Sound and Music asset types, but engine_client
      *   has no audio playback system (e.g. sf::Sound, sf::Music wrapper).
      */
     static void playSoundEffect(
-        const ResourceManager &resources, const std::string &soundName);
+        const AssetManager &resources, const std::string &soundName);
 
     /**
      * @brief Plays background music track by asset name.
      */
     static void playMusic(
-        const ResourceManager &resources, const std::string &musicName);
+        const AssetManager &resources, const std::string &musicName);
 };
 
 } // namespace Game

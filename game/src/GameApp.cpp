@@ -47,8 +47,8 @@ void GameApp::registerComponents()
 
 void GameApp::setupResources()
 {
-    auto &resources = getResourceManager();
-    using Type = ResourceManager::AssetType;
+    auto &resources = getAssetManager();
+    using Type = AssetManager::AssetType;
     resources.addAsset(
         "player_ship", "assets/sprites/r_type_player.png", Type::Texture);
     resources.addAsset(
@@ -171,13 +171,13 @@ void GameApp::updateGame(float dt)
     }
     registry.runSystems();
     _networkSyncSystem.syncWithServer(
-        registry, getInputManager(), getResourceManager(), _networkClient);
+        registry, getInputManager(), getAssetManager(), _networkClient);
 }
 
 void GameApp::renderGame()
 {
     GameRenderSystem::renderFrame(
-        getRegistry(), getResourceManager(), getWindow());
+        getRegistry(), getAssetManager(), getWindow());
     ImGui::SFML::Render(getWindow());
 }
 

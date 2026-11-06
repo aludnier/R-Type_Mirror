@@ -5,15 +5,16 @@
 ** resource manager
 */
 
-#include "RessourceManager.h"
 #include <map>
 #include <stdexcept>
+
+#include "AssetManager.h"
 #include "NlohmanReader.h"
 
 namespace {
 struct AssetConfig {
     std::string path;
-    ResourceManager::AssetType type = ResourceManager::AssetType::Texture;
+    AssetManager::AssetType type = AssetManager::AssetType::Texture;
 };
 
 struct Config {
@@ -22,7 +23,7 @@ struct Config {
 
 void from_json(const nlohmann::json &j, AssetConfig &a)
 {
-    using T = ResourceManager::AssetType;
+    using T = AssetManager::AssetType;
     static const std::map<std::string, T> types = {{"Texture", T::Texture},
         {"Sound", T::Sound},
         {"Music", T::Music},
@@ -40,16 +41,16 @@ NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Config, assets)
 
 } // namespace
 
-ResourceManager::ResourceManager(const std::filesystem::path &configFile)
+AssetManager::AssetManager(const std::filesystem::path &configFile)
 {
     loadConfigFile(configFile);
 }
 
-void ResourceManager::loadConfigFile(const std::filesystem::path &configFile)
+void AssetManager::loadConfigFile(const std::filesystem::path &configFile)
 {
     if (!_reader.readFile(configFile)) {
         throw std::runtime_error(
-            "[RessourceManager] cannot read " + configFile.string());
+            "[AssetManager] cannot read " + configFile.string());
     }
     const auto config = _reader.convertJson<Config>();
 
@@ -57,7 +58,7 @@ void ResourceManager::loadConfigFile(const std::filesystem::path &configFile)
         addAsset(name, asset.path, asset.type);
 }
 
-std::uint32_t ResourceManager::addAsset(
+std::uint32_t AssetManager::addAsset(
     const std::string &name, const std::string &path, AssetType type)
 {
     auto it = _assets.find(name);
@@ -72,7 +73,7 @@ std::uint32_t ResourceManager::addAsset(
     return id;
 }
 
-void ResourceManager::removeAsset(const std::string &name)
+void AssetManager::removeAsset(const std::string &name)
 {
     auto it = _assets.find(name);
     if (it == _assets.end()) {
@@ -82,24 +83,24 @@ void ResourceManager::removeAsset(const std::string &name)
     _assets.erase(it);
 }
 
-bool ResourceManager::hasAsset(const std::string &name) const
+bool AssetManager::hasAsset(const std::string &name) const
 {
     return _assets.contains(name);
 }
 
-const ResourceManager::Asset &ResourceManager::getAsset(
+const AssetManager::Asset &AssetManager::getAsset(
     const std::string &name) const
 {
     auto it = _assets.find(name);
     if (it == _assets.end()) {
         throw std::out_of_range(
-            "ResourceManager: unknown asset '" + name + "'");
+            "AssetManager: unknown asset '" + name + "'");
     }
     return it->second;
 }
 
-std::optional<std::reference_wrapper<const ResourceManager::Asset>>
-ResourceManager::getAssetById(std::uint32_t id) const
+std::optional<std::reference_wrapper<const AssetManager::Asset>>
+AssetManager::getAssetById(std::uint32_t id) const
 {
     auto nameIt = _namesById.find(id);
     if (nameIt == _namesById.end()) {

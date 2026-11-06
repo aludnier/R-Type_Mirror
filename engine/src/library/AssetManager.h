@@ -5,8 +5,8 @@
 ** resource manager
 */
 
-#ifndef RESOURCEMANAGER_H_
-#define RESOURCEMANAGER_H_
+#ifndef AssetManager_H_
+#define AssetManager_H_
 
 #include <cstdint>
 #include <filesystem>
@@ -16,7 +16,7 @@
 #include <unordered_map>
 #include "NlohmanReader.h"
 
-class ResourceManager {
+class AssetManager {
 public:
     enum class AssetType : std::uint8_t { Texture, Sound, Music, Font };
 
@@ -26,9 +26,9 @@ public:
         std::string path;
     };
 
-    ResourceManager() = default;
-    explicit ResourceManager(const std::filesystem::path &configFile);
-    ~ResourceManager() = default;
+    AssetManager() = default;
+    explicit AssetManager(const std::filesystem::path &configFile);
+    ~AssetManager() = default;
 
     /**
      * @brief Loads assets from a JSON config file.

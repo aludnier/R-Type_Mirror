@@ -133,9 +133,9 @@ InputManager &GameApp::getInputManager()
     return _inputManager;
 }
 
-ResourceManager &GameApp::getResourceManager()
+AssetManager &GameApp::getAssetManager()
 {
-    return _resourceManager;
+    return _AssetManager;
 }
 
 sf::RenderWindow &GameApp::getWindow() const

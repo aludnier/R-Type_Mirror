@@ -12,7 +12,7 @@
 #include <string>
 #include <thread>
 #include "InputManager.h"
-#include "RessourceManager.h"
+#include "AssetManager.h"
 #include "components/Sprite.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
@@ -97,12 +97,12 @@ public:
         return _input.actionMask();
     }
 
-    ResourceManager &resources()
+    AssetManager &resources()
     {
         return _resources;
     }
 
-    const ResourceManager &resources() const
+    const AssetManager &resources() const
     {
         return _resources;
     }
@@ -118,7 +118,7 @@ public:
     }
 
 private:
-    ResourceManager _resources;
+    AssetManager _resources;
     InputManager _input;
     RType::Registry _registry;
     std::uint32_t _actionPerSeconds = 60;
