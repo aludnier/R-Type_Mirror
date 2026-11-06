@@ -82,6 +82,8 @@ find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
 set(CLIENT_SRC
         src/game/GameApp.cpp
         src/game/GameApp.h
+        src/library/ClientAssetManager.cpp
+        src/library/ClientAssetManager.h
         src/library/engine.h
         src/components/Sprite.h
         src/systems/RenderSystem.cpp

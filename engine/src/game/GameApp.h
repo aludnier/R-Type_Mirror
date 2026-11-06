@@ -15,7 +15,7 @@
 #include "Module.h"
 #include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
-#include "library/AssetManager.h"
+#include "library/ClientAssetManager.h"
 #include "library/InputManager.h"
 #include "library/PluginManager.h"
 
@@ -35,6 +35,7 @@ public:
     [[nodiscard]] Registry &getRegistry();
     [[nodiscard]] InputManager &getInputManager();
     [[nodiscard]] AssetManager &getAssetManager();
+    [[nodiscard]] ClientAssetManager &getClientAssetManager();
     [[nodiscard]] sf::RenderWindow &getWindow() const;
 
 protected:
@@ -74,7 +75,7 @@ protected:
     void close();
 
     InputManager _inputManager {};
-    AssetManager _AssetManager {};
+    ClientAssetManager _clientAssetManager {};
     Configuration _configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};

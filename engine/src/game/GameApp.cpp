@@ -135,7 +135,12 @@ InputManager &GameApp::getInputManager()
 
 AssetManager &GameApp::getAssetManager()
 {
-    return _AssetManager;
+    return _clientAssetManager.metadata();
+}
+
+ClientAssetManager &GameApp::getClientAssetManager()
+{
+    return _clientAssetManager;
 }
 
 sf::RenderWindow &GameApp::getWindow() const

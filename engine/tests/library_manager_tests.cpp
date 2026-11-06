@@ -21,6 +21,7 @@
 #include "ecs/SparseArray.h"
 #include "library/InputManager.h"
 #include "library/AssetManager.h"
+#include "library/ClientAssetManager.h"
 #include "systems/RenderSystem.h"
 
 #include "catch2/internal/catch_getenv.hpp"
@@ -287,8 +288,10 @@ TEST_CASE("AssetManager gives a different non-zero id to each asset",
 {
     AssetManager manager;
 
-    const auto a = manager.addAsset("a", "assets/a.png");
-    const auto b = manager.addAsset("b", "assets/b.png");
+    const auto a = manager.addAsset(
+        "a", "assets/a.png", AssetManager::AssetType::Texture);
+    const auto b = manager.addAsset(
+        "b", "assets/b.png", AssetManager::AssetType::Texture);
     const auto c = manager.addAsset(
         "c", "assets/c.wav", AssetManager::AssetType::Sound);
 
@@ -298,14 +301,12 @@ TEST_CASE("AssetManager gives a different non-zero id to each asset",
     REQUIRE(std::set<std::uint32_t> {a, b, c}.size() == 3);
 }
 
-TEST_CASE(
-    "AssetManager defaults the asset type to Texture", "[resource][manager]")
+TEST_CASE("AssetManager requires an explicit asset type", "[resource][manager]")
 {
     AssetManager manager;
 
-    manager.addAsset("bg", "assets/bg.png");
-
-    REQUIRE(manager.getAsset("bg").type == AssetManager::AssetType::Texture);
+    REQUIRE_THROWS_AS(
+        manager.addAsset("bg", "assets/bg.png", ""), std::invalid_argument);
 }
 
 TEST_CASE("AssetManager stores every asset type", "[resource][manager]")
@@ -328,7 +329,7 @@ TEST_CASE("AssetManager constructor loads assets from a config file",
 {
     TempConfigFile config(R"({
         "assets": {
-            "background": {"path": "assets/background.png"},
+            "background": {"path": "assets/background.png", "type": "Texture"},
             "laser": {"path": "assets/laser.wav", "type": "Sound"},
             "theme": {"path": "assets/theme.ogg", "type": "Music"},
             "font": {"path": "assets/font.ttf", "type": "Font"}
@@ -358,7 +359,8 @@ TEST_CASE("AssetManager loadConfigFile preserves existing asset storage",
         }
     })");
     AssetManager manager;
-    const auto shipId = manager.addAsset("ship", "assets/ship.png");
+    const auto shipId = manager.addAsset(
+        "ship", "assets/ship.png", AssetManager::AssetType::Texture);
 
     manager.loadConfigFile(config.path());
 
@@ -376,7 +378,7 @@ TEST_CASE("AssetManager rejects invalid config without partial changes",
     TempConfigFile config(R"({
         "assets": {
             "valid": {"path": "assets/valid.png"},
-            "invalid": {"path": "assets/invalid.wav", "type": "Unknown"}
+            "invalid": {"path": "", "type": "Unknown"}
         }
     })");
     AssetManager manager;
@@ -403,7 +405,8 @@ TEST_CASE("AssetManager never resolves id 0", "[resource][manager]")
 {
     AssetManager manager;
 
-    manager.addAsset("ship", "assets/ship.png");
+    manager.addAsset(
+        "ship", "assets/ship.png", AssetManager::AssetType::Texture);
 
     REQUIRE_FALSE(manager.getAssetById(0).has_value());
 }
@@ -413,11 +416,133 @@ TEST_CASE("AssetManager removing an unknown asset does nothing",
 {
     AssetManager manager;
 
-    const auto id = manager.addAsset("ship", "assets/ship.png");
+    const auto id = manager.addAsset(
+        "ship", "assets/ship.png", AssetManager::AssetType::Texture);
 
-    REQUIRE_NOTHROW(manager.removeAsset("ghost"));
+    REQUIRE_THROWS_AS(manager.removeAsset("ghost"), std::out_of_range);
     REQUIRE(manager.hasAsset("ship"));
     REQUIRE(manager.getAssetById(id).has_value());
+}
+
+namespace {
+struct FakeAsset {
+    static constexpr std::string_view JSON_TYPE = "Fake";
+    inline static int loads = 0;
+    inline static int destroyed = 0;
+    std::string path;
+
+    ~FakeAsset() { ++destroyed; }
+
+    static FakeAsset load(const std::filesystem::path &path)
+    {
+        ++loads;
+        return FakeAsset {path.string()};
+    }
+};
+
+struct OtherFakeAsset {
+    static constexpr std::string_view JSON_TYPE = "OtherFake";
+
+    static OtherFakeAsset load(const std::filesystem::path &)
+    {
+        return {};
+    }
+};
+
+struct ConflictingFakeAsset {
+    static constexpr std::string_view JSON_TYPE = "Fake";
+
+    static ConflictingFakeAsset load(const std::filesystem::path &)
+    {
+        return {};
+    }
+};
+
+struct FailingFakeAsset {
+    static constexpr std::string_view JSON_TYPE = "FailingFake";
+
+    static FailingFakeAsset load(const std::filesystem::path &path)
+    {
+        throw std::runtime_error(
+            "fake loader failed for '" + path.string() + "'");
+    }
+};
+} // namespace
+
+static_assert(FakeAsset::JSON_TYPE == std::string_view {"Fake"});
+static_assert(AssetTraits<FakeAsset>::jsonType == std::string_view {"Fake"});
+
+TEST_CASE("ClientAssetManager dispatches, caches, and invalidates typed assets",
+    "[resource][client]")
+{
+    FakeAsset::loads = 0;
+    FakeAsset::destroyed = 0;
+    ClientAssetManager manager;
+    manager.metadata().addAsset("one", "one.fake", "Fake");
+    manager.registerType<FakeAsset>();
+
+    REQUIRE(manager.load<FakeAsset>("one").path == "one.fake");
+    REQUIRE(manager.load<FakeAsset>("one").path == "one.fake");
+    REQUIRE(FakeAsset::loads == 1);
+
+    manager.metadata().addAsset("one", "two.fake", "Fake");
+    REQUIRE(manager.load<FakeAsset>("one").path == "two.fake");
+    REQUIRE(FakeAsset::loads == 2);
+
+    const auto destroyedBeforeUnload = FakeAsset::destroyed;
+    manager.unload("one");
+    REQUIRE(FakeAsset::destroyed > destroyedBeforeUnload);
+    REQUIRE(manager.load<FakeAsset>("one").path == "two.fake");
+    REQUIRE(FakeAsset::loads == 3);
+    manager.clear();
+    REQUIRE(manager.load<FakeAsset>("one").path == "two.fake");
+    REQUIRE(FakeAsset::loads == 4);
+}
+
+TEST_CASE("ClientAssetManager rejects invalid registrations and dispatch",
+    "[resource][client]")
+{
+    ClientAssetManager manager;
+    manager.metadata().addAsset("one", "one.fake", "Fake");
+    manager.registerType<FakeAsset>();
+
+    REQUIRE_THROWS_AS(manager.registerType<FakeAsset>(),
+        std::invalid_argument);
+    REQUIRE_NOTHROW(manager.registerType<OtherFakeAsset>());
+    REQUIRE_THROWS_AS(manager.registerType<ConflictingFakeAsset>(),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(manager.load<OtherFakeAsset>("one"),
+        std::invalid_argument);
+
+    manager.metadata().addAsset("unknown", "unknown.asset", "Missing");
+    REQUIRE_THROWS_AS(manager.preload("unknown"), std::invalid_argument);
+    REQUIRE_THROWS_AS(manager.load<FakeAsset>("missing"), std::out_of_range);
+}
+
+TEST_CASE("AssetManager rejects missing config asset types",
+    "[resource][manager][config]")
+{
+    TempConfigFile config(R"({
+        "assets": {
+            "missing_type": {"path": "asset.fake"}
+        }
+    })");
+    AssetManager manager;
+
+    REQUIRE_THROWS_AS(
+        manager.loadConfigFile(config.path()), std::invalid_argument);
+    REQUIRE_FALSE(manager.hasAsset("missing_type"));
+}
+
+TEST_CASE("ClientAssetManager reports loader failures and unknown unloads",
+    "[resource][client]")
+{
+    ClientAssetManager manager;
+    manager.metadata().addAsset("failing", "asset.fake", "FailingFake");
+    manager.registerType<FailingFakeAsset>();
+
+    REQUIRE_THROWS_AS(manager.preload("failing"), std::runtime_error);
+    REQUIRE_THROWS_AS(manager.unload("missing"), std::out_of_range);
 }
 
 TEST_CASE("AssetManager removing one asset keeps the others",
@@ -425,8 +550,10 @@ TEST_CASE("AssetManager removing one asset keeps the others",
 {
     AssetManager manager;
 
-    const auto keepId = manager.addAsset("keep", "assets/keep.png");
-    const auto dropId = manager.addAsset("drop", "assets/drop.png");
+    const auto keepId = manager.addAsset(
+        "keep", "assets/keep.png", AssetManager::AssetType::Texture);
+    const auto dropId = manager.addAsset(
+        "drop", "assets/drop.png", AssetManager::AssetType::Texture);
 
     manager.removeAsset("drop");
 
@@ -442,9 +569,11 @@ TEST_CASE("AssetManager does not reuse the id of a removed asset",
 {
     AssetManager manager;
 
-    const auto oldId = manager.addAsset("cursor", "assets/cursor.png");
+    const auto oldId = manager.addAsset(
+        "cursor", "assets/cursor.png", AssetManager::AssetType::Texture);
     manager.removeAsset("cursor");
-    const auto newId = manager.addAsset("cursor", "assets/cursor2.png");
+    const auto newId = manager.addAsset(
+        "cursor", "assets/cursor2.png", AssetManager::AssetType::Texture);
 
     REQUIRE(newId != oldId);
     REQUIRE_FALSE(manager.getAssetById(oldId).has_value());
@@ -504,7 +633,8 @@ TEST_CASE("RenderSystem manages texture cache and renders entities safely",
 
     AssetManager resources;
     const auto textureId = resources.addAsset(
-        "non_existing_test_sprite", "assets/does_not_exist.png");
+        "non_existing_test_sprite", "assets/does_not_exist.png",
+        AssetManager::AssetType::Texture);
 
     auto entity1 = registry.spawnEntity();
     registry.addComponent(
