@@ -35,7 +35,8 @@ void GameApp::init()
 
 void GameApp::setupSystems()
 {
-    _pluginManager.loadConfig(_configuration, _registry);
+    _pluginManager.loadConfig(
+        _configuration, _registry, _clientAssetManager.loaderRegistry());
     addControllableSystem(
         _registry, _configuration.game().playerSpeed, _fixedDeltaTime, {});
 }

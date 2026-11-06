@@ -34,6 +34,7 @@ set(CORE_SRC
         src/systems/ControllableSystem.h
         src/library/AssetManager.cpp
         src/library/AssetManager.h
+        src/library/AssetLoaderRegistry.h
         src/configuration/Configuration.cpp
         src/configuration/Configuration.hpp
         src/library/PluginManager.cpp
@@ -201,6 +202,7 @@ if (BUILD_TESTS)
     add_executable(game_engine_tests
             tests/TestActions.h
             tests/TempConfigFile.hpp
+            tests/plugins/TestPluginAsset.h
             tests/ecs_unit_tests.cpp
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp

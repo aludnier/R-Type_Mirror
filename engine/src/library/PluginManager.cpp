@@ -186,15 +186,35 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
     _registry = std::ref(registry);
     const auto firstNew = _loadedModules.size();
     try {
-        for (const auto index : order) {
-            _loadedModules.push_back(std::move(candidates[index]));
-            auto &module = _loadedModules.back();
-            if (module.registerModule(registry) != ModuleStatus::Success)
-                throw std::runtime_error(
-                    "Module '" + module.name + "' failed to initialize");
-        }
-    } catch (std::runtime_error &) {
+        for (const auto index : order)
+            registerModule(std::move(candidates[index]), registry);
+    } catch (const std::exception &) {
         rollback(firstNew);
+        throw;
+    }
+}
+
+void RType::PluginManager::registerModule(
+    Module module, Registry &registry)
+{
+    _loadedModules.push_back(std::move(module));
+    auto &loaded = _loadedModules.back();
+    if (loaded.registerModule(registry) != ModuleStatus::Success)
+        throw std::runtime_error(
+            "Module '" + loaded.name + "' failed to initialize");
+
+    if (!loaded.registerAssetTypes)
+        return;
+
+    auto &assets = _assets ? *_assets : _defaultAssets;
+    const auto assetsBefore = assets;
+    try {
+        if (loaded.registerAssetTypes(assets) != ModuleStatus::Success)
+            throw std::runtime_error(
+                "Module '" + loaded.name +
+                "' failed to register asset types");
+    } catch (const std::exception &) {
+        assets = assetsBefore;
         throw;
     }
 }
@@ -221,9 +241,25 @@ void RType::PluginManager::loadConfig(
         registry);
 }
 
+void RType::PluginManager::loadConfig(const Configuration &config,
+    Registry &registry, AssetLoaderRegistry &assets)
+{
+    loadRequiredModules(
+        config.path().parent_path() / config.game().pluginDirectory,
+        config.game().plugins, registry, assets);
+}
+
 void RType::PluginManager::loadRequiredModules(
     const std::filesystem::path &directory,
     const std::vector<std::string> &moduleNames, Registry &registry)
+{
+    loadRequiredModules(directory, moduleNames, registry, _defaultAssets);
+}
+
+void RType::PluginManager::loadRequiredModules(
+    const std::filesystem::path &directory,
+    const std::vector<std::string> &moduleNames, Registry &registry,
+    AssetLoaderRegistry &assets)
 {
     if (_configured)
         throw std::logic_error(
@@ -232,6 +268,7 @@ void RType::PluginManager::loadRequiredModules(
         throw std::logic_error(
             "PluginManager cannot load into multiple registries");
     _configured = true;
+    _assets = &assets;
 
     if (moduleNames.empty())
         return;
@@ -254,6 +291,7 @@ void RType::PluginManager::loadRequiredModules(
 void RType::PluginManager::loadModule(
     const std::filesystem::path &path, Registry &registry)
 {
+    _assets = &_defaultAssets;
     if (_registry && &_registry->get() != &registry)
         throw std::logic_error(
             "PluginManager cannot load into multiple registries");
@@ -274,4 +312,11 @@ void RType::PluginManager::loadModule(
     registerModules(scan.modules,
         resolveLoadOrder(scan.modules, scan.index, {rootIndex}),
         registry);
+}
+
+void RType::PluginManager::loadModule(const std::filesystem::path &path,
+    Registry &registry, AssetLoaderRegistry &assets)
+{
+    _assets = &assets;
+    loadModule(path, registry);
 }

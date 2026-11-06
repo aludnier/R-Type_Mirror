@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "ecs/Registry.h"
+#include "library/AssetLoaderRegistry.h"
 
 #if defined(_WIN32)
 #define MODULE_EXPORT __declspec(dllexport)
@@ -42,13 +43,17 @@ struct ModuleDependency {
     ModuleApiVersion compatible_api {};
 };
 
-using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
+using RegisterModuleFn =
+    std::function<ModuleStatus(Registry &)>;
+using RegisterAssetTypesFn =
+    std::function<ModuleStatus(AssetLoaderRegistry &)>;
 
 struct ModuleDescriptor {
     std::string name {};
     ModuleApiVersion apiVersion {};
     std::vector<ModuleDependency> dependencies {};
     RegisterModuleFn registerModule {};
+    RegisterAssetTypesFn registerAssetTypes {};
 };
 } // namespace RType
 

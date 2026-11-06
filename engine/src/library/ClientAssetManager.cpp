@@ -11,26 +11,15 @@ ClientAssetManager::ClientAssetManager(
     registerType<SfmlTextureAsset>();
 }
 
-const ClientAssetManager::Loader *ClientAssetManager::findLoader(
-    const std::string &type) const
-{
-    const auto it = _loaders.find(type);
-    if (it == _loaders.end())
-        throw std::invalid_argument(
-            "ClientAssetManager: unknown asset type '" + type + "'");
-    return &it->second;
-}
-
 void ClientAssetManager::preload(const std::string &name)
 {
     const auto &asset = metadata(name);
-    const auto loader = findLoader(asset.type);
     const auto cached = _cache.find(name);
     if (cached != _cache.end() && cached->second.path == asset.path &&
         cached->second.type == asset.type)
         return;
     _cache.insert_or_assign(name, CacheEntry {
-        asset.path, asset.type, loader->load(asset.path)});
+        asset.path, asset.type, _loaders.load(asset.type, asset.path)});
 }
 
 void ClientAssetManager::unload(const std::string &name)

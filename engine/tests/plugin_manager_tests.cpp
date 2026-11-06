@@ -12,6 +12,8 @@
 #include "plugins/TestDependencyComponent.h"
 #include "plugins/TestFailingComponent.h"
 #include "plugins/TestPluginComponent.h"
+#include "plugins/TestPluginAsset.h"
+#include "library/ClientAssetManager.h"
 
 namespace {
 std::filesystem::path findModuleLibrary(
@@ -47,6 +49,21 @@ TEST_CASE("PluginManager loads requested modules and dependencies in "
     registry.runSystems();
 
     REQUIRE(registry.getComponents<TestPluginComponent>()[entity]->value == 42);
+}
+
+TEST_CASE("Plugin modules register custom typed asset loaders", "[plugins][assets]")
+{
+    RType::Registry registry;
+    ClientAssetManager assets;
+    RType::PluginManager manager;
+
+    manager.loadRequiredModules(TEST_PLUGIN_DIRECTORY, {"test_module"},
+        registry, assets.loaderRegistry());
+
+    assets.metadata().addAsset(
+        "module_asset", "module.asset", TestPluginAsset::JSON_TYPE);
+    REQUIRE(assets.load<TestPluginAsset>("module_asset").path ==
+        "module.asset");
 }
 
 TEST_CASE("PluginManager loads module requirements from a config file",

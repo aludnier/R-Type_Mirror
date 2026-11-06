@@ -467,6 +467,15 @@ struct FailingFakeAsset {
             "fake loader failed for '" + path.string() + "'");
     }
 };
+
+struct EmptyTypeAsset {
+    static constexpr std::string_view JSON_TYPE = "";
+
+    static EmptyTypeAsset load(const std::filesystem::path &)
+    {
+        return {};
+    }
+};
 } // namespace
 
 static_assert(FakeAsset::JSON_TYPE == std::string_view {"Fake"});
@@ -510,6 +519,8 @@ TEST_CASE("ClientAssetManager rejects invalid registrations and dispatch",
         std::invalid_argument);
     REQUIRE_NOTHROW(manager.registerType<OtherFakeAsset>());
     REQUIRE_THROWS_AS(manager.registerType<ConflictingFakeAsset>(),
+        std::invalid_argument);
+    REQUIRE_THROWS_AS(manager.registerType<EmptyTypeAsset>(),
         std::invalid_argument);
     REQUIRE_THROWS_AS(manager.load<OtherFakeAsset>("one"),
         std::invalid_argument);
