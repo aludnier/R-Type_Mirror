@@ -34,6 +34,11 @@ enum class FieldType {
     UInt32,
     /** @brief `std::vector<std::filesystem::path>`, like script paths. */
     PathList,
+    /**
+     * @brief `std::uint32_t` id of a ResourceManager asset. Scene files save
+     *        it as the asset name, the editor can show a list of assets.
+     */
+    AssetId,
 };
 
 /**
@@ -170,6 +175,15 @@ public:
             return *this;
         }
 
+        /** @brief Declares a ResourceManager asset id (FieldType::AssetId). */
+        Builder &asset(const std::string &name, std::uint32_t C::*member)
+        {
+            field(name, member);
+            _reflection._components[_index].fields.back().type =
+                FieldType::AssetId;
+            return *this;
+        }
+
     private:
         Reflection &_reflection;
         std::size_t _index;
@@ -198,8 +212,8 @@ private:
 /**
  * @brief Declares the engine components: Name, Transform2D, Health, Sprite
  *        and Script (ScriptComponent).
- * @note Sprite::assetId is a raw id for now. Scene files must save it as an
- *       asset name instead, ids are not stable between runs.
+ * @note Sprite::assetId is an AssetId field: scene files save the asset name,
+ *       ids are not stable between runs.
  * @note Only ScriptComponent::scripts is reflected: `started` is runtime state
  *       and goes back to 0 when a scene is loaded.
  */

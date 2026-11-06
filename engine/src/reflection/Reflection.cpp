@@ -49,7 +49,7 @@ void RType::reflectCoreComponents(Reflection &reflection)
         .field("current", &Health::current)
         .field("max", &Health::max);
     reflection.reflect<Sprite>("Sprite")
-        .field("assetId", &Sprite::assetId)
+        .asset("assetId", &Sprite::assetId)
         .field("rectLeft", &Sprite::rectLeft)
         .field("rectTop", &Sprite::rectTop)
         .field("rectWidth", &Sprite::rectWidth)

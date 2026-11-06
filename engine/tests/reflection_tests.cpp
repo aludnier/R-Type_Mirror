@@ -44,7 +44,7 @@ TEST_CASE("Reflection finds components by name", "[reflection]")
     CHECK(transform->fields[2].type == RType::FieldType::Float);
     REQUIRE(reflection.find("Sprite") != nullptr);
     CHECK(
-        reflection.find("Sprite")->fields[0].type == RType::FieldType::UInt32);
+        reflection.find("Sprite")->fields[0].type == RType::FieldType::AssetId);
     CHECK(reflection.find("Missing") == nullptr);
 }
 

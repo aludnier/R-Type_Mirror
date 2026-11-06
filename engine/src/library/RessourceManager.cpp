@@ -107,3 +107,12 @@ ResourceManager::getAssetById(std::uint32_t id) const
     }
     return std::cref(_assets.at(nameIt->second));
 }
+
+std::optional<std::string> ResourceManager::getAssetName(std::uint32_t id) const
+{
+    auto nameIt = _namesById.find(id);
+    if (nameIt == _namesById.end()) {
+        return std::nullopt;
+    }
+    return nameIt->second;
+}
