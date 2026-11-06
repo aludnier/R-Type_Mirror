@@ -11,6 +11,8 @@
 
 #include "library/Keys.h"
 #include "platform/Application.h"
+#include "render/Renderer2D.h"
+#include "render/Texture.h"
 
 namespace {
 constexpr RType::ActionId Brighter = 0;
@@ -41,10 +43,13 @@ protected:
     void render() override
     {
         window().clear({0.1f, 0.2f * _brightness, _brightness, 1.f});
+        _renderer.drawTexture(_texture, {-0.5f, 0.5f, 1.f, 1.f});
     }
 
 private:
     float _brightness = 0.5f;
+    RType::Renderer2D _renderer;
+    RType::Texture _texture {SANDBOX_ASSETS "/test.png"};
 };
 } // namespace
 
