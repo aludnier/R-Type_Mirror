@@ -11,6 +11,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -31,6 +32,8 @@ enum class FieldType {
     Vector2,
     UInt8,
     UInt32,
+    /** @brief `std::vector<std::filesystem::path>`, like script paths. */
+    PathList,
 };
 
 /**
@@ -81,6 +84,12 @@ template<>
 constexpr FieldType fieldTypeOf<std::uint32_t>()
 {
     return FieldType::UInt32;
+}
+
+template<>
+constexpr FieldType fieldTypeOf<std::vector<std::filesystem::path>>()
+{
+    return FieldType::PathList;
 }
 
 /**
@@ -187,9 +196,12 @@ private:
 };
 
 /**
- * @brief Declares the engine components: Transform2D, Health, Sprite, Name.
+ * @brief Declares the engine components: Name, Transform2D, Health, Sprite
+ *        and Script (ScriptComponent).
  * @note Sprite::assetId is a raw id for now. Scene files must save it as an
  *       asset name instead, ids are not stable between runs.
+ * @note Only ScriptComponent::scripts is reflected: `started` is runtime state
+ *       and goes back to 0 when a scene is loaded.
  */
 void reflectCoreComponents(Reflection &reflection);
 

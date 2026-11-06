@@ -13,6 +13,7 @@
 #include "components/Name.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
+#include "scripting/ScriptComponent.h"
 
 std::vector<RType::ComponentInfo> &RType::Reflection::components()
 {
@@ -60,4 +61,6 @@ void RType::reflectCoreComponents(Reflection &reflection)
         .field("b", &Sprite::b)
         .field("a", &Sprite::a)
         .field("zIndex", &Sprite::zIndex);
+    reflection.reflect<ScriptComponent>("Script").field(
+        "scripts", &ScriptComponent::scripts);
 }
