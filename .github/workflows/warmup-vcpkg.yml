@@ -25,6 +25,23 @@ jobs:
           path: ${{ env.VCPKG_DOWNLOADS }}
           key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
 
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libudev-dev \
+            libgl1-mesa-dev \
+            libxinerama-dev \
+            pkg-config \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool
+
       - name: Download Lua source
         run: |
           mkdir -p "$VCPKG_DOWNLOADS"
@@ -89,6 +106,23 @@ jobs:
         with:
           path: ${{ env.VCPKG_DOWNLOADS }}
           key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libx11-dev \
+            libxi-dev \
+            libxrandr-dev \
+            libxcursor-dev \
+            libudev-dev \
+            libgl1-mesa-dev \
+            libxinerama-dev \
+            pkg-config \
+            autoconf \
+            autoconf-archive \
+            automake \
+            libtool
 
       - name: Install engine vcpkg dependencies
         run: |
