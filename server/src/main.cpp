@@ -42,9 +42,10 @@ std::optional<std::uint16_t> parsePort(std::string_view text)
 
 void printUsage(std::string_view program)
 {
-    std::cout << "USAGE: " << program << " [-c config] [-p port]\n"
-              << "    -c config  Shared game configuration file\n"
-              << "    -p port    UDP port to listen on (overrides the config)\n";
+    std::cout
+        << "USAGE: " << program << " [-c config] [-p port]\n"
+        << "    -c config  Shared game configuration file\n"
+        << "    -p port    UDP port to listen on (overrides the config)\n";
 }
 } // namespace
 
