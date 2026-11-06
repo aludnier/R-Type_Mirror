@@ -45,12 +45,12 @@ void InputManager::defineAction(const std::string &name, RType::ActionId action)
 
 void InputManager::loadConfigFile(const std::filesystem::path &configFile)
 {
-    const auto config =
+    const auto [bindings] =
         RType::nlohamReader(configFile).convertJson<InputConfig>();
 
     std::vector<std::pair<RType::ActionId, const std::vector<InputEntry> *>>
         resolved;
-    for (const auto &[name, entries] : config.bindings) {
+    for (const auto &[name, entries] : bindings) {
         const auto action = _actionNames.find(name);
         if (action == _actionNames.end())
             throw std::invalid_argument("unknown action '" + name + "'");
@@ -59,12 +59,12 @@ void InputManager::loadConfigFile(const std::filesystem::path &configFile)
 
     for (const auto &[action, entries] : resolved) {
         clearBindings(action);
-        for (const auto &entry : *entries)
-            bind(action, entry.id);
+        for (const auto &[id] : *entries)
+            bind(action, id);
     }
 }
 
-std::string InputManager::keyCodeId(InputManager::KeyCode key)
+std::string InputManager::keyCodeId(KeyCode key)
 {
     return "KEY_CODE_" + std::to_string(key);
 }

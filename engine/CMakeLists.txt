@@ -37,6 +37,8 @@ set(CORE_SRC
         src/systems/ControllableSystem.h
         src/library/RessourceManager.cpp
         src/library/RessourceManager.h
+        src/configuration/Configuration.cpp
+        src/configuration/Configuration.hpp
         src/library/PluginManager.cpp
         src/library/PluginManager.h
         src/library/NlohmanReader.cpp
@@ -69,6 +71,7 @@ target_link_libraries(engine_core
         PRIVATE asio::asio
         PUBLIC Threads::Threads nlohmann_json::nlohmann_json)
 target_link_libraries(engine_core PUBLIC ${CMAKE_DL_LIBS})
+target_compile_definitions(engine_core PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
 if (WIN32)
     target_compile_definitions(engine_core PRIVATE _WIN32_WINNT=0x0A00)
 endif ()
@@ -80,6 +83,8 @@ endif ()
 find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
 
 set(CLIENT_SRC
+        src/game/GameApp.cpp
+        src/game/GameApp.h
         src/library/engine.h
         src/components/Sprite.h
         src/systems/RenderSystem.cpp

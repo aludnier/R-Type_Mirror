@@ -6,14 +6,15 @@
 */
 
 #include <atomic>
-#include <charconv>
 #include <csignal>
 #include <exception>
+#include <filesystem>
 #include <iostream>
 #include <optional>
 #include <string_view>
 
 #include "RTypeServer.h"
+#include "configuration/Configuration.hpp"
 
 namespace {
 // Written by the signal handler: only lock-free atomics are safe there.
@@ -40,16 +41,16 @@ std::optional<std::uint16_t> parsePort(std::string_view text)
 
 void printUsage(std::string_view program)
 {
-    std::cout << "USAGE: " << program << " [-p port]\n"
-              << "    -p port    UDP port to listen on (default 4242)\n";
+    std::cout << "USAGE: " << program << " [-c config]\n"
+              << "    -c config  Shared game configuration file\n";
 }
 } // namespace
 
 int main(int argc, char **argv)
 {
-    RType::ServerConfig config;
+    std::filesystem::path configFile = ENGINE_MODULE_DIR "/../config/game.json";
+    std::optional<std::uint16_t> port;
 
-    config.movementActions = Game::Protocol::MOVEMENT_ACTIONS;
     for (int i = 1; i < argc; ++i) {
         std::string_view arg = argv[i];
 
@@ -57,15 +58,17 @@ int main(int argc, char **argv)
             printUsage(argv[0]);
             return 0;
         }
+        if (arg == "-c" && i + 1 < argc) {
+            configFile = argv[++i];
+            continue;
+        }
         if (arg == "-p" && i + 1 < argc) {
-            auto port = parsePort(argv[++i]);
+            port = parsePort(argv[++i]);
 
             if (!port) {
                 std::cerr << "Invalid port: " << argv[i] << '\n';
                 return 84;
             }
-            config.port = *port;
-            continue;
         }
         printUsage(argv[0]);
         return 84;
@@ -73,7 +76,11 @@ int main(int argc, char **argv)
     std::signal(SIGINT, onSignal);
     std::signal(SIGTERM, onSignal);
     try {
-        RType::RTypeServer server(config);
+        RType::Configuration configuration(configFile);
+        if (port) {
+            configuration.game().port = *port;
+        }
+        RType::RTypeServer server(configuration);
 
         server.run(stopRequested);
     } catch (const std::exception &error) {

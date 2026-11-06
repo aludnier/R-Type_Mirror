@@ -55,10 +55,28 @@ namespace {
     }
 } // namespace
 
+ServerConfig ServerConfig::fromConfig(const Configuration &configuration)
+{
+    const auto &game = configuration.game();
+    return {.gameName = game.name,
+        .port = game.port,
+        .maxPlayers = game.maxPlayers,
+        .tickRate = game.tickRate,
+        .playerSpeed = game.playerSpeed,
+        .movementActions = {}};
+}
+
 GameServer::GameServer(const ServerConfig &config) :
     _config(config), _network(config.port, INCOMING_QUEUE_SIZE)
 {
     setupRegistry();
+}
+
+GameServer::GameServer(const Configuration &configuration) :
+    GameServer(ServerConfig::fromConfig(configuration))
+{
+    _pluginManager = std::make_unique<PluginManager>();
+    _pluginManager->loadConfig(configuration, _registry);
 }
 
 GameServer::~GameServer() = default;
@@ -66,8 +84,9 @@ GameServer::~GameServer() = default;
 void GameServer::run(const std::atomic<bool> &stopRequested)
 {
     _network.start();
-    std::cout << "[server] listening on UDP port " << _network.localPort()
-              << ", " << _config.tickRate << " ticks/s\n";
+    std::cout << "[" << _config.gameName << "] listening on UDP port "
+              << _network.localPort() << ", " << _config.tickRate
+              << " ticks/s, max players " << _config.maxPlayers << '\n';
 
     // Fixed timestep: the simulation advances by whole ticks, whatever
     // the speed of the machine. lag is the time not simulated yet.

@@ -1,0 +1,127 @@
+
+name: "Warm up vcpkg"
+on:
+  workflow_call:
+
+jobs:
+  warmup-linux-vcpkg:
+    name: Warm up Linux vcpkg downloads
+    runs-on: ubuntu-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/.vcpkg-downloads
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Download Lua source
+        run: |
+          mkdir -p "$VCPKG_DOWNLOADS"
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          ./vcpkg/vcpkg install --x-manifest-root="$PWD" --triplet x64-linux
+
+  warmup-windows-vcpkg:
+    name: Warm up Windows vcpkg downloads
+    runs-on: windows-latest
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}\.vcpkg-downloads
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-windows-${{ hashFiles('vcpkg.json') }}
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-windows-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Download Lua source
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$env:VCPKG_DOWNLOADS" | Out-Null
+          $luaArchive = Join-Path $env:VCPKG_DOWNLOADS "lua-5.5.1.tar.gz"
+          if (-not (Test-Path $luaArchive)) {
+            curl.exe --fail --location --retry 5 --retry-all-errors `
+              --connect-timeout 30 --max-time 300 `
+              https://www.lua.org/ftp/lua-5.5.1.tar.gz `
+              --output $luaArchive
+          }
+          New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          .\vcpkg\vcpkg.exe install --x-manifest-root="$PWD" --triplet x64-windows
+
+  warmup-engine-linux-vcpkg:
+    name: Warm up Linux engine vcpkg binaries
+    runs-on: ubuntu-latest
+    needs: warmup-linux-vcpkg
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/.vcpkg-downloads
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-engine-linux-${{ hashFiles('engine/vcpkg.json') }}
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Install engine vcpkg dependencies
+        run: |
+          mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE" "$VCPKG_DOWNLOADS"
+          ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          ./vcpkg/vcpkg install --x-manifest-root="$PWD/engine" --triplet x64-linux
+
+  warmup-engine-windows-vcpkg:
+    name: Warm up Windows engine vcpkg binaries
+    runs-on: windows-latest
+    needs: warmup-windows-vcpkg
+    env:
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}\.vcpkg-downloads
+    steps:
+      - uses: "actions/checkout@v7"
+        with:
+          submodules: true
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-engine-windows-${{ hashFiles('engine/vcpkg.json') }}
+
+      - uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-windows-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
+
+      - name: Install engine vcpkg dependencies
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          New-Item -ItemType Directory -Force "$env:VCPKG_DOWNLOADS" | Out-Null
+          .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
+          .\vcpkg\vcpkg.exe install --x-manifest-root="$PWD\engine" --triplet x64-windows
