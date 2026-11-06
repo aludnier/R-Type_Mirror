@@ -6,6 +6,7 @@
 */
 
 #include <atomic>
+#include <charconv>
 #include <csignal>
 #include <exception>
 #include <filesystem>
@@ -41,8 +42,9 @@ std::optional<std::uint16_t> parsePort(std::string_view text)
 
 void printUsage(std::string_view program)
 {
-    std::cout << "USAGE: " << program << " [-c config]\n"
-              << "    -c config  Shared game configuration file\n";
+    std::cout << "USAGE: " << program << " [-c config] [-p port]\n"
+              << "    -c config  Shared game configuration file\n"
+              << "    -p port    UDP port to listen on (overrides the config)\n";
 }
 } // namespace
 
@@ -69,6 +71,7 @@ int main(int argc, char **argv)
                 std::cerr << "Invalid port: " << argv[i] << '\n';
                 return 84;
             }
+            continue;
         }
         printUsage(argv[0]);
         return 84;
