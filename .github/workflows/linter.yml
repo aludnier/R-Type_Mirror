@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/.vcpkg-downloads
     permissions:
       contents: write
       pull-requests: write
@@ -22,6 +23,11 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-linux-${{ hashFiles('vcpkg.json') }}
           restore-keys: vcpkg-linux-
+      - name: Restore vcpkg download cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
 
       - name: Install Linux dependencies
         run: |
@@ -43,6 +49,7 @@ jobs:
       - name: "Generate compilation_command.json"
         run: |
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          mkdir -p "$VCPKG_DOWNLOADS"
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
           cmake --preset release
           cmake --build --preset release -j

@@ -18,14 +18,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  warmup:
+    uses: ./.github/workflows/warmup-vcpkg.yml
+
   build-game:
+    needs: warmup
     uses: ./.github/workflows/build-game.yml
 
   build-engine:
+    needs: warmup
     uses: ./.github/workflows/build-engine.yml
 
   linter:
     name: "CPP Linter"
+    needs: warmup
     uses: ./.github/workflows/linter.yml
     permissions:
       contents: write

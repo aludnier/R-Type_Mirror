@@ -16,6 +16,7 @@
 #include <vector>
 #include "DLLoader.hpp"
 #include "Module.h"
+#include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
 
 namespace RType {
@@ -31,8 +32,7 @@ public:
      * @param configFile JSON file with a "directory" and "modules" entry.
      * @param registry Registry passed to each module registration callback.
      */
-    PluginManager(
-        const std::filesystem::path &configFile, RType::Registry &registry);
+    PluginManager(const std::filesystem::path &configFile, Registry &registry);
 
     ~PluginManager() = default;
 
@@ -52,23 +52,23 @@ public:
      * @param registry    Registry passed to each registerModule callback.
      */
     void loadRequiredModules(const std::filesystem::path &directory,
-        const std::vector<std::string> &moduleNames, RType::Registry &registry);
+        const std::vector<std::string> &moduleNames, Registry &registry);
 
     /**
      * @brief Loads module requirements from a JSON config file.
      * @param configFile JSON file with a "directory" and "modules" entry.
      * @param registry Registry passed to each module registration callback.
      */
-    void loadConfigFile(
-        const std::filesystem::path &configFile, RType::Registry &registry);
+    void loadConfig(
+        const std::filesystem::path &configFile, Registry &registry);
+    void loadConfig(const Configuration &config, Registry &registry);
 
     /**
      * @brief Loads a module library and the dependencies found next to it.
      * @param path     Path to the root module's shared library.
      * @param registry Registry passed to each registerModule callback.
      */
-    void loadModule(
-        const std::filesystem::path &path, RType::Registry &registry);
+    void loadModule(const std::filesystem::path &path, Registry &registry);
 
     /**
      * @brief Checks whether a module with this name is loaded.
@@ -78,13 +78,12 @@ public:
     [[nodiscard]] bool isLoaded(const std::string &name) const;
 
 private:
-    using Loader = RType::DLLoader<RType::ModuleDescriptor>;
+    using Loader = DLLoader<ModuleDescriptor>;
     using NameIndex = std::unordered_map<std::string, std::size_t>;
 
     /** @brief A module library, either read-only (candidate) or registered. */
     struct Module {
-        Module(RType::PluginManager::Loader lib,
-            const RType::ModuleDescriptor *descriptor)
+        Module(Loader lib, const ModuleDescriptor *descriptor)
         {
             library = std::move(lib);
             name = descriptor->name;
@@ -95,9 +94,9 @@ private:
 
         Loader library;
         std::string name;
-        RType::ModuleApiVersion apiVersion {};
-        std::vector<RType::ModuleDependency> dependencies;
-        RType::RegisterModuleFn registerModule;
+        ModuleApiVersion apiVersion {};
+        std::vector<ModuleDependency> dependencies;
+        RegisterModuleFn registerModule;
     };
 
     /** @brief Result of scanning a directory. The three members share indices.
@@ -156,7 +155,7 @@ private:
      * @brief Registers the modules in order and keeps them as loaded.
      */
     void registerModules(std::vector<Module> &candidates,
-        const std::vector<std::size_t> &order, RType::Registry &registry);
+        const std::vector<std::size_t> &order, Registry &registry);
 
     /**
      * @brief Forgets every module loaded after @p firstNew.
@@ -166,7 +165,7 @@ private:
 
     std::vector<Loader> _retiredLibraries;
     std::vector<Module> _loadedModules;
-    std::optional<std::reference_wrapper<RType::Registry>> _registry;
+    std::optional<std::reference_wrapper<Registry>> _registry;
     bool _configured = false;
 };
 

@@ -7,6 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}/.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}/.vcpkg-downloads
     steps:
       - uses: "actions/checkout@v7"
         with:
@@ -18,6 +19,11 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-engine-linux-${{ hashFiles('engine/vcpkg.json') }}
           restore-keys: vcpkg-engine-linux-
+      - name: Restore vcpkg download cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-linux-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
 
       - name: Install Linux dependencies
         run: |
@@ -39,6 +45,7 @@ jobs:
       - name: Configure and build
         run: |
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
+          mkdir -p "$VCPKG_DOWNLOADS"
           ./vcpkg/bootstrap-vcpkg.sh -disableMetrics
           cmake -S engine -B build/engine -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_TOOLCHAIN_FILE="$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake"
@@ -50,6 +57,7 @@ jobs:
     runs-on: windows-latest
     env:
       VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\.vcpkg-cache
+      VCPKG_DOWNLOADS: ${{ github.workspace }}\.vcpkg-downloads
     steps:
       - uses: "actions/checkout@v7"
         with:
@@ -61,11 +69,17 @@ jobs:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-engine-windows-${{ hashFiles('engine/vcpkg.json') }}
           restore-keys: vcpkg-engine-windows-
+      - name: Restore vcpkg download cache
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.VCPKG_DOWNLOADS }}
+          key: vcpkg-downloads-windows-${{ hashFiles('vcpkg.json', 'engine/vcpkg.json') }}
 
       - name: Configure and build
         shell: powershell
         run: |
           New-Item -ItemType Directory -Force "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+          New-Item -ItemType Directory -Force "$env:VCPKG_DOWNLOADS" | Out-Null
           .\vcpkg\bootstrap-vcpkg.bat -disableMetrics
           cmake -S engine -B build/engine "-DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake"
           cmake --build build/engine --config Release -j

@@ -12,15 +12,20 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <map>
+#include <memory>
 #include <optional>
 #include <set>
+#include <string>
 #include <vector>
 
 #include "ClientSession.h"
+#include "configuration/Configuration.hpp"
 #include "ecs/Entity.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "library/PluginManager.h"
 #include "math/Vector2.h"
 #include "network/Endpoint.h"
 #include "network/NetworkThread.h"
@@ -31,6 +36,8 @@
 
 namespace RType {
 struct ServerConfig {
+
+    std::string gameName = "R-Type";
     std::uint16_t port = 4242;
     /** @brief Player slots. */
     std::size_t maxPlayers = 4;
@@ -38,6 +45,8 @@ struct ServerConfig {
     /** @brief Speed of a player's entity, in units per second. */
     float playerSpeed = 300.f;
     MovementActions movementActions;
+
+    static ServerConfig fromConfig(const Configuration &configuration);
 };
 
 /**
@@ -56,6 +65,7 @@ public:
 
     /** @throws std::system_error If the port cannot be bound. */
     explicit GameServer(const ServerConfig &config);
+    explicit GameServer(const Configuration &configuration);
     ~GameServer();
 
     GameServer(const GameServer &) = delete;
@@ -256,6 +266,7 @@ private:
     }
 
     ServerConfig _config;
+    std::unique_ptr<PluginManager> _pluginManager;
     Network::NetworkThread _network;
 
     std::map<Network::ClientId, ClientSession> _sessions;

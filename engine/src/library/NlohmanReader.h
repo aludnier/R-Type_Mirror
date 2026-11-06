@@ -17,7 +17,8 @@ namespace RType {
 class nlohamReader {
 public:
     nlohamReader() = default;
-    nlohamReader(const std::filesystem::path &path);
+
+    explicit nlohamReader(const std::filesystem::path &path);
     ~nlohamReader() = default;
 
     bool readFile(const std::filesystem::path &path);
@@ -40,7 +41,7 @@ public:
 
     [[nodiscard]] nlohmann::json operator[](const std::string &param);
 
-    [[nodiscard]] bool has(const std::string &param);
+    [[nodiscard]] bool has(const std::string &param) const;
 
     template<typename T>
     [[nodiscard]] bool validate()

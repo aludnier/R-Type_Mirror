@@ -297,9 +297,9 @@ TEST_CASE("Controllable system moves entities from their action mask",
     const auto entity = registry.spawnEntity();
     registry.addComponent<RType::Transform2D>(entity, RType::Transform2D {});
     registry.addComponent<RType::Controllable>(entity,
-        RType::Controllable {static_cast<RType::ActionMask>(
-            (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
-            (1u << static_cast<std::uint8_t>(Action::MoveDown)))});
+        RType::Controllable {
+            ((1u << static_cast<std::uint8_t>(Action::MoveRight)) |
+                (1u << static_cast<std::uint8_t>(Action::MoveDown)))});
     RType::addControllableSystem(registry, 10.f, 0.5f, {});
 
     registry.runSystems();
@@ -319,10 +319,10 @@ TEST_CASE("Controllable system cancels opposing actions and ignores shooting",
     const auto entity = registry.spawnEntity();
     registry.addComponent<RType::Transform2D>(entity, RType::Transform2D {});
     registry.addComponent<RType::Controllable>(entity,
-        RType::Controllable {static_cast<RType::ActionMask>(
-            (1u << static_cast<std::uint8_t>(Action::MoveLeft)) |
-            (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
-            (1u << static_cast<std::uint8_t>(Action::Shoot)))});
+        RType::Controllable {
+            ((1u << static_cast<std::uint8_t>(Action::MoveLeft)) |
+                (1u << static_cast<std::uint8_t>(Action::MoveRight)) |
+                (1u << static_cast<std::uint8_t>(Action::Shoot)))});
     RType::addControllableSystem(registry, 10.f, 1.f, {});
 
     registry.runSystems();
@@ -334,7 +334,7 @@ TEST_CASE("Controllable system cancels opposing actions and ignores shooting",
 
 TEST_CASE("Controllable keeps action bits above the first byte", "[ecs]")
 {
-    const RType::Controllable controllable {RType::ActionMask {1} << 31};
+    constexpr RType::Controllable controllable {RType::ActionMask {1} << 31};
 
     REQUIRE(controllable.actionMask == 0x80000000u);
 }
