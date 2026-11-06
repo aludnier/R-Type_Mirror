@@ -51,6 +51,13 @@ public:
         return this->getComponents<C>();
     }
 
+    /** @brief Whether registerComponent<C>() was called. */
+    template<Component C>
+    [[nodiscard]] bool isRegistered() const
+    {
+        return _componentsStorage.contains(std::type_index(typeid(C)));
+    }
+
     /**
      * @brief Gets the storage of a component type.
      * @tparam C Component type.

@@ -30,6 +30,10 @@ set(CORE_SRC
         src/components/Controllable.h
         src/components/Health.h
         src/components/Hitbox.h
+        src/components/Name.h
+        src/components/Sprite.h
+        src/reflection/Reflection.cpp
+        src/reflection/Reflection.h
         src/systems/ControllableSystem.cpp
         src/systems/ControllableSystem.h
         src/library/RessourceManager.cpp
@@ -83,7 +87,6 @@ set(CLIENT_SRC
         src/game/GameApp.cpp
         src/game/GameApp.h
         src/library/engine.h
-        src/components/Sprite.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
 )
@@ -207,6 +210,7 @@ if (BUILD_TESTS)
             tests/physics2d_plugin_tests.cpp
             tests/nlohman_reader_test.cpp
             tests/fixed_step_tests.cpp
+            tests/reflection_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
