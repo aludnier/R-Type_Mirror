@@ -123,10 +123,19 @@ target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
 # ---------------------------------------------------------------------------
 find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 
-add_library(engine_render2d INTERFACE)
+set(RENDER2D_SRC
+        src/render/Renderer2D.cpp
+        src/render/Renderer2D.h
+        src/render/Shader.cpp
+        src/render/Shader.h
+        src/render/Texture.cpp
+        src/render/Texture.h
+)
 
-target_link_libraries(engine_render2d INTERFACE engine_platform)
-target_include_directories(engine_render2d INTERFACE ${STB_INCLUDE_DIRS})
+add_library(engine_render2d STATIC ${RENDER2D_SRC})
+
+target_link_libraries(engine_render2d PUBLIC engine_platform)
+target_include_directories(engine_render2d PRIVATE ${STB_INCLUDE_DIRS})
 
 # ---------------------------------------------------------------------------
 # engine_editor: ImGui panels of the editor. Never linked by a game.
