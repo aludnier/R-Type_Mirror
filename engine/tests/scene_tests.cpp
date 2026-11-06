@@ -56,7 +56,7 @@ RType::Entity spawnPlayer(SceneFixture &scene)
     sprite.originX = 0.25f;
     sprite.r = 10;
     sprite.a = 128;
-    scene.source.addComponent(player, std::move(sprite));
+    scene.source.addComponent(player, RType::Sprite(sprite));
     scene.source.addComponent(player,
         RType::ScriptComponent {
             .scripts = {"player.lua", "ai/shoot.lua"}, .started = 2});
