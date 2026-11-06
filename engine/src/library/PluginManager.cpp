@@ -194,8 +194,7 @@ void RType::PluginManager::registerModules(std::vector<Module> &candidates,
     }
 }
 
-void RType::PluginManager::registerModule(
-    Module module, Registry &registry)
+void RType::PluginManager::registerModule(Module module, Registry &registry)
 {
     _loadedModules.push_back(std::move(module));
     auto &loaded = _loadedModules.back();
@@ -211,8 +210,7 @@ void RType::PluginManager::registerModule(
     try {
         if (loaded.registerAssetTypes(assets) != ModuleStatus::Success)
             throw std::runtime_error(
-                "Module '" + loaded.name +
-                "' failed to register asset types");
+                "Module '" + loaded.name + "' failed to register asset types");
     } catch (const std::exception &) {
         assets = assetsBefore;
         throw;
@@ -246,7 +244,9 @@ void RType::PluginManager::loadConfig(const Configuration &config,
 {
     loadRequiredModules(
         config.path().parent_path() / config.game().pluginDirectory,
-        config.game().plugins, registry, assets);
+        config.game().plugins,
+        registry,
+        assets);
 }
 
 void RType::PluginManager::loadRequiredModules(

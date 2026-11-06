@@ -21,21 +21,21 @@ public:
     ClientAssetManager();
     explicit ClientAssetManager(const std::filesystem::path &configFile);
 
-    template <LoadableAsset T>
+    template<LoadableAsset T>
     void registerType()
     {
         _loaders.registerType<T>();
     }
 
-    template <LoadableAsset T>
+    template<LoadableAsset T>
     const T &load(const std::string &name)
     {
         const auto &asset = metadata(name);
         const std::string expected(AssetTraits<T>::jsonType);
         if (asset.type != expected)
-            throw std::invalid_argument(
-                "ClientAssetManager: asset '" + name + "' has type '" +
-                asset.type + "', requested '" + expected + "'");
+            throw std::invalid_argument("ClientAssetManager: asset '" + name +
+                "' has type '" + asset.type + "', requested '" + expected +
+                "'");
 
         const auto cached = _cache.find(name);
         if (cached != _cache.end() && cached->second.path == asset.path &&
@@ -52,9 +52,21 @@ public:
     void unload(const std::string &name);
     void clear();
 
-    [[nodiscard]] AssetManager &metadata() { return _metadata; }
-    [[nodiscard]] const AssetManager &metadata() const { return _metadata; }
-    [[nodiscard]] AssetLoaderRegistry &loaderRegistry() { return _loaders; }
+    [[nodiscard]] AssetManager &metadata()
+    {
+        return _metadata;
+    }
+
+    [[nodiscard]] const AssetManager &metadata() const
+    {
+        return _metadata;
+    }
+
+    [[nodiscard]] AssetLoaderRegistry &loaderRegistry()
+    {
+        return _loaders;
+    }
+
     [[nodiscard]] const AssetManager::Asset &getAsset(
         const std::string &name) const
     {
@@ -72,6 +84,7 @@ private:
     {
         return _metadata.getAsset(name);
     }
+
     AssetManager _metadata;
     AssetLoaderRegistry _loaders;
     std::unordered_map<std::string, CacheEntry> _cache;

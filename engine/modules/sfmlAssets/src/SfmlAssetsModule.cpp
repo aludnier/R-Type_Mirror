@@ -5,8 +5,8 @@
 ** SFML game asset module
 */
 
-#include "Module.h"
 #include "GameAssetTypes.h"
+#include "Module.h"
 
 namespace {
 RType::ModuleStatus registerSfmlAssets(AssetLoaderRegistry &assets)
@@ -27,8 +27,7 @@ RType::ModuleStatus registerSfmlModule(RType::Registry &)
 extern "C" MODULE_EXPORT const RType::ModuleDescriptor *MODULE_CALL
 RTypeLibEntryPoint()
 {
-    static const RType::ModuleDescriptor descriptor {
-        .name = "sfml_assets",
+    static const RType::ModuleDescriptor descriptor {.name = "sfml_assets",
         .apiVersion = {RType::MODULE_API_MAJOR, RType::MODULE_API_MINOR},
         .dependencies = {},
         .registerModule = registerSfmlModule,

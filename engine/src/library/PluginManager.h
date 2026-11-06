@@ -14,9 +14,9 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "AssetLoaderRegistry.h"
 #include "DLLoader.hpp"
 #include "Module.h"
-#include "AssetLoaderRegistry.h"
 #include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
 
@@ -169,8 +169,8 @@ private:
     void registerModules(std::vector<Module> &candidates,
         const std::vector<std::size_t> &order, Registry &registry);
     void registerModule(Module module, Registry &registry);
-    void loadModuleFromPath(const std::filesystem::path &path,
-        Registry &registry);
+    void loadModuleFromPath(
+        const std::filesystem::path &path, Registry &registry);
 
     /**
      * @brief Forgets every module loaded after @p firstNew.

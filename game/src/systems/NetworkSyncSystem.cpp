@@ -25,8 +25,7 @@
 namespace Game {
 
 void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
-    const InputManager &input, AssetManager &resources,
-    NetworkClient &client)
+    const InputManager &input, AssetManager &resources, NetworkClient &client)
 {
     client.update(0.0f);
 
@@ -242,8 +241,7 @@ void NetworkSyncSystem::handlePlayerDisconnected(
 
 void NetworkSyncSystem::handleEntitySpawn(
     const RType::Network::EntitySpawnPacket &packet, RType::Registry &registry,
-    const AssetManager &resources,
-    RType::Network::NetworkId localLinkedEntity)
+    const AssetManager &resources, RType::Network::NetworkId localLinkedEntity)
 {
     auto it = _networkToEntity.find(packet.networkId);
     RType::Entity entity = it != _networkToEntity.end()

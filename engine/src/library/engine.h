@@ -11,8 +11,8 @@
 #include <cstdint>
 #include <string>
 #include <thread>
-#include "InputManager.h"
 #include "AssetManager.h"
+#include "InputManager.h"
 #include "components/Sprite.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"

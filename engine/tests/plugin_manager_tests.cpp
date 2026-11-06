@@ -8,12 +8,12 @@
 #include "TempConfigFile.hpp"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "library/ClientAssetManager.h"
 #include "library/PluginManager.h"
 #include "plugins/TestDependencyComponent.h"
 #include "plugins/TestFailingComponent.h"
-#include "plugins/TestPluginComponent.h"
 #include "plugins/TestPluginAsset.h"
-#include "library/ClientAssetManager.h"
+#include "plugins/TestPluginComponent.h"
 
 namespace {
 std::filesystem::path findModuleLibrary(
@@ -51,19 +51,22 @@ TEST_CASE("PluginManager loads requested modules and dependencies in "
     REQUIRE(registry.getComponents<TestPluginComponent>()[entity]->value == 42);
 }
 
-TEST_CASE("Plugin modules register custom typed asset loaders", "[plugins][assets]")
+TEST_CASE(
+    "Plugin modules register custom typed asset loaders", "[plugins][assets]")
 {
     RType::Registry registry;
     ClientAssetManager assets;
     RType::PluginManager manager;
 
-    manager.loadRequiredModules(TEST_PLUGIN_DIRECTORY, {"test_module"},
-        registry, assets.loaderRegistry());
+    manager.loadRequiredModules(TEST_PLUGIN_DIRECTORY,
+        {"test_module"},
+        registry,
+        assets.loaderRegistry());
 
     assets.metadata().addAsset(
         "module_asset", "module.asset", TestPluginAsset::JSON_TYPE);
-    REQUIRE(assets.load<TestPluginAsset>("module_asset").path ==
-        "module.asset");
+    REQUIRE(
+        assets.load<TestPluginAsset>("module_asset").path == "module.asset");
 }
 
 TEST_CASE("Explicit module loads register loaders in the supplied registry",
@@ -74,12 +77,13 @@ TEST_CASE("Explicit module loads register loaders in the supplied registry",
     RType::PluginManager manager;
 
     manager.loadModule(findModuleLibrary(TEST_PLUGIN_DIRECTORY, "test_plugin"),
-        registry, assets.loaderRegistry());
+        registry,
+        assets.loaderRegistry());
 
     assets.metadata().addAsset(
         "module_asset", "module.asset", TestPluginAsset::JSON_TYPE);
-    REQUIRE(assets.load<TestPluginAsset>("module_asset").path ==
-        "module.asset");
+    REQUIRE(
+        assets.load<TestPluginAsset>("module_asset").path == "module.asset");
 }
 
 TEST_CASE("PluginManager loads module requirements from a config file",

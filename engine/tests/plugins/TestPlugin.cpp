@@ -1,7 +1,7 @@
 #include "Module.h"
 #include "TestDependencyComponent.h"
-#include "TestPluginComponent.h"
 #include "TestPluginAsset.h"
+#include "TestPluginComponent.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
 

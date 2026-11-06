@@ -20,6 +20,7 @@
 struct GameTextureAsset {
     static constexpr std::string_view JSON_TYPE = "Texture";
     sf::Texture resource;
+
     static GameTextureAsset load(const std::filesystem::path &path)
     {
         sf::Texture resource;
@@ -33,19 +34,21 @@ struct GameTextureAsset {
 struct GameSoundAsset {
     static constexpr std::string_view JSON_TYPE = "Sound";
     sf::SoundBuffer resource;
+
     static GameSoundAsset load(const std::filesystem::path &path)
     {
         sf::SoundBuffer resource;
         if (!resource.loadFromFile(path.string()))
             throw std::runtime_error(
                 "GameSoundAsset: failed to load '" + path.string() + "'");
-        return GameSoundAsset {std::move(resource)};
+        return GameSoundAsset {resource};
     }
 };
 
 struct GameMusicAsset {
     static constexpr std::string_view JSON_TYPE = "Music";
     std::shared_ptr<sf::Music> resource;
+
     static GameMusicAsset load(const std::filesystem::path &path)
     {
         auto resource = std::make_shared<sf::Music>();
@@ -59,6 +62,7 @@ struct GameMusicAsset {
 struct GameFontAsset {
     static constexpr std::string_view JSON_TYPE = "Font";
     sf::Font resource;
+
     static GameFontAsset load(const std::filesystem::path &path)
     {
         sf::Font resource;

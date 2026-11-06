@@ -8,8 +8,8 @@
 #ifndef ASSETLOADERREGISTRY_H_
 #define ASSETLOADERREGISTRY_H_
 
-#include <concepts>
 #include <any>
+#include <concepts>
 #include <filesystem>
 #include <functional>
 #include <stdexcept>
@@ -19,12 +19,12 @@
 #include <unordered_map>
 #include <utility>
 
-template <typename T>
+template<typename T>
 struct AssetTraits {
     static constexpr std::string_view jsonType = T::JSON_TYPE;
 };
 
-template <typename T>
+template<typename T>
 concept LoadableAsset = requires(const std::filesystem::path &path) {
     { T::load(path) } -> std::same_as<T>;
     { AssetTraits<T>::jsonType } -> std::convertible_to<std::string_view>;
@@ -35,7 +35,8 @@ public:
     struct Holder {
         std::any value;
 
-        template <typename T>
+        template<typename T>
+        [[nodiscard]]
         const T &get() const
         {
             const auto *typed = std::any_cast<T>(&value);
@@ -46,7 +47,7 @@ public:
         }
     };
 
-    template <LoadableAsset T>
+    template<LoadableAsset T>
     void registerType()
     {
         const std::string type(AssetTraits<T>::jsonType);
@@ -54,11 +55,11 @@ public:
             throw std::invalid_argument(
                 "AssetLoaderRegistry: empty asset type identifier");
 
-        const auto [it, inserted] = _loaders.emplace(type, Loader {
-            std::type_index(typeid(T)),
-            [](const std::filesystem::path &path) {
-                return Holder {T::load(path)};
-            }});
+        const auto [it, inserted] = _loaders.emplace(type,
+            Loader {std::type_index(typeid(T)),
+                [](const std::filesystem::path &path) {
+                    return Holder {T::load(path)};
+                }});
         if (!inserted && it->second.type != std::type_index(typeid(T)))
             throw std::invalid_argument(
                 "AssetLoaderRegistry: conflicting registration for type '" +

@@ -70,8 +70,8 @@ namespace {
     };
 } // namespace
 
-void RenderSystem::render(Registry &registry, const AssetManager &resources,
-    sf::RenderTarget &target)
+void RenderSystem::render(
+    Registry &registry, const AssetManager &resources, sf::RenderTarget &target)
 {
     auto &transforms = registry.getComponents<Transform2D>();
     auto &sprites = registry.getComponents<Sprite>();

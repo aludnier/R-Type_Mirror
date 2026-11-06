@@ -43,10 +43,8 @@ struct ModuleDependency {
     ModuleApiVersion compatible_api {};
 };
 
-using RegisterModuleFn =
-    std::function<ModuleStatus(Registry &)>;
-using RegisterAssetTypesFn =
-    std::function<ModuleStatus(AssetLoaderRegistry &)>;
+using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
+using RegisterAssetTypesFn = std::function<ModuleStatus(AssetLoaderRegistry &)>;
 
 struct ModuleDescriptor {
     std::string name {};

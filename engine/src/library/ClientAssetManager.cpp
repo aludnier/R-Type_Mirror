@@ -3,7 +3,8 @@
 ClientAssetManager::ClientAssetManager() = default;
 
 ClientAssetManager::ClientAssetManager(
-    const std::filesystem::path &configFile) : _metadata(configFile)
+    const std::filesystem::path &configFile) :
+    _metadata(configFile)
 {
 }
 
@@ -14,8 +15,9 @@ void ClientAssetManager::preload(const std::string &name)
     if (cached != _cache.end() && cached->second.path == asset.path &&
         cached->second.type == asset.type)
         return;
-    _cache.insert_or_assign(name, CacheEntry {
-        asset.path, asset.type, _loaders.load(asset.type, asset.path)});
+    _cache.insert_or_assign(name,
+        CacheEntry {
+            asset.path, asset.type, _loaders.load(asset.type, asset.path)});
 }
 
 void ClientAssetManager::unload(const std::string &name)
