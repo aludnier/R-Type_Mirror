@@ -377,16 +377,16 @@ TEST_CASE("AssetManager rejects invalid config without partial changes",
 {
     TempConfigFile config(R"({
         "assets": {
-            "valid": {"path": "assets/valid.png"},
-            "invalid": {"path": "", "type": "Unknown"}
+            "a_valid": {"path": "assets/valid.png", "type": "Valid"},
+            "z_invalid": {"path": "", "type": "Unknown"}
         }
     })");
     AssetManager manager;
 
     REQUIRE_THROWS_AS(
         manager.loadConfigFile(config.path()), std::invalid_argument);
-    REQUIRE_FALSE(manager.hasAsset("valid"));
-    REQUIRE_FALSE(manager.hasAsset("invalid"));
+    REQUIRE_FALSE(manager.hasAsset("a_valid"));
+    REQUIRE_FALSE(manager.hasAsset("z_invalid"));
 }
 
 TEST_CASE("AssetManager reports unknown names without creating them",

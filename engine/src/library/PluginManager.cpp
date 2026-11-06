@@ -292,6 +292,12 @@ void RType::PluginManager::loadModule(
     const std::filesystem::path &path, Registry &registry)
 {
     _assets = &_defaultAssets;
+    loadModuleFromPath(path, registry);
+}
+
+void RType::PluginManager::loadModuleFromPath(
+    const std::filesystem::path &path, Registry &registry)
+{
     if (_registry && &_registry->get() != &registry)
         throw std::logic_error(
             "PluginManager cannot load into multiple registries");
@@ -318,5 +324,5 @@ void RType::PluginManager::loadModule(const std::filesystem::path &path,
     Registry &registry, AssetLoaderRegistry &assets)
 {
     _assets = &assets;
-    loadModule(path, registry);
+    loadModuleFromPath(path, registry);
 }

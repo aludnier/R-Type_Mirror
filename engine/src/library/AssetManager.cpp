@@ -73,6 +73,8 @@ std::uint32_t AssetManager::addAsset(
         return it->second.id;
     }
 
+    if (_nextId == 0)
+        throw std::overflow_error("AssetManager: asset id overflow");
     const std::uint32_t id = _nextId++;
     _assets.emplace(name, Asset {id, std::string(type), path});
     _namesById.emplace(id, name);

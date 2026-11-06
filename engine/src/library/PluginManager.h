@@ -169,6 +169,8 @@ private:
     void registerModules(std::vector<Module> &candidates,
         const std::vector<std::size_t> &order, Registry &registry);
     void registerModule(Module module, Registry &registry);
+    void loadModuleFromPath(const std::filesystem::path &path,
+        Registry &registry);
 
     /**
      * @brief Forgets every module loaded after @p firstNew.
