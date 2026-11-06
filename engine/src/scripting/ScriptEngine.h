@@ -47,7 +47,9 @@ struct ScriptData {
  * the system calling update(). The whole Lua API is described in
  * docs/scripting.md.
  *
- * @note The engine registers the ScriptData and ScriptComponent storages. The
+ * @note The engine registers the ScriptData storage, and the ScriptComponent
+ *       one if it is not registered yet (existing scripts are kept and
+ *       started again). The
  *       script system keeps a reference to it: declare it after the registry
  *       so that it is destroyed first, and never run the registry systems
  *       once it is gone.

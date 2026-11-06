@@ -532,3 +532,40 @@ TEST_CASE(
 
     REQUIRE_THROWS_AS(scripts.defineAction("TooBig", 32), std::out_of_range);
 }
+
+TEST_CASE("Script components attached before the engine starts are kept",
+    "[scripting]")
+{
+    TempDirectory directory;
+    auto _ = directory.write("mover.lua", R"(
+        return {
+            on_start = function(e) world.data(e).starts = 1 end,
+            on_update = function(e, dt)
+                local t = world.get(e, "Transform2D")
+                t.position.x = t.position.x + 10 * dt
+            end
+        }
+    )");
+    RType::Registry registry;
+    registerCoreComponents(registry);
+    registry.registerComponent<RType::ScriptComponent>();
+    const auto scripted = registry.spawnEntity();
+    registry.emplaceComponent<RType::Transform2D>(scripted);
+    registry.addComponent<RType::ScriptComponent>(scripted,
+        RType::ScriptComponent {.scripts = {"mover.lua"}, .started = 1});
+
+    RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
+    scripts.setScriptDirectory(directory.path());
+    scripts.setDeltaTime(1.f);
+    registry.runSystems();
+
+    REQUIRE(registry.getComponents<RType::ScriptComponent>()[scripted]);
+    CHECK(registry.getComponents<RType::Transform2D>()[scripted]->position.x ==
+        10.f);
+    REQUIRE(scripts.loadString("starts = world.data(" +
+        std::to_string(static_cast<RType::entity_id_type>(scripted)) +
+        ").starts"));
+    CHECK(scripts.lua()["starts"].get<int>() == 1);
+    CHECK(scripts.lastError().empty());
+}
