@@ -103,6 +103,18 @@ sol::object RType::Scripting::UiBindingFunctions::onClick(
         });
 }
 
+sol::object RType::Scripting::UiBindingFunctions::takeClickedEvents(
+    sol::state &lua, UI::UiManager &manager)
+{
+    return sol::make_object(lua, [&lua, &manager] {
+        const auto events = manager.takeClickedEvents();
+        sol::table result = lua.create_table(events.size(), 0);
+        for (std::size_t i = 0; i < events.size(); ++i)
+            result[i + 1] = events[i];
+        return result;
+    });
+}
+
 void RType::Scripting::bindUi(sol::state &lua, UI::UiManager &manager)
 {
     sol::table ui = lua.create_table();

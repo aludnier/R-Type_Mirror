@@ -31,6 +31,7 @@ namespace UiBindingFunctions {
     sol::object getValue(sol::state &lua, UI::UiManager &manager);
     sol::object setValue(sol::state &lua, UI::UiManager &manager);
     sol::object onClick(sol::state &lua, UI::UiManager &manager);
+    sol::object takeClickedEvents(sol::state &lua, UI::UiManager &manager);
 } // namespace UiBindingFunctions
 
 inline const std::map<std::string, UiFunctionFactory> uiFunctions {
@@ -43,6 +44,7 @@ inline const std::map<std::string, UiFunctionFactory> uiFunctions {
     {"get_value", UiBindingFunctions::getValue},
     {"set_value", UiBindingFunctions::setValue},
     {"on_click", UiBindingFunctions::onClick},
+    {"take_clicked_events", UiBindingFunctions::takeClickedEvents},
 };
 
 void bindUi(sol::state &lua, UI::UiManager &manager);
