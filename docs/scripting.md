@@ -78,6 +78,30 @@ scripts.lua().new_usertype<Score>("Score",
 scripts.bindComponent<Score>("Score");
 ```
 
+### Bindings of a dynamic module
+
+Lua is linked statically (vcpkg `liblua.a`), so a module library must never
+touch the host's Lua state: it would run its own copy of Lua on it. A module
+ships its bindings as a small static library next to its sources, linked by
+the hosts that run scripts, and the host calls them once the `PluginManager`
+loaded the module (its component storages exist from then on):
+
+```cpp
+#include "Physics2DBindings.h"   // target Eng::physics2d_scripting
+
+if (plugins.isLoaded(RType::Physics2D::MODULE_NAME))
+    RType::Physics2D::bindScripting(scripts);
+```
+
+To add bindings to another module, copy `engine/modules/physics2D/scripting`:
+a `bindScripting(ScriptEngine &)` function, built as a `<module>_scripting`
+static library that links `engine_scripting` and the module's headers. The
+module's shared library does not change. `r-type_server` binds physics2D when
+`game.json` loads it (`GameServer::isModuleLoaded()`).
+
+The game components have the same kind of function, `Game::bindGameComponents(scripts)`
+(target `r-type_game_scripting`).
+
 ## 2. Script side (Lua)
 
 ### Entity scripts
@@ -157,6 +181,34 @@ if input:is_active(Action.MoveRight) then
     -- ...
 end
 ```
+
+Module and game components, once their bindings are called (section 1):
+
+| Component | Lua fields and methods |
+|---|---|
+| `Rigidbody2D` | `velocity`, `mass`, `drag`, `gravity_scale`, `is_kinematic`, `is_static`, `add_force(v)`, `add_impulse(v)`, `force()`, `clear_force()` |
+| `BoxCollider2D` | `size`, `offset`, `is_trigger`, `layer`, `mask`; `BoxCollider2D.new(size)` |
+| `CircleCollider2D` | `radius`, `offset`, `is_trigger`, `layer`, `mask`; `CircleCollider2D.new(radius)` |
+| `PhysicsSettings2D` | `gravity`, `dt`, `bounciness` |
+| `CollisionEvents2D` | `events`: collisions of the current frame, read-only. Each has `other` (entity id), `is_trigger`, `normal` and `kind` (`CollisionKind.Enter` or `CollisionKind.Exit`) |
+| `Enemy` (game) | `enemy_type`, `shoot_timer`, `shoot_interval`, `score_value`, `wave_frequency`, `wave_amplitude`, `initial_y`, `elapsed_time`; `Enemy.new(type, interval, score, y)` |
+| `Projectile` (game) | `is_player_bullet`, `damage`, `is_charged_beam`, `speed`; `Projectile.new(is_player, damage, charged, speed)` |
+| `Player` (game) | `score`, `lives`, `shoot_cooldown`, `charge_time`, `is_charging`, `has_force_pod`; `Player.new(lives, has_force_pod)` |
+| `ForcePod` (game) | `owner_id`, `offset_x`, `offset_y`, `level`; `ForcePod.new(owner, x, y, level)` |
+
+The physics systems fill `CollisionEvents2D` every frame, so a script system
+added after the module reads the collisions of this frame:
+
+```lua
+for _, event in ipairs(world.get(e, "CollisionEvents2D").events) do
+    if event.kind == CollisionKind.Enter then
+        world.get(event.other, "Health"):take_damage(1)
+    end
+end
+```
+
+On the server, `Enemy` is the server's own component (`base_y`, `elapsed`,
+`shoot_timer`, section 3): the game components are not bound there.
 
 A complete example is in [`engine/scripts/examples/waves.lua`](../engine/scripts/examples/waves.lua)
 (game script spawning waves) and [`engine/scripts/examples/enemy.lua`](../engine/scripts/examples/enemy.lua)
