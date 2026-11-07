@@ -9,6 +9,7 @@
 #define VIEWPORTPANEL_H_
 
 #include "editor/EditorContext.h"
+#include "render/Camera2D.h"
 
 namespace RType::Editor {
 /** @brief Shows the scene, drawn in a framebuffer. */
@@ -17,6 +18,9 @@ public:
     static constexpr const char *TITLE = "Viewport";
 
     void draw(EditorContext &context);
+
+private:
+    Camera2D _camera;
 };
 } // namespace RType::Editor
 
