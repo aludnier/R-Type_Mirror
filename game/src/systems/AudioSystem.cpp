@@ -10,23 +10,15 @@
 namespace Game {
 
 void AudioSystem::playSoundEffect(
-    const AssetManager &resources, const std::string &soundName)
+    RType::Game::AudioManager &audio, const std::string &soundName)
 {
-    (void) resources;
-    (void) soundName;
-    // Note: Audio playback backend missing in engine_client.
-    // resources.getAsset(soundName);
-    // sf::Sound sound; sound.play();
+    audio.playSound(soundName);
 }
 
 void AudioSystem::playMusic(
-    const AssetManager &resources, const std::string &musicName)
+    RType::Game::AudioManager &audio, const std::string &musicName)
 {
-    (void) resources;
-    (void) musicName;
-    // Note: Music playback backend missing in engine_client.
-    // resources.getAsset(musicName);
-    // sf::Music music; music.play();
+    audio.playMusic(musicName);
 }
 
 } // namespace Game

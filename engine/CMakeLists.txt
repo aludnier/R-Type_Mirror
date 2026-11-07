@@ -218,6 +218,8 @@ find_package(sol2 CONFIG REQUIRED)
 set(SCRIPTING_SRC
         src/scripting/ComponentBinding.cpp
         src/scripting/ComponentBinding.h
+        src/scripting/AudioBindings.cpp
+        src/scripting/AudioBindings.h
         src/scripting/CoreBindings.cpp
         src/scripting/CoreBindings.h
         src/scripting/ScriptComponent.h
@@ -329,6 +331,7 @@ if (BUILD_TESTS)
 
     add_executable(engine_scripting_tests
             tests/scripting_tests.cpp
+            tests/audio_binding_tests.cpp
             tests/physics2d_scripting_tests.cpp
     )
 
