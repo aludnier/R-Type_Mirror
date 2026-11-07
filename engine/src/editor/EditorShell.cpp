@@ -34,7 +34,7 @@ void buildDefaultLayout(ImGuiID dockspace, const ImGuiViewport *viewport)
 namespace RType::Editor {
 void EditorShell::draw(EditorContext &context)
 {
-    drawMenuBar();
+    drawMenuBar(context);
 
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     const ImGuiID dockspace = ImGui::GetID("EditorDockSpace");
@@ -48,17 +48,34 @@ void EditorShell::draw(EditorContext &context)
     _inspector.draw(context);
 }
 
-void EditorShell::drawMenuBar()
+void EditorShell::drawMenuBar(EditorContext &context)
 {
-    if (!ImGui::BeginMainMenuBar())
-        return;
-    // Nothing in File and no play mode yet.
-    if (ImGui::BeginMenu("File", false))
-        ImGui::EndMenu();
-    ImGui::BeginDisabled();
-    ImGui::MenuItem("Play");
-    ImGui::MenuItem("Stop");
-    ImGui::EndDisabled();
-    ImGui::EndMainMenuBar();
+    if (ImGui::BeginMainMenuBar()) {
+        _fileMenu.drawMenu(context);
+        const bool playing = _playMode.isPlaying();
+        if (ImGui::MenuItem(
+                "Play", nullptr, false, !playing && context.assets != nullptr))
+            _playMode.play(context);
+        if (ImGui::MenuItem("Stop", nullptr, false, playing))
+            _playMode.stop(context);
+        ImGui::Separator();
+        ImGui::TextDisabled("%s",
+            context.scenePath ? context.scenePath->filename().string().c_str()
+                              : "untitled");
+        ImGui::EndMainMenuBar();
+    }
+    _fileMenu.drawPopups(context);
+}
+
+void EditorShell::update(EditorContext &context, float dt)
+{
+    _playMode.update(context, dt, gameActions(context));
+}
+
+ActionMask EditorShell::gameActions(const EditorContext &context)
+{
+    if (context.input == nullptr || ImGui::GetIO().WantCaptureKeyboard)
+        return 0;
+    return context.input->actionMask();
 }
 } // namespace RType::Editor

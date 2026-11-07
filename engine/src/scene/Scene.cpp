@@ -292,9 +292,7 @@ void RType::Scene::saveToFile(Registry &registry, const Reflection &reflection,
         throw std::runtime_error("cannot write the scene " + file.string());
 }
 
-std::vector<RType::Entity> RType::Scene::loadFromFile(Registry &registry,
-    const Reflection &reflection, const std::filesystem::path &file,
-    const AssetManager &assets)
+nlohmann::json RType::Scene::readFile(const std::filesystem::path &file)
 {
     std::ifstream stream(file);
 
@@ -303,7 +301,14 @@ std::vector<RType::Entity> RType::Scene::loadFromFile(Registry &registry,
     json scene = json::parse(stream, nullptr, false);
     if (scene.is_discarded())
         throw std::runtime_error(file.string() + " is not valid JSON");
-    return fromJson(registry, reflection, scene, assets);
+    return scene;
+}
+
+std::vector<RType::Entity> RType::Scene::loadFromFile(Registry &registry,
+    const Reflection &reflection, const std::filesystem::path &file,
+    const AssetManager &assets)
+{
+    return fromJson(registry, reflection, readFile(file), assets);
 }
 
 void RType::Scene::clear(Registry &registry)

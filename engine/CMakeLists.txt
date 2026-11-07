@@ -50,6 +50,10 @@ set(CORE_SRC
         src/library/InputManager.cpp
         src/library/InputManager.h
         src/library/Keys.h
+        src/ui/UiDocument.cpp
+        src/ui/UiDocument.h
+        src/ui/UiManager.cpp
+        src/ui/UiManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -85,6 +89,7 @@ endif ()
 # The graphics library is linked here, never in engine_core.
 # ---------------------------------------------------------------------------
 find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
+find_package(ImGui-SFML CONFIG REQUIRED)
 
 set(CLIENT_SRC
         src/game/GameApp.cpp
@@ -92,13 +97,15 @@ set(CLIENT_SRC
         src/library/ClientAssetManager.cpp
         src/library/ClientAssetManager.h
         src/library/engine.h
+        src/ui/ImGuiUiRenderer.cpp
+        src/ui/ImGuiUiRenderer.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
 )
 
 add_library(engine_client STATIC ${CLIENT_SRC})
 
-target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
+target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System ImGui-SFML::ImGui-SFML)
 
 # ---------------------------------------------------------------------------
 # engine_platform: window, OpenGL context and main loop (GLFW + glad). Client
@@ -156,8 +163,14 @@ set(EDITOR_SRC
         src/editor/EditorContext.h
         src/editor/EditorShell.cpp
         src/editor/EditorShell.h
+        src/editor/FileMenu.cpp
+        src/editor/FileMenu.h
         src/editor/ImGuiLayer.cpp
         src/editor/ImGuiLayer.h
+        src/editor/PlayMode.cpp
+        src/editor/PlayMode.h
+        src/editor/SceneFile.cpp
+        src/editor/SceneFile.h
         src/editor/panels/HierarchyPanel.cpp
         src/editor/panels/HierarchyPanel.h
         src/editor/panels/InspectorPanel.cpp
@@ -168,7 +181,7 @@ set(EDITOR_SRC
 
 add_library(engine_editor STATIC ${EDITOR_SRC})
 
-target_link_libraries(engine_editor PUBLIC engine_render2d imgui::imgui)
+target_link_libraries(engine_editor PUBLIC engine_render2d engine_scripting imgui::imgui)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
@@ -203,6 +216,8 @@ set(SCRIPTING_SRC
         src/scripting/ScriptEngine.h
         src/scripting/ScriptSystem.cpp
         src/scripting/ScriptSystem.h
+        src/scripting/UiBindings.cpp
+        src/scripting/UiBindings.h
 )
 
 add_library(engine_scripting STATIC ${SCRIPTING_SRC})
@@ -235,10 +250,12 @@ if (BUILD_TESTS)
             tests/library_manager_tests.cpp
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
+            tests/lifetime_module_tests.cpp
             tests/nlohman_reader_test.cpp
             tests/fixed_step_tests.cpp
             tests/reflection_tests.cpp
             tests/scene_tests.cpp
+            tests/ui_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
@@ -308,6 +325,8 @@ if (BUILD_TESTS)
             tests/editor_shell_tests.cpp
             tests/editor_hierarchy_tests.cpp
             tests/editor_inspector_tests.cpp
+            tests/editor_play_mode_tests.cpp
+            tests/editor_scene_file_tests.cpp
     )
 
     target_link_libraries(engine_editor_tests PRIVATE engine_editor Catch2::Catch2WithMain)
@@ -321,4 +340,5 @@ add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)
 add_subdirectory(modules/Animation2D)
+add_subdirectory(modules/lifetime)
 add_subdirectory(modules/sfmlAssets)

@@ -109,6 +109,7 @@ void GameApp::updateGame(float dt)
 {
     auto &window = getWindow();
     ImGui::SFML::Update(window, sf::seconds(dt));
+    _uiRenderer.render(_uiManager, getAssetManager(), window);
     const auto size = window.getSize();
     if (_screenState == ScreenState::Connection)
         _connectionDialog.renderScreen(_networkClient,
@@ -118,7 +119,6 @@ void GameApp::updateGame(float dt)
         _connectionDialog.renderInGameOverlay(_networkClient,
             static_cast<float>(size.x),
             static_cast<float>(size.y));
-
     auto &registry = getRegistry();
     if (_screenState == ScreenState::Connection) {
         _networkClient.update(dt);
@@ -197,6 +197,11 @@ void GameApp::setScreenState(ScreenState state)
 NetworkClient &GameApp::getNetworkClient()
 {
     return _networkClient;
+}
+
+RType::UI::UiManager &GameApp::getUiManager()
+{
+    return _uiManager;
 }
 
 } // namespace Game

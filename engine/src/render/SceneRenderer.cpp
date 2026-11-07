@@ -21,6 +21,12 @@ SceneRenderer::SceneRenderer(const AssetManager &assets) :
 void SceneRenderer::render(
     Registry &registry, RenderTarget &target, const Camera2D &camera)
 {
+    if (!registry.isRegistered<Transform2D>() ||
+        !registry.isRegistered<Sprite>()) {
+        Renderer2D::end();
+        return;
+    }
+
     auto &transforms = registry.getComponents<Transform2D>();
     auto &sprites = registry.getComponents<Sprite>();
     std::vector<entity_id_type> visible;

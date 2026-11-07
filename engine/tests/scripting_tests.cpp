@@ -20,6 +20,8 @@
 #include "scripting/ScriptComponent.h"
 #include "scripting/ScriptEngine.h"
 #include "scripting/ScriptSystem.h"
+#include "scripting/UiBindings.h"
+#include "ui/UiManager.h"
 
 namespace {
 class TempDirectory {
@@ -93,6 +95,60 @@ TEST_CASE("Scripts spawn entities and add core components", "[scripting]")
     CHECK(registry.getComponents<RType::Health>()[id]->max == 3);
     CHECK(registry.getComponents<RType::Hitbox>()[id].has_value());
     CHECK(registry.getComponents<RType::Name>()[id]->value == "Player");
+}
+
+TEST_CASE("Lua scripts can show and update UI documents", "[scripting][ui]")
+{
+    TempDirectory files;
+    const auto uiFile = files.write("menu.json", R"({
+        "name": "menu",
+        "elements": [
+            {"type": "input_text", "id": "player", "rect": [0, 0, 1, 0.1], "value": "Pilot"},
+            {"type": "checkbox", "id": "music", "rect": [0, 0, 0.5, 0.1]},
+            {"type": "slider", "id": "volume", "rect": [0, 0, 0.5, 0.1], "min": 0, "max": 1, "value": 0.5},
+            {"type": "button", "id": "play", "rect": [0, 0, 0.2, 0.1]}
+        ]
+    })");
+    sol::state lua;
+    lua.open_libraries(sol::lib::base);
+    RType::UI::UiManager ui;
+    RType::Scripting::bindUi(lua, ui);
+
+    const std::string script = "ui.load('menu', [=[" + uiFile.string() +
+        "]=])\n"
+        "ui.show('menu')\n"
+        "ui.set_text('menu/player', 'Ace')\n"
+        "ui.set_value('menu/music', true)\n"
+        "music_enabled = ui.get_value('menu/music')\n"
+        "ui.set_value('menu/volume', 0.4)\n"
+        "volume_level = ui.get_value('menu/volume')\n"
+        "ui.on_click('menu/play', function() clicked = true end)\n"
+        "clicked = false\n"
+        "ui.hide('menu')\n"
+        "was_hidden = not ui.is_visible('menu')\n"
+        "ui.show('menu')";
+    const auto result = lua.safe_script(script);
+    REQUIRE(result.valid());
+    CHECK(ui.isVisible("menu"));
+    CHECK(ui.getText("menu/player") == "Ace");
+    CHECK(lua["music_enabled"].get<bool>());
+    CHECK(lua["volume_level"].get<float>() == 0.4f);
+    CHECK(lua["was_hidden"].get<bool>());
+    CHECK(lua["ui"]["get_text"]("menu/player").get<std::string>() == "Ace");
+
+    ui.click("menu/play");
+    CHECK(lua["clicked"].get<bool>());
+    REQUIRE(
+        lua.safe_script(R"(
+        click_events = ui.take_clicked_events()
+        click_event_count = #click_events
+        click_event_key = click_events[1]
+        empty_click_event_count = #ui.take_clicked_events()
+    )")
+            .valid());
+    CHECK(lua["click_event_count"].get<int>() == 1);
+    CHECK(lua["click_event_key"].get<std::string>() == "menu/play");
+    CHECK(lua["empty_click_event_count"].get<int>() == 0);
 }
 
 TEST_CASE("world.get returns a live reference to the component", "[scripting]")

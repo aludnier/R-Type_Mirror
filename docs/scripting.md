@@ -162,6 +162,26 @@ Bound types: `Vector2` (`x`, `y`, `+`, `-`, `* number`), `Transform2D`
 `is_active(Action.X)`, `set_active(Action.X, bool)`) and the `Action` table,
 which is empty until the game fills it with `ScriptEngine::defineAction()`.
 
+In the editor, the actions come from the second argument, a file of key codes
+(GLFW codes, like `RType::Key`):
+
+```json
+{"bindings": {"MoveRight": [68, 262], "Shoot": [32]}}
+```
+
+```sh
+editor config/assets.json config/input.json
+```
+
+During Play, give the entity a `Controllable` and read it in its script:
+
+```lua
+local input = world.get(id, "Controllable")
+if input:is_active(Action.MoveRight) then
+    -- ...
+end
+```
+
 Module and game components, once their bindings are called (section 1):
 
 | Component | Lua fields and methods |

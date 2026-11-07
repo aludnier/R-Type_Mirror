@@ -74,6 +74,13 @@ std::vector<Entity> loadFromString(Registry &registry,
 void saveToFile(Registry &registry, const Reflection &reflection,
     const std::filesystem::path &file, const AssetManager &assets);
 
+/**
+ * @brief Reads and parses a scene file without loading it, to check it before
+ *        replacing the current scene.
+ * @throws std::runtime_error if the file cannot be read or is not JSON.
+ */
+[[nodiscard]] nlohmann::json readFile(const std::filesystem::path &file);
+
 /** @throws std::runtime_error if the file cannot be read or is not JSON. */
 std::vector<Entity> loadFromFile(Registry &registry,
     const Reflection &reflection, const std::filesystem::path &file,
