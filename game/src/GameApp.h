@@ -16,6 +16,8 @@
 #include "network/NetworkClient.h"
 #include "systems/NetworkSyncSystem.h"
 #include "ui/ConnectionDialog.h"
+#include "ui/ImGuiUiRenderer.h"
+#include "ui/UiManager.h"
 
 namespace Game {
 
@@ -50,6 +52,8 @@ private:
     NetworkClient _networkClient {};
     ConnectionDialog _connectionDialog {};
     NetworkSyncSystem _networkSyncSystem {};
+    RType::UI::UiManager _uiManager {};
+    RType::UI::ImGuiUiRenderer _uiRenderer {};
     ScreenState _screenState = ScreenState::Connection;
 };
 
