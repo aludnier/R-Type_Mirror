@@ -170,11 +170,21 @@ TEST_CASE(
     CHECK(std::get<float>(manager.getValue("menu/volume")) == 0.75f);
 
     int clickCount = 0;
-    manager.onClick("play", [&clickCount] { ++clickCount; });
+    int replacementClickCount = 0;
+    manager.onClick("menu/play", [&] {
+        ++clickCount;
+        manager.onClick(
+            "menu/play", [&replacementClickCount] { ++replacementClickCount; });
+    });
     manager.click("menu/play");
     CHECK(clickCount == 1);
+    CHECK(replacementClickCount == 0);
     CHECK(
         manager.takeClickedEvents() == std::vector<std::string> {"menu/play"});
+    CHECK(manager.takeClickedEvents().empty());
+    manager.click("menu/play");
+    CHECK(replacementClickCount == 1);
+    manager.clearClickedEvents();
     CHECK(manager.takeClickedEvents().empty());
     manager.hide("menu");
     CHECK_FALSE(manager.isVisible("menu"));
