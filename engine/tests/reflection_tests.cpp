@@ -189,3 +189,20 @@ TEST_CASE("Reflection declares Hitbox and Controllable", "[reflection]")
     REQUIRE(controllable != nullptr);
     CHECK(controllable->fields.empty());
 }
+
+TEST_CASE("ComponentInfo keeps an already registered storage", "[reflection]")
+{
+    RType::Registry registry;
+    RType::Reflection reflection;
+    RType::reflectCoreComponents(reflection);
+    const RType::ComponentInfo &health = *reflection.find("Health");
+    const auto entity = registry.spawnEntity();
+
+    CHECK_FALSE(registry.isRegistered<RType::Health>());
+    health.ensureRegistered(registry);
+    CHECK(registry.isRegistered<RType::Health>());
+
+    health.add(registry, entity);
+    health.ensureRegistered(registry);
+    CHECK(health.has(registry, entity));
+}

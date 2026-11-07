@@ -142,6 +142,8 @@ struct ComponentInfo {
     std::function<void(Registry &, Entity const &)> add;
     /** @brief Removes the component. Does nothing if it is not registered. */
     std::function<void(Registry &, Entity const &)> remove;
+    /** @brief Registers the storage if needed, keeping an existing one. */
+    std::function<void(Registry &)> ensureRegistered;
 };
 
 /**
@@ -260,6 +262,11 @@ Reflection::Builder<C> Reflection::reflect(const std::string &name)
             [](Registry &registry, Entity const &entity) {
                 if (registry.isRegistered<C>())
                     registry.removeComponent<C>(entity);
+            },
+        .ensureRegistered =
+            [](Registry &registry) {
+                if (!registry.isRegistered<C>())
+                    registry.registerComponent<C>();
             },
     };
     if (ComponentInfo *existing = find(name)) {
