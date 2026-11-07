@@ -10,7 +10,7 @@
 namespace Game {
 
 void AudioSystem::playSoundEffect(
-    const ResourceManager &resources, const std::string &soundName)
+    const AssetManager &resources, const std::string &soundName)
 {
     (void) resources;
     (void) soundName;
@@ -20,7 +20,7 @@ void AudioSystem::playSoundEffect(
 }
 
 void AudioSystem::playMusic(
-    const ResourceManager &resources, const std::string &musicName)
+    const AssetManager &resources, const std::string &musicName)
 {
     (void) resources;
     (void) musicName;

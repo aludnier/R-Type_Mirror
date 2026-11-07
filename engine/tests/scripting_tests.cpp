@@ -117,7 +117,7 @@ TEST_CASE("world.get returns a live reference to the component", "[scripting]")
     CHECK(transform->position.x == 42.f);
     CHECK(transform->rotation == 1.5f);
     CHECK(registry.getComponents<RType::Health>()[entity]->current == 3);
-    CHECK(scripts.lua()["missing"] == sol::lua_nil);
+    CHECK_FALSE(scripts.lua()["missing"].valid());
     CHECK(scripts.lua()["has_health"].get<bool>());
 }
 

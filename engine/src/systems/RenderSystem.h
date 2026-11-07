@@ -14,7 +14,7 @@
 #include <string>
 #include <unordered_map>
 #include "ecs/Registry.h"
-#include "library/RessourceManager.h"
+#include "library/AssetManager.h"
 
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -66,7 +66,7 @@ public:
      * @param target The target SFML RenderTarget (e.g. sf::RenderWindow,
      * sf::RenderTexture).
      */
-    void render(Registry &registry, const ResourceManager &resources,
+    void render(Registry &registry, const AssetManager &resources,
         sf::RenderTarget &target);
 
 private:
@@ -76,7 +76,7 @@ private:
 /**
  * @brief Registers the render system into the ECS registry.
  */
-void addRenderSystem(Registry &registry, const ResourceManager &resources,
+void addRenderSystem(Registry &registry, const AssetManager &resources,
     sf::RenderTarget &target, RenderSystem &renderSystem);
 
 } // namespace RType

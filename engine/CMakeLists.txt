@@ -36,8 +36,9 @@ set(CORE_SRC
         src/reflection/Reflection.h
         src/systems/ControllableSystem.cpp
         src/systems/ControllableSystem.h
-        src/library/RessourceManager.cpp
-        src/library/RessourceManager.h
+        src/library/AssetManager.cpp
+        src/library/AssetManager.h
+        src/library/AssetLoaderRegistry.h
         src/configuration/Configuration.cpp
         src/configuration/Configuration.hpp
         src/library/PluginManager.cpp
@@ -86,6 +87,8 @@ find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
 set(CLIENT_SRC
         src/game/GameApp.cpp
         src/game/GameApp.h
+        src/library/ClientAssetManager.cpp
+        src/library/ClientAssetManager.h
         src/library/engine.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
@@ -202,6 +205,7 @@ if (BUILD_TESTS)
     add_executable(game_engine_tests
             tests/TestActions.h
             tests/TempConfigFile.hpp
+            tests/plugins/TestPluginAsset.h
             tests/ecs_unit_tests.cpp
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
@@ -214,6 +218,25 @@ if (BUILD_TESTS)
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
+
+    if (WIN32)
+        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(VCPKG_RUNTIME_BIN_DIR
+                    "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
+        else()
+            set(VCPKG_RUNTIME_BIN_DIR
+                    "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
+        endif()
+        file(GLOB VCPKG_RUNTIME_DLLS
+                "${VCPKG_RUNTIME_BIN_DIR}/*.dll")
+        foreach(runtime_dll IN LISTS VCPKG_RUNTIME_DLLS)
+            add_custom_command(TARGET game_engine_tests POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${runtime_dll}"
+                    "$<TARGET_FILE_DIR:game_engine_tests>"
+            )
+        endforeach()
+    endif()
 
     set(PLUGIN_TEST_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test_plugins")
     add_library(test_plugin MODULE tests/plugins/TestPlugin.cpp)
@@ -261,3 +284,4 @@ add_subdirectory(apps/editor)
 add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)
+add_subdirectory(modules/sfmlAssets)

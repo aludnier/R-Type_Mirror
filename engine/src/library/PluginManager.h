@@ -14,6 +14,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include "AssetLoaderRegistry.h"
 #include "DLLoader.hpp"
 #include "Module.h"
 #include "configuration/Configuration.hpp"
@@ -50,9 +51,13 @@ public:
      * @param moduleNames Names (ModuleDescriptor::name) of the requested
      * modules.
      * @param registry    Registry passed to each registerModule callback.
+     * @param assets      Loader registry passed to each module.
      */
     void loadRequiredModules(const std::filesystem::path &directory,
         const std::vector<std::string> &moduleNames, Registry &registry);
+    void loadRequiredModules(const std::filesystem::path &directory,
+        const std::vector<std::string> &moduleNames, Registry &registry,
+        AssetLoaderRegistry &assets);
 
     /**
      * @brief Loads module requirements from a JSON config file.
@@ -62,13 +67,18 @@ public:
     void loadConfig(
         const std::filesystem::path &configFile, Registry &registry);
     void loadConfig(const Configuration &config, Registry &registry);
+    void loadConfig(const Configuration &config, Registry &registry,
+        AssetLoaderRegistry &assets);
 
     /**
      * @brief Loads a module library and the dependencies found next to it.
      * @param path     Path to the root module's shared library.
      * @param registry Registry passed to each registerModule callback.
+     * @param assets   Loader registry passed to each module.
      */
     void loadModule(const std::filesystem::path &path, Registry &registry);
+    void loadModule(const std::filesystem::path &path, Registry &registry,
+        AssetLoaderRegistry &assets);
 
     /**
      * @brief Checks whether a module with this name is loaded.
@@ -90,6 +100,7 @@ private:
             apiVersion = descriptor->apiVersion;
             dependencies = descriptor->dependencies;
             registerModule = descriptor->registerModule;
+            registerAssetTypes = descriptor->registerAssetTypes;
         }
 
         Loader library;
@@ -97,6 +108,7 @@ private:
         ModuleApiVersion apiVersion {};
         std::vector<ModuleDependency> dependencies;
         RegisterModuleFn registerModule;
+        RegisterAssetTypesFn registerAssetTypes;
     };
 
     /** @brief Result of scanning a directory. The three members share indices.
@@ -156,6 +168,9 @@ private:
      */
     void registerModules(std::vector<Module> &candidates,
         const std::vector<std::size_t> &order, Registry &registry);
+    void registerModule(Module module, Registry &registry);
+    void loadModuleFromPath(
+        const std::filesystem::path &path, Registry &registry);
 
     /**
      * @brief Forgets every module loaded after @p firstNew.
@@ -167,6 +182,8 @@ private:
     std::vector<Module> _loadedModules;
     std::optional<std::reference_wrapper<Registry>> _registry;
     bool _configured = false;
+    AssetLoaderRegistry *_assets = nullptr;
+    AssetLoaderRegistry _defaultAssets;
 };
 
 } // namespace RType

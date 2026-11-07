@@ -10,7 +10,7 @@
 
 #include <SFML/Graphics.hpp>
 #include "ecs/Registry.h"
-#include "library/RessourceManager.h"
+#include "library/AssetManager.h"
 #include "systems/RenderSystem.h"
 
 namespace Game {
@@ -25,7 +25,7 @@ public:
      * @brief Renders the current frame.
      */
     static void renderFrame(RType::Registry &registry,
-        const ResourceManager &resources, sf::RenderWindow &window);
+        const AssetManager &resources, sf::RenderWindow &window);
 
 private:
     static void renderBackground(
