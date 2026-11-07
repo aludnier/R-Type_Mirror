@@ -118,6 +118,7 @@ void GameApp::updateGame(float dt)
         _connectionDialog.renderInGameOverlay(_networkClient,
             static_cast<float>(size.x),
             static_cast<float>(size.y));
+    _uiRenderer.render(_uiManager, getAssetManager(), window);
 
     auto &registry = getRegistry();
     if (_screenState == ScreenState::Connection) {
