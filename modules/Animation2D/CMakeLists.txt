@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10.0)
 
 add_library(animation2d_module SHARED 
         src/Animation2DModule.cpp
+        src/systems/AnimationSystem.h
         src/systems/AnimationSystem.cpp
 )
 
