@@ -15,13 +15,13 @@
 #include "Renderer2D.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
-#include "library/RessourceManager.h"
+#include "library/AssetManager.h"
 
 namespace RType {
 /** @brief Draws every entity with a Transform2D and a Sprite. */
 class SceneRenderer {
 public:
-    explicit SceneRenderer(const ResourceManager &assets);
+    explicit SceneRenderer(const AssetManager &assets);
 
     /** @brief Draws the scene, sorted by zIndex. Skips missing assets. */
     void render(
@@ -31,7 +31,7 @@ private:
     /** @return The texture of an asset, or nullptr if it cannot be loaded. */
     const Texture *texture(std::uint32_t assetId);
 
-    const ResourceManager &_assets;
+    const AssetManager &_assets;
     Renderer2D _renderer;
     std::unordered_map<std::uint32_t, Texture> _textures;
     std::unordered_set<std::uint32_t> _missing;

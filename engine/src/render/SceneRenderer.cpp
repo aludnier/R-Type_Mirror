@@ -13,7 +13,7 @@
 #include <vector>
 
 namespace RType {
-SceneRenderer::SceneRenderer(const ResourceManager &assets) :
+SceneRenderer::SceneRenderer(const AssetManager &assets) :
     _assets(assets)
 {
 }

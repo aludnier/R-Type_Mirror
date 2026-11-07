@@ -13,8 +13,8 @@
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
+#include "library/AssetManager.h"
 #include "library/Keys.h"
-#include "library/RessourceManager.h"
 #include "platform/Application.h"
 #include "render/SceneRenderer.h"
 
@@ -32,7 +32,9 @@ public:
         input().bind(Darker, RType::Key::Down);
         input().bind(Quit, RType::Key::Escape);
 
-        const auto image = _assets.addAsset("test", SANDBOX_ASSETS "/test.png");
+        const auto image = _assets.addAsset("test",
+            SANDBOX_ASSETS "/test.png",
+            AssetManager::AssetType::Texture);
 
         _registry.registerComponent<RType::Transform2D>();
         _registry.registerComponent<RType::Sprite>();
@@ -70,7 +72,7 @@ protected:
 private:
     float _brightness = 0.5f;
     RType::Registry _registry;
-    ResourceManager _assets;
+    AssetManager _assets;
     RType::SceneRenderer _sceneRenderer {_assets};
     RType::Camera2D _camera;
     RType::Entity _spinning = RType::Registry::entityFromIndex(0);
