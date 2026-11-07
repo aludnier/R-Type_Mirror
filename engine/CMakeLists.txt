@@ -206,6 +206,8 @@ set(SCRIPTING_SRC
         src/scripting/ScriptEngine.h
         src/scripting/ScriptSystem.cpp
         src/scripting/ScriptSystem.h
+        src/scripting/UiBindings.cpp
+        src/scripting/UiBindings.h
 )
 
 add_library(engine_scripting STATIC ${SCRIPTING_SRC})
