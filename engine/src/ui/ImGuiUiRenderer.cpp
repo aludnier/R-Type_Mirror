@@ -9,6 +9,7 @@
 
 #include <imgui-SFML.h>
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <imgui_stdlib.h>
 
 #include <exception>
@@ -63,9 +64,11 @@ void RType::UI::ImGuiUiRenderer::render(UiManager &manager,
         const auto flags = ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
             ImGuiWindowFlags_NoSavedSettings |
-            ImGuiWindowFlags_NoBringToFrontOnFocus;
+            ImGuiWindowFlags_NoBringToFrontOnFocus |
+            ImGuiWindowFlags_NoBackground;
         const std::string windowId = "##ui_" + name;
         ImGui::Begin(windowId.c_str(), nullptr, flags);
+        ImGui::BringWindowToDisplayBack(ImGui::GetCurrentWindow());
         renderElements(document.elements,
             name,
             ImGui::GetWindowPos(),
