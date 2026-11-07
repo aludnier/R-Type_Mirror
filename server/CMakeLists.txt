@@ -1,7 +1,11 @@
 # r-type_server: the engine server runtime (engine_server, in
-# engine/src/server) plus the R-Type game rules (RTypeServer).
+# engine/src/server) plus the R-Type game rules (RTypeServer), whose enemies
+# are Lua scripts (engine_scripting).
 add_executable(r-type_server
         src/main.cpp
+        src/Enemy.h
+        src/RTypeScripting.cpp
+        src/RTypeScripting.h
         src/RTypeServer.cpp
         src/RTypeServer.h
 )
@@ -10,5 +14,14 @@ add_executable(r-type_server
 target_include_directories(r-type_server PRIVATE
         ${PROJECT_SOURCE_DIR}/game/src/network
 )
-target_link_libraries(r-type_server PRIVATE Eng::server)
+target_link_libraries(r-type_server PRIVATE Eng::server Eng::scripting)
 target_compile_definitions(r-type_server PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
+
+# Same layout as the sources: config/scripts.json reads ../server/scripts.
+set(SERVER_SCRIPTS
+        scripts/bydo.lua
+        scripts/waves.lua
+)
+foreach(script IN LISTS SERVER_SCRIPTS)
+    configure_file(${script} ${CMAKE_CURRENT_BINARY_DIR}/${script} COPYONLY)
+endforeach()
