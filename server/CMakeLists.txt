@@ -25,3 +25,22 @@ set(SERVER_SCRIPTS
 foreach(script IN LISTS SERVER_SCRIPTS)
     configure_file(${script} ${CMAKE_CURRENT_BINARY_DIR}/${script} COPYONLY)
 endforeach()
+
+if (BUILD_TESTS)
+    find_package(Catch2 REQUIRED)
+
+    add_executable(r-type_server_tests
+            tests/scripts_tests.cpp
+            src/RTypeScripting.cpp
+    )
+
+    target_include_directories(r-type_server_tests PRIVATE
+            src
+            ${PROJECT_SOURCE_DIR}/game/src/network
+    )
+    target_link_libraries(r-type_server_tests PRIVATE Eng::scripting Catch2::Catch2WithMain)
+    target_compile_definitions(r-type_server_tests PRIVATE
+            SCRIPTS_CONFIG_FILE="${PROJECT_SOURCE_DIR}/config/scripts.json")
+
+    add_test(NAME r-type_server_tests COMMAND r-type_server_tests)
+endif ()
