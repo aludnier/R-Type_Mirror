@@ -97,6 +97,8 @@ set(CLIENT_SRC
         src/library/ClientAssetManager.cpp
         src/library/ClientAssetManager.h
         src/library/engine.h
+        src/ui/ImGuiUiRenderer.cpp
+        src/ui/ImGuiUiRenderer.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
 )
