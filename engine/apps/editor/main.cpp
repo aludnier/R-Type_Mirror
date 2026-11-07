@@ -17,6 +17,8 @@
 #include "library/AssetManager.h"
 #include "platform/Application.h"
 #include "reflection/Reflection.h"
+#include "render/Framebuffer.h"
+#include "render/SceneRenderer.h"
 
 namespace {
 class Editor : public RType::Application {
@@ -54,8 +56,13 @@ private:
     RType::Registry _registry;
     RType::Reflection _reflection;
     AssetManager _assets;
-    RType::Editor::EditorContext _context {
-        .registry = _registry, .reflection = _reflection, .assets = &_assets};
+    RType::SceneRenderer _sceneRenderer {_assets};
+    RType::Framebuffer _framebuffer {1, 1};
+    RType::Editor::EditorContext _context {.registry = _registry,
+        .reflection = _reflection,
+        .assets = &_assets,
+        .sceneRenderer = &_sceneRenderer,
+        .framebuffer = &_framebuffer};
     RType::Editor::EditorShell _shell {};
 };
 } // namespace
