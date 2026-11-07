@@ -21,8 +21,10 @@ namespace RType::Editor {
 void HierarchyPanel::draw(EditorContext &context)
 {
     ImGui::Begin(TITLE);
+    ImGui::BeginDisabled(context.readOnly);
     if (ImGui::Button("Create entity"))
         createEntity(context);
+    ImGui::EndDisabled();
     ImGui::Separator();
 
     const std::optional<Entity> selected = context.selectedEntity();
@@ -35,12 +37,12 @@ void HierarchyPanel::draw(EditorContext &context)
         if (ImGui::Selectable(name.c_str(), selected == entity))
             context.selected = entity;
         if (ImGui::BeginPopupContextItem()) {
-            if (ImGui::MenuItem("Rename")) {
+            if (ImGui::MenuItem("Rename", nullptr, false, !context.readOnly)) {
                 _renaming = entity;
                 _renameBuffer = name;
                 openRename = true;
             }
-            if (ImGui::MenuItem("Delete"))
+            if (ImGui::MenuItem("Delete", nullptr, false, !context.readOnly))
                 toDelete = entity;
             ImGui::EndPopup();
         }

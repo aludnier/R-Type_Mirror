@@ -11,11 +11,19 @@
 #include <optional>
 
 #include "ecs/Registry.h"
+#include "library/AssetManager.h"
+#include "reflection/Reflection.h"
 
 namespace RType::Editor {
 /** @brief State shared by every editor panel. */
 struct EditorContext {
     Registry &registry;
+    /** @brief The components the inspector can show and add. */
+    const Reflection &reflection;
+    /** @brief Lists the assets of AssetId fields. May be null. */
+    const AssetManager *assets = nullptr;
+    /** @brief True while the scene plays: the panels must not edit it. */
+    bool readOnly = false;
     /**
      * @brief The entity shown in the inspector, if any. Read it with
      *        selectedEntity(): it may have been killed since.

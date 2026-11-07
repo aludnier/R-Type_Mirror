@@ -5,7 +5,9 @@
 ** asset metadata manager
 */
 
+#include <algorithm>
 #include <map>
+#include <ranges>
 #include <stdexcept>
 #include <utility>
 
@@ -118,4 +120,15 @@ std::optional<std::string> AssetManager::getAssetName(std::uint32_t id) const
     if (nameIt == _namesById.end())
         return std::nullopt;
     return nameIt->second;
+}
+
+std::vector<std::string> AssetManager::names() const
+{
+    std::vector<std::string> names;
+
+    names.reserve(_assets.size());
+    for (const auto &name : _assets | std::views::keys)
+        names.push_back(name);
+    std::ranges::sort(names);
+    return names;
 }
