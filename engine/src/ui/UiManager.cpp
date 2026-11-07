@@ -140,16 +140,21 @@ void RType::UI::UiManager::click(std::string_view key)
 {
     const auto clickedKey = valueKey(key);
     _clickedEvents.push_back(clickedKey);
-    auto handler = _clickHandlers.find(clickedKey);
-    if (handler == _clickHandlers.end()) {
+    const auto exactHandler = _clickHandlers.find(clickedKey);
+    ClickHandler handler;
+    if (exactHandler != _clickHandlers.end()) {
+        handler = exactHandler->second;
+    } else {
         const auto separator = clickedKey.find_last_of('/');
         const auto id = separator == std::string::npos
             ? clickedKey
             : clickedKey.substr(separator + 1);
-        handler = _clickHandlers.find(id);
+        const auto idHandler = _clickHandlers.find(id);
+        if (idHandler != _clickHandlers.end())
+            handler = idHandler->second;
     }
-    if (handler != _clickHandlers.end())
-        handler->second();
+    if (handler)
+        handler();
 }
 
 std::vector<std::string> RType::UI::UiManager::takeClickedEvents()
