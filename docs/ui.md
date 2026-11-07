@@ -39,9 +39,15 @@ children remain in their containing document's ID scope. Use `getText` and
 slider values. `onClick` handlers can be registered using a fully-qualified
 widget key or just the widget ID. Clicks also accumulate as fully-qualified
 keys and can be retrieved with `takeClickedEvents`.
+The renderer defers click handlers until it has finished walking the visible
+documents, so handlers may safely load documents or replace handlers. Events
+are cleared at the start of each render and can be consumed with
+`takeClickedEvents` (or `ui.take_clicked_events` in Lua).
 
 `RType::Scripting::bindUi(lua, manager)` exposes the same features as
 `ui.load`, `ui.show`, `ui.hide`, `ui.is_visible`, `ui.get_text`,
-`ui.set_text`, `ui.get_value`, `ui.set_value`, and `ui.on_click`. The game
+`ui.set_text`, `ui.get_value`, `ui.set_value`, `ui.on_click`, and
+`ui.take_clicked_events`. UI render and click-handler errors are logged to
+standard error rather than escaping the draw loop. The game
 application exposes its manager through `getUiManager()` so an integrating
 script engine can bind it to its Lua state.
