@@ -17,6 +17,7 @@ set(ENGINE_MODULE_DIR "${CMAKE_BINARY_DIR}/modules" CACHE INTERNAL "")
 # ---------------------------------------------------------------------------
 set(CORE_SRC
         src/Module.h
+        src/audio/IAudioPlayer.h
         src/ecs/Entity.cpp
         src/ecs/Entity.h
         src/ecs/SparseArray.h
@@ -248,6 +249,7 @@ if (BUILD_TESTS)
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
             tests/library_manager_tests.cpp
+            tests/audio_tests.cpp
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
             tests/lifetime_module_tests.cpp
@@ -342,3 +344,5 @@ add_subdirectory(modules/environment2D)
 add_subdirectory(modules/Animation2D)
 add_subdirectory(modules/lifetime)
 add_subdirectory(modules/sfmlAssets)
+
+target_link_libraries(engine_client PUBLIC Eng::sfml_assets)
