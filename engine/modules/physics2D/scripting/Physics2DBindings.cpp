@@ -58,7 +58,9 @@ namespace {
     {
         lua.new_usertype<BoxCollider2D>("BoxCollider2D",
             sol::factories([] { return BoxCollider2D {}; },
-                [](const Vector2 &size) { return BoxCollider2D {.size = size}; }),
+                [](const Vector2 &size) {
+                    return BoxCollider2D {.size = size};
+                }),
             "size",
             vectorField<BoxCollider2D, &BoxCollider2D::size>(),
             "offset",
@@ -71,7 +73,9 @@ namespace {
             &BoxCollider2D::mask);
         lua.new_usertype<CircleCollider2D>("CircleCollider2D",
             sol::factories([] { return CircleCollider2D {}; },
-                [](float radius) { return CircleCollider2D {.radius = radius}; }),
+                [](float radius) {
+                    return CircleCollider2D {.radius = radius};
+                }),
             "radius",
             &CircleCollider2D::radius,
             "offset",
