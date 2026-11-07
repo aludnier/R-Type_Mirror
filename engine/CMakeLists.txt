@@ -215,6 +215,25 @@ if (BUILD_TESTS)
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
 
+    if (WIN32)
+        if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+            set(VCPKG_RUNTIME_BIN_DIR
+                    "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
+        else()
+            set(VCPKG_RUNTIME_BIN_DIR
+                    "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
+        endif()
+        file(GLOB VCPKG_RUNTIME_DLLS
+                "${VCPKG_RUNTIME_BIN_DIR}/*.dll")
+        foreach(runtime_dll IN LISTS VCPKG_RUNTIME_DLLS)
+            add_custom_command(TARGET game_engine_tests POST_BUILD
+                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    "${runtime_dll}"
+                    "$<TARGET_FILE_DIR:game_engine_tests>"
+            )
+        endforeach()
+    endif()
+
     set(PLUGIN_TEST_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test_plugins")
     add_library(test_plugin MODULE tests/plugins/TestPlugin.cpp)
     add_library(test_dependency_plugin MODULE tests/plugins/TestDependencyPlugin.cpp)

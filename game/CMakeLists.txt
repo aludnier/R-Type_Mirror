@@ -50,3 +50,29 @@ target_compile_definitions(r-type_client PRIVATE
         GAME_ASSET_MODULE_PATH="$<TARGET_FILE:sfml_assets_module>")
 target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::environment2d SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
 target_link_libraries(r-type_client PRIVATE Eng::sfml_assets)
+
+if (WIN32)
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(VCPKG_RUNTIME_BIN_DIR
+                "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
+    else ()
+        set(VCPKG_RUNTIME_BIN_DIR
+                "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
+    endif ()
+    file(GLOB VCPKG_RUNTIME_DLLS
+            "${VCPKG_RUNTIME_BIN_DIR}/*.dll")
+
+    add_custom_command(TARGET r-type_client POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "$<TARGET_RUNTIME_DLLS:r-type_client>"
+            "$<TARGET_FILE_DIR:r-type_client>"
+            COMMAND_EXPAND_LISTS
+    )
+    foreach (runtime_dll IN LISTS VCPKG_RUNTIME_DLLS)
+        add_custom_command(TARGET r-type_client POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                "${runtime_dll}"
+                "$<TARGET_FILE_DIR:r-type_client>"
+        )
+    endforeach ()
+endif ()

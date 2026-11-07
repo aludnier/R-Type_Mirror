@@ -20,6 +20,7 @@ set_target_properties(sfml_assets_module PROPERTIES
         OUTPUT_NAME "SFML_Assets_Module"
         LIBRARY_OUTPUT_DIRECTORY "$<1:${ENGINE_MODULE_DIR}>"
         RUNTIME_OUTPUT_DIRECTORY "$<1:${ENGINE_MODULE_DIR}>"
+        VCPKG_APPLOCAL_DEPS OFF
 )
 
 add_library(sfml_assets_api INTERFACE)

@@ -18,6 +18,7 @@
 #endif
 
 #include <cstdint>
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -173,10 +174,47 @@ private:
     static constexpr std::string_view ENTRY_POINT_SYMBOL = "RTypeLibEntryPoint";
     void *_handle;
 
+#if defined(_WIN32) || defined(_WIN64)
+    static void addDllSearchDirectory(const std::filesystem::path &directory)
+    {
+        if (directory.empty())
+            return;
+
+        if (!AddDllDirectory(directory.wstring().c_str()) &&
+            GetLastError() != ERROR_ALREADY_EXISTS)
+            throw LibraryLoadException(
+                "Could not register DLL directory: " + directory.string());
+    }
+
+    static std::filesystem::path executableDirectory()
+    {
+        std::wstring path(MAX_PATH, L'\0');
+        DWORD length = 0;
+        do {
+            path.resize(path.size() * 2);
+            length = GetModuleFileNameW(
+                nullptr, path.data(), static_cast<DWORD>(path.size()));
+        } while (length == path.size());
+
+        if (length == 0)
+            return {};
+        path.resize(length);
+        return std::filesystem::path(path).parent_path();
+    }
+#endif
+
     void *openLibrary(const std::string &libFile, bool persistent)
     {
 #if defined(_WIN32) || defined(_WIN64)
-        HMODULE handle = LoadLibraryA(libFile.c_str());
+        const auto modulePath = std::filesystem::absolute(libFile);
+        addDllSearchDirectory(modulePath.parent_path());
+        addDllSearchDirectory(executableDirectory());
+
+        HMODULE handle = LoadLibraryExA(
+            libFile.c_str(),
+            nullptr,
+            LOAD_LIBRARY_SEARCH_DEFAULT_DIRS |
+                LOAD_LIBRARY_SEARCH_USER_DIRS);
         if (handle && persistent) {
             HMODULE pinned = nullptr;
             GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN |
