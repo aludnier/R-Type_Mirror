@@ -13,7 +13,6 @@
 
 #include <exception>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -136,19 +135,54 @@ void RType::UI::ImGuiUiRenderer::renderText(
 void RType::UI::ImGuiUiRenderer::renderImage(
     const UiElement &element, const RenderContext &context)
 {
+    const std::string assetKey = "asset:" + element.asset;
+    if (!element.asset.empty() && _missingImages.contains(assetKey))
+        return;
     std::string imagePath = element.path;
     if (!element.asset.empty()) {
-        const auto &asset = context.assets.getAsset(element.asset);
-        if (asset.type != AssetManager::AssetType::Texture)
-            throw std::runtime_error(
-                "UI image asset '" + element.asset + "' is not a texture");
-        imagePath = asset.path;
+        try {
+            const auto &asset = context.assets.getAsset(element.asset);
+            if (asset.type != AssetManager::AssetType::Texture) {
+                if (_missingImages.insert(assetKey).second)
+                    std::cerr << "[UI] UI image asset '" << element.asset
+                              << "' is not a texture" << std::endl;
+                return;
+            }
+            imagePath = asset.path;
+        } catch (const std::exception &error) {
+            if (_missingImages.insert(assetKey).second)
+                std::cerr << "[UI] Failed to load UI image asset '"
+                          << element.asset << "': " << error.what()
+                          << std::endl;
+            return;
+        }
     }
+    const std::string pathKey = "path:" + imagePath;
+    if (_missingImages.contains(pathKey))
+        return;
     auto texture = _textures.find(imagePath);
     if (texture == _textures.end()) {
         sf::Texture loaded;
-        if (!loaded.loadFromFile(imagePath))
+        try {
+            if (!loaded.loadFromFile(imagePath)) {
+                if (_missingImages.insert(pathKey).second)
+                    std::cerr << "[UI] Failed to load UI image '" << imagePath
+                              << "' for '" << context.key << "'" << std::endl;
+                return;
+            }
+        } catch (const std::exception &error) {
+            if (_missingImages.insert(pathKey).second)
+                std::cerr << "[UI] Failed to load UI image '" << imagePath
+                          << "' for '" << context.key << "': " << error.what()
+                          << std::endl;
             return;
+        } catch (...) {
+            if (_missingImages.insert(pathKey).second)
+                std::cerr << "[UI] Failed to load UI image '" << imagePath
+                          << "' for '" << context.key
+                          << "' with an unknown error" << std::endl;
+            return;
+        }
         texture = _textures.emplace(imagePath, std::move(loaded)).first;
     }
     ImGui::Image(texture->second, sf::Vector2f(context.size.x, context.size.y));

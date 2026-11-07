@@ -65,6 +65,7 @@ private:
         };
 
     std::unordered_map<std::string, sf::Texture> _textures;
+    std::unordered_set<std::string> _missingImages;
     std::unordered_set<std::string> _reportedErrors;
 };
 
