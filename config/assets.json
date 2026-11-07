@@ -1,0 +1,44 @@
+{
+    "assets": {
+        "player_ship": {
+            "path": "assets/sprites/r_type_player.png",
+            "type": "Texture"
+        },
+        "force_pod": {
+            "path": "assets/sprites/force_pod.png",
+            "type": "Texture"
+        },
+        "enemy_bydo_scout": {
+            "path": "assets/sprites/bydo_scout.png",
+            "type": "Texture"
+        },
+        "laser_bullet": {
+            "path": "assets/sprites/laser_bullet.png",
+            "type": "Texture"
+        },
+        "wave_cannon": {
+            "path": "assets/sprites/wave_cannon.png",
+            "type": "Texture"
+        },
+        "bg_space_stars": {
+            "path": "assets/backgrounds/space_stars.png",
+            "type": "Texture"
+        },
+        "bg_nebula": {
+            "path": "assets/backgrounds/nebula.png",
+            "type": "Texture"
+        },
+        "sfx_laser": {
+            "path": "assets/audio/laser.wav",
+            "type": "Sound"
+        },
+        "sfx_explosion": {
+            "path": "assets/audio/explosion.wav",
+            "type": "Sound"
+        },
+        "bgm_stage1": {
+            "path": "assets/audio/stage1.ogg",
+            "type": "Music"
+        }
+    }
+}

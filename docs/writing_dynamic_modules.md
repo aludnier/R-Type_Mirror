@@ -49,13 +49,16 @@ struct ModuleDependency {
     ModuleApiVersion compatible_api;
 };
 
-using RegisterModuleFn = std::function<ModuleStatus(Registry &registry)>;
+using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
+using RegisterAssetTypesFn =
+    std::function<ModuleStatus(AssetLoaderRegistry &)>;
 
 struct ModuleDescriptor {
     std::string name;
     ModuleApiVersion apiVersion;
     std::vector<ModuleDependency> dependencies;
     RegisterModuleFn registerModule;
+    RegisterAssetTypesFn registerAssetTypes;
 };
 }
 extern "C" const ModuleDescriptor *RTypeLibEntryPoint();
@@ -65,18 +68,25 @@ extern "C" const ModuleDescriptor *RTypeLibEntryPoint();
 descriptor is a read-only static object owned by the module; the Engine Core
 must not delete it. The descriptor and all of its C++ members must remain valid
 for as long as the library is loaded. The Engine Core owns
-the `RType::Registry` instance and passes them to `registerModule` only after
-all declared dependencies have been registered. The callback must return a
-failure status if registration cannot be completed; the core then removes any
-partially registered ECS types or systems before reporting the error.
+the `RType::Registry` instance to `registerModule` only after all declared
+dependencies have been registered. A module that provides assets may also
+provide `registerAssetTypes`, which receives the `AssetLoaderRegistry`.
+Modules can define a type with `T::JSON_TYPE`, `AssetTraits<T>`, and static
+`T::load(path)`, then call `assets.registerType<T>()`. Type identifiers must
+be unique; duplicate or conflicting registrations fail explicitly.
 
-The exact callable type belongs in a shared API header. Registration callbacks
-return explicit status codes and receive only the ECS registry and system
-scheduler interfaces defined by the engine. They must not throw exceptions
-across the shared-library boundary. The Engine Core validates the descriptor,
-registers the module's components and systems, and removes them before
-unloading the library. A reference returned by the entry point must not be
-retained after the library is closed.
+The exact callable type belongs in a shared API header. Registration callbacks return explicit status codes and receive only the ECS
+registry and asset-loader interfaces defined by the engine. The Engine Core
+validates the descriptor, registers the module's components, systems, and
+asset loaders, and rolls back loader registrations if module registration
+fails. Loaded libraries remain alive while their registered loaders or cached
+resources can call module code.
+
+Client-only modules may depend on concrete client libraries such as SFML.
+They must be loaded explicitly by the client rather than added to a shared
+server configuration. The built-in SFML asset module lives under
+`engine/modules/sfmlAssets` and is linked by the client target. The server and engine core should continue loading only
+modules whose descriptors and dependencies are backend-independent.
 
 ## 2. Define the module contract
 
@@ -144,7 +154,7 @@ library is unloaded.
 Create a separate module directory containing at least:
 
 ```text
-modules/<name>/
+engine/modules/<name>/
 ├── CMakeLists.txt
 ├── include/<name>/<name>_api.h   # only if the API is module-specific
 └── src/
@@ -213,9 +223,7 @@ add_library(example_module SHARED
     src/example_module.cpp
 )
 
-target_include_directories(example_module PUBLIC
-    ${PROJECT_SOURCE_DIR}/game_engine/src
-)
+target_link_libraries(example_module PRIVATE engine_core)
 
 target_compile_features(example_module PRIVATE cxx_std_23)
 set_target_properties(example_module PROPERTIES
