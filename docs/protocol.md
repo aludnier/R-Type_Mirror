@@ -115,6 +115,7 @@ another version is dropped.
 | `0x45` | ENTITY_DESPAWN      | server → client | Yes                                     |
 | `0x46` | COMPONENT_UPDATE    | server → client | No                                      |
 | `0x47` | HEARTBEAT_REPLY     | server → client | No                                      |
+| `0x48` | PLAY_SOUND          | server → client | No                                      |
 
 ## 6. Messages
 
@@ -234,6 +235,16 @@ same `network_id`.
 |---------------|--------|---------------------------|
 | `client_time` | `u32`  | Copied from the HEARTBEAT |
 | `server_tick` | `Tick` | Current server tick       |
+
+**PLAY_SOUND (`0x48`)**: asks the client to play one sound effect. The asset
+name must identify a local `Sound` asset; an unknown name is ignored by the
+client.
+
+| Field        | Type     | Description                                    |
+|--------------|----------|------------------------------------------------|
+| `asset_name` | `string` | Local Sound asset name, at most 255 bytes      |
+| `volume`     | `f32`    | Per-play volume, clamped to `[0, 1]` by client |
+| `pitch`      | `f32`    | Playback pitch                                 |
 
 **DisconnectReason** values. Any other value makes the payload invalid.
 

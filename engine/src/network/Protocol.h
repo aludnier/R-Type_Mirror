@@ -73,6 +73,7 @@ enum class MessageType : std::uint8_t {
     EntityDespawn = 0x45,
     ComponentUpdate = 0x46,
     HeartbeatReply = 0x47,
+    PlaySound = 0x48,
 };
 
 constexpr std::uint8_t GAME_MESSAGE_TYPE_MIN = 0x80;
