@@ -94,6 +94,7 @@ void GameApp::close()
 void GameApp::update(float dt)
 {
     updateGame(dt);
+    _audioManager.update();
 }
 
 void GameApp::render()
@@ -120,6 +121,7 @@ int GameApp::run()
         update(dt);
         render();
     }
+    _audioManager.stopAll();
     onShutdown();
     return 0;
 }
@@ -142,6 +144,11 @@ AssetManager &GameApp::getAssetManager()
 ClientAssetManager &GameApp::getClientAssetManager()
 {
     return _clientAssetManager;
+}
+
+AudioManager &GameApp::getAudioManager()
+{
+    return _audioManager;
 }
 
 sf::RenderWindow &GameApp::getWindow() const
