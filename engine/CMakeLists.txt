@@ -239,6 +239,7 @@ if (BUILD_TESTS)
             tests/library_manager_tests.cpp
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
+            tests/lifetime_module_tests.cpp
             tests/nlohman_reader_test.cpp
             tests/fixed_step_tests.cpp
             tests/reflection_tests.cpp
@@ -324,4 +325,5 @@ add_subdirectory(modules/example)
 add_subdirectory(modules/physics2D)
 add_subdirectory(modules/environment2D)
 add_subdirectory(modules/Animation2D)
+add_subdirectory(modules/lifetime)
 add_subdirectory(modules/sfmlAssets)
