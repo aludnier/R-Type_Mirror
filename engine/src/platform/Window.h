@@ -43,6 +43,11 @@ public:
     [[nodiscard]] bool isOpen() const;
     void close();
 
+    /** @return Width of the drawing area, in pixels. */
+    [[nodiscard]] int width() const;
+    /** @return Height of the drawing area, in pixels. */
+    [[nodiscard]] int height() const;
+
     /** @brief Fills the window with a color. */
     void clear(const Color &color);
 

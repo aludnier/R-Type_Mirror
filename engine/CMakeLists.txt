@@ -125,8 +125,11 @@ target_compile_definitions(engine_platform PUBLIC GLFW_INCLUDE_NONE)
 find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 
 set(RENDER2D_SRC
+        src/render/Camera2D.h
         src/render/Renderer2D.cpp
         src/render/Renderer2D.h
+        src/render/SceneRenderer.cpp
+        src/render/SceneRenderer.h
         src/render/Shader.cpp
         src/render/Shader.h
         src/render/Texture.cpp

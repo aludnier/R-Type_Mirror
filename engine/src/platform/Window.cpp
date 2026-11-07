@@ -60,6 +60,22 @@ void Window::close()
     glfwSetWindowShouldClose(_handle, GLFW_TRUE);
 }
 
+int Window::width() const
+{
+    int width = 0;
+
+    glfwGetFramebufferSize(_handle, &width, nullptr);
+    return width;
+}
+
+int Window::height() const
+{
+    int height = 0;
+
+    glfwGetFramebufferSize(_handle, nullptr, &height);
+    return height;
+}
+
 void Window::pollEvents()
 {
     glfwPollEvents();
