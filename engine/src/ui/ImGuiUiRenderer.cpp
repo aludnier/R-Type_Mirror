@@ -219,10 +219,10 @@ void RType::UI::ImGuiUiRenderer::renderInputText(
     const UiElement &element, const RenderContext &context)
 {
     auto value = context.manager.getText(context.key);
+    const std::string label = "##" + element.id;
     const bool changed = element.hint.empty()
-        ? ImGui::InputText(element.id.c_str(), &value)
-        : ImGui::InputTextWithHint(
-              element.id.c_str(), element.hint.c_str(), &value);
+        ? ImGui::InputText(label.c_str(), &value)
+        : ImGui::InputTextWithHint(label.c_str(), element.hint.c_str(), &value);
     if (value.size() > element.maxLength)
         value.resize(element.maxLength);
     if (changed || value != context.manager.getText(context.key))
