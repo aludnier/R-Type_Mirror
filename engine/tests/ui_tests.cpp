@@ -19,6 +19,7 @@ public:
         _path = std::filesystem::temp_directory_path() /
             ("rtype_ui_test_" + std::to_string(stamp));
         std::filesystem::create_directories(_path);
+        _path = std::filesystem::canonical(_path);
     }
 
     ~TempUiDirectory()
