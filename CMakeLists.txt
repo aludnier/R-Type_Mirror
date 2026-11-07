@@ -15,6 +15,3 @@ configure_file(config/assets.json ${CMAKE_BINARY_DIR}/config/assets.json COPYONL
 add_subdirectory(engine)
 add_subdirectory(game)
 add_subdirectory(server)
-add_subdirectory(modules/example)
-add_subdirectory(modules/physics2D)
-add_subdirectory(modules/environment2D)
