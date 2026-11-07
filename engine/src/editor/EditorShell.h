@@ -29,6 +29,8 @@ public:
     void draw(EditorContext &context);
     /** @brief Runs one step of the scene while it plays. */
     void update(EditorContext &context, float dt);
+    /** @return The active actions, none while ImGui uses the keyboard. */
+    [[nodiscard]] static ActionMask gameActions(const EditorContext &context);
 
 private:
     void drawMenuBar(EditorContext &context);

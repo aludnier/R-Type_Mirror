@@ -69,6 +69,13 @@ void EditorShell::drawMenuBar(EditorContext &context)
 
 void EditorShell::update(EditorContext &context, float dt)
 {
-    _playMode.update(context, dt);
+    _playMode.update(context, dt, gameActions(context));
+}
+
+ActionMask EditorShell::gameActions(const EditorContext &context)
+{
+    if (context.input == nullptr || ImGui::GetIO().WantCaptureKeyboard)
+        return 0;
+    return context.input->actionMask();
 }
 } // namespace RType::Editor
