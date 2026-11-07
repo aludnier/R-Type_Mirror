@@ -58,7 +58,7 @@ public:
 
     /** @return The bit of every defined action, by name. */
     [[nodiscard]] const std::map<std::string, RType::ActionId, std::less<>> &
-        actions() const;
+    actions() const;
 
     /**
      * @brief Binds a key to an action.

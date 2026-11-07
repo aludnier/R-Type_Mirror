@@ -13,10 +13,10 @@
 
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
+#include "library/InputManager.h"
 #include "reflection/Reflection.h"
 #include "render/Framebuffer.h"
 #include "render/SceneRenderer.h"
-#include "library/InputManager.h"
 
 namespace RType::Editor {
 /** @brief State shared by every editor panel. */

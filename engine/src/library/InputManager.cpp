@@ -8,8 +8,8 @@
 #include "InputManager.h"
 #include <algorithm>
 #include <map>
-#include <stdexcept>
 #include <ranges>
+#include <stdexcept>
 
 namespace {
 struct InputEntry {
@@ -93,7 +93,7 @@ void InputManager::loadActions(const std::filesystem::path &configFile)
 }
 
 const std::map<std::string, RType::ActionId, std::less<>> &
-    InputManager::actions() const
+InputManager::actions() const
 {
     return _actionNames;
 }

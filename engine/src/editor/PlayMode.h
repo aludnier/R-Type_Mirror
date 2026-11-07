@@ -13,9 +13,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "components/Action.h"
 #include "editor/EditorContext.h"
 #include "scripting/ScriptEngine.h"
-#include "components/Action.h"
 
 namespace RType::Editor {
 /**

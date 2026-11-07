@@ -6,8 +6,8 @@
 #include "ecs/Registry.h"
 #include "editor/EditorContext.h"
 #include "editor/EditorShell.h"
-#include "reflection/Reflection.h"
 #include "library/InputManager.h"
+#include "reflection/Reflection.h"
 
 namespace {
 /** @brief ImGui without a window or a renderer, like a test backend. */

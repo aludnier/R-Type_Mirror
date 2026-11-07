@@ -7,10 +7,10 @@
 
 #include "PlayMode.h"
 
+#include "components/Controllable.h"
 #include "ecs/SparseArray.h"
 #include "scene/Scene.h"
 #include "scripting/ScriptComponent.h"
-#include "components/Controllable.h"
 
 namespace RType::Editor {
 void PlayMode::play(EditorContext &context)
@@ -24,8 +24,8 @@ void PlayMode::play(EditorContext &context)
         Scene::toJson(context.registry, context.reflection, *context.assets);
     _scripts.emplace(context.registry);
     if (context.input != nullptr)
-    for (const auto &[name, action] : context.input->actions())
-        _scripts->defineAction(name, action);
+        for (const auto &[name, action] : context.input->actions())
+            _scripts->defineAction(name, action);
     context.readOnly = true;
 }
 
