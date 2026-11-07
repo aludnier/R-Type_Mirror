@@ -50,6 +50,8 @@ set(CORE_SRC
         src/library/InputManager.cpp
         src/library/InputManager.h
         src/library/Keys.h
+        src/ui/UiDocument.cpp
+        src/ui/UiDocument.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
