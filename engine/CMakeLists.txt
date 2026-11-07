@@ -113,6 +113,8 @@ set(PLATFORM_SRC
         src/platform/Application.cpp
         src/platform/Application.h
         src/platform/KeyChecks.cpp
+        src/platform/RenderTarget.cpp
+        src/platform/RenderTarget.h
 )
 
 add_library(engine_platform STATIC ${PLATFORM_SRC})
