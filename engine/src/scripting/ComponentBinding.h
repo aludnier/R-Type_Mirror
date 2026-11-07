@@ -42,6 +42,8 @@ template<Component C>
 struct ComponentOps {
     static bool has(Registry &registry, entity_id_type id)
     {
+        if (!registry.isRegistered<C>())
+            return false;
         auto &storage = registry.getComponents<C>();
         return id < storage.size() && storage[id].has_value();
     }
@@ -49,6 +51,8 @@ struct ComponentOps {
     static sol::object get(
         Registry &registry, entity_id_type id, lua_State *lua)
     {
+        if (!registry.isRegistered<C>())
+            return sol::make_object(lua, sol::lua_nil);
         auto &storage = registry.getComponents<C>();
         if (id >= storage.size() || !storage[id].has_value())
             return sol::make_object(lua, sol::lua_nil);
@@ -58,6 +62,8 @@ struct ComponentOps {
     static void add(
         Registry &registry, entity_id_type id, const sol::object &value)
     {
+        if (!registry.isRegistered<C>())
+            registry.registerComponent<C>();
         if (value.is<C>()) {
             registry.addComponent<C>(
                 Registry::entityFromIndex(id), C(value.as<C>()));
@@ -74,11 +80,15 @@ struct ComponentOps {
 
     static void remove(Registry &registry, entity_id_type id)
     {
+        if (!registry.isRegistered<C>())
+            return;
         registry.removeComponent<C>(Registry::entityFromIndex(id));
     }
 
     static std::size_t size(Registry &registry)
     {
+        if (!registry.isRegistered<C>())
+            return 0;
         return registry.getComponents<C>().size();
     }
 };

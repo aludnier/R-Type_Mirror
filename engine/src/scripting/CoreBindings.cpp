@@ -7,7 +7,9 @@
 
 #include "CoreBindings.h"
 
+#include <algorithm>
 #include <array>
+#include <cstdint>
 #include <stdexcept>
 
 #include "components/Action.h"
@@ -15,6 +17,7 @@
 #include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Name.h"
+#include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "math/Vector2.h"
 
@@ -23,6 +26,7 @@ using RType::Controllable;
 using RType::Health;
 using RType::Hitbox;
 using RType::Name;
+using RType::Sprite;
 using RType::Transform2D;
 using RType::Vector2;
 
@@ -161,6 +165,52 @@ void bindName(sol::state &lua)
         &Name::value);
 }
 
+/** @brief A color channel clamped to 0..255 instead of wrapping around. */
+template<std::uint8_t Sprite::*Channel>
+auto colorChannel()
+{
+    return sol::property(
+        [](const Sprite &sprite) { return static_cast<int>(sprite.*Channel); },
+        [](Sprite &sprite, lua_Number value) {
+            sprite.*Channel =
+                static_cast<std::uint8_t>(std::clamp(value, 0.0, 255.0));
+        });
+}
+
+void bindSprite(sol::state &lua)
+{
+    lua.new_usertype<Sprite>("Sprite",
+        sol::constructors<Sprite(),
+            Sprite(std::uint32_t),
+            Sprite(std::uint32_t, int),
+            Sprite(std::uint32_t, int, int, int, int),
+            Sprite(std::uint32_t, int, int, int, int, int)>(),
+        "asset_id",
+        &Sprite::assetId,
+        "rect_left",
+        &Sprite::rectLeft,
+        "rect_top",
+        &Sprite::rectTop,
+        "rect_width",
+        &Sprite::rectWidth,
+        "rect_height",
+        &Sprite::rectHeight,
+        "origin_x",
+        &Sprite::originX,
+        "origin_y",
+        &Sprite::originY,
+        "r",
+        colorChannel<&Sprite::r>(),
+        "g",
+        colorChannel<&Sprite::g>(),
+        "b",
+        colorChannel<&Sprite::b>(),
+        "a",
+        colorChannel<&Sprite::a>(),
+        "z_index",
+        &Sprite::zIndex);
+}
+
 void bindAction(sol::state &lua)
 {
     // Filled by the game, see ScriptEngine::defineAction().
@@ -186,6 +236,7 @@ constexpr std::array coreTypes = {
     &bindHealth,
     &bindHitbox,
     &bindName,
+    &bindSprite,
     &bindAction,
     &bindControllable,
 };
