@@ -18,31 +18,31 @@ std::string valueKey(std::string_view key)
 }
 } // namespace
 
-void RType::UI::UiManager::collectText(const RType::UI::UiElement &element,
-    const std::string &key, RType::UI::UiManager::Values &values,
-    RType::UI::UiManager::TextLimits &)
+void RType::UI::UiManager::collectText(const UiElement &element,
+    const std::string &key, Values &values,
+    TextLimits &)
 {
     values.insert_or_assign(key, element.text);
 }
 
-void RType::UI::UiManager::collectInputText(const RType::UI::UiElement &element,
-    const std::string &key, RType::UI::UiManager::Values &values,
-    RType::UI::UiManager::TextLimits &textLimits)
+void RType::UI::UiManager::collectInputText(const UiElement &element,
+    const std::string &key, Values &values,
+    TextLimits &textLimits)
 {
     values.insert_or_assign(key, element.text);
     textLimits.insert_or_assign(key, element.maxLength);
 }
 
-void RType::UI::UiManager::collectCheckbox(const RType::UI::UiElement &element,
-    const std::string &key, RType::UI::UiManager::Values &values,
-    RType::UI::UiManager::TextLimits &)
+void RType::UI::UiManager::collectCheckbox(const UiElement &element,
+    const std::string &key, Values &values,
+    TextLimits &)
 {
     values.insert_or_assign(key, element.checked);
 }
 
-void RType::UI::UiManager::collectSlider(const RType::UI::UiElement &element,
-    const std::string &key, RType::UI::UiManager::Values &values,
-    RType::UI::UiManager::TextLimits &)
+void RType::UI::UiManager::collectSlider(const UiElement &element,
+    const std::string &key, Values &values,
+    TextLimits &)
 {
     values.insert_or_assign(key, element.value);
 }
