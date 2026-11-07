@@ -200,4 +200,9 @@ NetworkClient &GameApp::getNetworkClient()
     return _networkClient;
 }
 
+RType::UI::UiManager &GameApp::getUiManager()
+{
+    return _uiManager;
+}
+
 } // namespace Game

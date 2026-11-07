@@ -33,6 +33,7 @@ public:
     [[nodiscard]] ScreenState getScreenState() const;
     void setScreenState(ScreenState state);
     [[nodiscard]] NetworkClient &getNetworkClient();
+    [[nodiscard]] RType::UI::UiManager &getUiManager();
 
 protected:
     void registerComponents() override;
