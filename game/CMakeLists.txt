@@ -51,6 +51,33 @@ target_compile_definitions(r-type_client PRIVATE
 target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::environment2d SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
 target_link_libraries(r-type_client PRIVATE Eng::sfml_assets)
 
+# Lua bindings of the game components (Game::bindGameComponents), for the
+# hosts that script the game. No graphics dependency.
+add_library(r-type_game_scripting STATIC
+        src/scripting/GameBindings.cpp
+        src/scripting/GameBindings.h
+        src/components/Enemy.cpp
+        src/components/ForcePod.cpp
+        src/components/Player.cpp
+        src/components/Projectile.cpp
+)
+target_include_directories(r-type_game_scripting PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(r-type_game_scripting PUBLIC Eng::scripting)
+
+if (BUILD_TESTS)
+    find_package(Catch2 REQUIRED)
+
+    add_executable(r-type_game_tests
+            tests/game_bindings_tests.cpp
+    )
+
+    target_link_libraries(r-type_game_tests PRIVATE r-type_game_scripting Catch2::Catch2WithMain)
+
+    add_test(NAME r-type_game_tests COMMAND r-type_game_tests)
+endif ()
+
 if (WIN32)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(VCPKG_RUNTIME_BIN_DIR

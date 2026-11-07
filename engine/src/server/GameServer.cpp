@@ -339,6 +339,11 @@ Registry &GameServer::registry()
     return _registry;
 }
 
+bool GameServer::isModuleLoaded(const std::string &name) const
+{
+    return _pluginManager && _pluginManager->isLoaded(name);
+}
+
 float GameServer::tickDelta() const
 {
     return 1.f / static_cast<float>(_config.tickRate);

@@ -14,7 +14,7 @@ add_executable(r-type_server
 target_include_directories(r-type_server PRIVATE
         ${PROJECT_SOURCE_DIR}/game/src/network
 )
-target_link_libraries(r-type_server PRIVATE Eng::server Eng::scripting)
+target_link_libraries(r-type_server PRIVATE Eng::server Eng::scripting Eng::physics2d_scripting)
 target_compile_definitions(r-type_server PRIVATE ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}")
 
 # Same layout as the sources: config/scripts.json reads ../server/scripts.
