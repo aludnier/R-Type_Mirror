@@ -30,7 +30,7 @@ void warn(const std::string &message)
 }
 
 json saveField(
-    const FieldInfo &field, void *component, const ResourceManager *assets)
+    const FieldInfo &field, void *component, const ResourceManager &assets)
 {
     switch (field.type) {
         case FieldType::Float:
@@ -60,7 +60,7 @@ json saveField(
             const auto id = field.as<std::uint32_t>(component);
             if (id == 0)
                 return nullptr;
-            auto name = assets ? assets->getAssetName(id) : std::nullopt;
+            auto name = assets.getAssetName(id);
             if (!name) {
                 warn("no asset name for id " + std::to_string(id));
                 return nullptr;
@@ -86,7 +86,7 @@ bool loadInteger(const json &value, T &out)
 
 /** @return false if @p value does not fit the field. */
 bool loadField(const FieldInfo &field, void *component, const json &value,
-    const ResourceManager *assets)
+    const ResourceManager &assets)
 {
     switch (field.type) {
         case FieldType::Float:
@@ -136,11 +136,11 @@ bool loadField(const FieldInfo &field, void *component, const json &value,
             if (!value.is_string())
                 return false;
             const auto name = value.get<std::string>();
-            if (!assets || !assets->hasAsset(name)) {
+            if (!assets.hasAsset(name)) {
                 warn("unknown asset '" + name + "'");
                 return true;
             }
-            field.as<std::uint32_t>(component) = assets->getAsset(name).id;
+            field.as<std::uint32_t>(component) = assets.getAsset(name).id;
             return true;
         }
     }
@@ -159,7 +159,7 @@ const FieldInfo *findField(
 
 void loadComponent(RType::Registry &registry, RType::Entity entity,
     const RType::ComponentInfo &info, const json &fields,
-    const ResourceManager *assets)
+    const ResourceManager &assets)
 {
     if (!fields.is_object()) {
         warn("component '" + info.name + "' is not an object");
@@ -178,7 +178,7 @@ void loadComponent(RType::Registry &registry, RType::Entity entity,
 
 RType::Entity loadEntity(RType::Registry &registry,
     const RType::Reflection &reflection, const json &data,
-    const ResourceManager *assets)
+    const ResourceManager &assets)
 {
     RType::Entity entity = registry.spawnEntity();
 
@@ -210,11 +210,13 @@ RType::Entity loadEntity(RType::Registry &registry,
 } // namespace
 
 nlohmann::json RType::Scene::toJson(Registry &registry,
-    const Reflection &reflection, const ResourceManager *assets)
+    const Reflection &reflection, const ResourceManager &assets)
 {
     json entities = json::array();
 
     for (const Entity &entity : registry.entities()) {
+        if (registry.isPendingKill(entity))
+            continue;
         json data = json::object();
         json components = json::object();
 
@@ -239,7 +241,7 @@ nlohmann::json RType::Scene::toJson(Registry &registry,
 
 std::vector<RType::Entity> RType::Scene::fromJson(Registry &registry,
     const Reflection &reflection, const nlohmann::json &scene,
-    const ResourceManager *assets)
+    const ResourceManager &assets)
 {
     std::vector<Entity> spawned;
 
@@ -259,14 +261,14 @@ std::vector<RType::Entity> RType::Scene::fromJson(Registry &registry,
 }
 
 std::string RType::Scene::saveToString(Registry &registry,
-    const Reflection &reflection, const ResourceManager *assets)
+    const Reflection &reflection, const ResourceManager &assets)
 {
     return toJson(registry, reflection, assets).dump(4);
 }
 
 std::vector<RType::Entity> RType::Scene::loadFromString(Registry &registry,
     const Reflection &reflection, const std::string &text,
-    const ResourceManager *assets)
+    const ResourceManager &assets)
 {
     json scene = json::parse(text, nullptr, false);
 
@@ -276,20 +278,23 @@ std::vector<RType::Entity> RType::Scene::loadFromString(Registry &registry,
 }
 
 void RType::Scene::saveToFile(Registry &registry, const Reflection &reflection,
-    const std::filesystem::path &file, const ResourceManager *assets)
+    const std::filesystem::path &file, const ResourceManager &assets)
 {
+    // Built before opening the file: a throwing dump must not truncate it.
+    const std::string text = saveToString(registry, reflection, assets);
     std::ofstream stream(file);
 
     if (!stream)
         throw std::runtime_error("cannot write the scene " + file.string());
-    stream << saveToString(registry, reflection, assets) << '\n';
+    stream << text << '\n';
+    stream.close();
     if (!stream)
         throw std::runtime_error("cannot write the scene " + file.string());
 }
 
 std::vector<RType::Entity> RType::Scene::loadFromFile(Registry &registry,
     const Reflection &reflection, const std::filesystem::path &file,
-    const ResourceManager *assets)
+    const ResourceManager &assets)
 {
     std::ifstream stream(file);
 

@@ -40,38 +40,44 @@
  */
 namespace RType::Scene {
 /**
- * @param assets Turns asset ids into names. Without it, or for an unknown id,
- *        the asset is saved as null.
+ * @param assets Turns asset ids into names. An unknown id is saved as null.
+ * @note Entities waiting for killAllEntities() are not saved.
  */
 [[nodiscard]] nlohmann::json toJson(Registry &registry,
-    const Reflection &reflection, const ResourceManager *assets = nullptr);
+    const Reflection &reflection, const ResourceManager &assets);
 
 /**
  * @brief Spawns the entities of @p scene. Existing entities are kept, call
  *        clear() first to replace the scene.
- * @param assets Turns asset names into ids. Without it, assets keep their
- *        default id.
+ * @param assets Turns asset names into ids. An unknown name keeps the default
+ *        id.
  * @return The spawned entities, in file order.
  */
 std::vector<Entity> fromJson(Registry &registry, const Reflection &reflection,
-    const nlohmann::json &scene, const ResourceManager *assets = nullptr);
+    const nlohmann::json &scene, const ResourceManager &assets);
 
+/** @throws nlohmann::json::exception if a string is not valid UTF-8. */
 [[nodiscard]] std::string saveToString(Registry &registry,
-    const Reflection &reflection, const ResourceManager *assets = nullptr);
+    const Reflection &reflection, const ResourceManager &assets);
 
 /** @throws std::runtime_error if @p text is not valid JSON. */
 std::vector<Entity> loadFromString(Registry &registry,
     const Reflection &reflection, const std::string &text,
-    const ResourceManager *assets = nullptr);
+    const ResourceManager &assets);
 
-/** @throws std::runtime_error if the file cannot be written. */
+/**
+ * @brief Writes the scene to @p file. The scene is turned into text first, so
+ *        an error there leaves an existing file untouched.
+ * @throws std::runtime_error if the file cannot be written.
+ * @throws nlohmann::json::exception if a string is not valid UTF-8.
+ */
 void saveToFile(Registry &registry, const Reflection &reflection,
-    const std::filesystem::path &file, const ResourceManager *assets = nullptr);
+    const std::filesystem::path &file, const ResourceManager &assets);
 
 /** @throws std::runtime_error if the file cannot be read or is not JSON. */
 std::vector<Entity> loadFromFile(Registry &registry,
     const Reflection &reflection, const std::filesystem::path &file,
-    const ResourceManager *assets = nullptr);
+    const ResourceManager &assets);
 
 /** @brief Kills every entity and removes their components right away. */
 void clear(Registry &registry);

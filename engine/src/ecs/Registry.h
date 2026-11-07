@@ -11,7 +11,6 @@
 #include <algorithm>
 #include <any>
 #include <functional>
-#include <queue>
 #include <ranges>
 #include <typeindex>
 #include <unordered_map>
@@ -110,7 +109,7 @@ public:
      */
     void killEntity(Entity entity)
     {
-        _entitiesToKill.push(entity);
+        _entitiesToKill.push_back(entity);
     }
 
     template<Component C>
@@ -167,9 +166,9 @@ public:
      */
     void killAllEntities()
     {
-        while (!_entitiesToKill.empty()) {
-            Entity entity = _entitiesToKill.front();
-            _entitiesToKill.pop();
+        std::vector<Entity> toKill;
+        toKill.swap(_entitiesToKill);
+        for (const Entity &entity : toKill) {
             auto it = this->findEntity(entity);
             if (it != _entities.end() && *it == entity)
                 _entities.erase(it);
@@ -178,6 +177,13 @@ public:
                 erase(*this, entity);
             }
         }
+    }
+
+    /** @brief Whether killEntity() was called and the kill is not applied. */
+    [[nodiscard]] bool isPendingKill(Entity const &entity) const
+    {
+        return std::ranges::find(_entitiesToKill, entity) !=
+            _entitiesToKill.end();
     }
 
 private:
@@ -193,7 +199,7 @@ private:
 
     entity_id_type _nextEntityId = 0;
     std::vector<Entity> _entities;
-    std::queue<Entity> _entitiesToKill;
+    std::vector<Entity> _entitiesToKill;
 
     std::unordered_map<std::type_index, RegistryEntry> _componentsStorage;
     std::vector<std::function<void(Registry &)>> _systems;
