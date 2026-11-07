@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <exception>
+#include <glad/glad.h>
 #include <iostream>
 
 #include "components/Sprite.h"
@@ -16,6 +17,7 @@
 #include "library/AssetManager.h"
 #include "library/Keys.h"
 #include "platform/Application.h"
+#include "render/Framebuffer.h"
 #include "render/SceneRenderer.h"
 
 namespace {
@@ -65,8 +67,27 @@ protected:
 
     void render() override
     {
-        window().clear({0.1f, 0.2f * _brightness, _brightness, 1.f});
-        _sceneRenderer.render(_registry, window(), _camera);
+        const int width = window().width();
+        const int height = window().height();
+
+        _framebuffer.resize(width, height);
+        _framebuffer.clear({0.1f, 0.2f * _brightness, _brightness, 1.f});
+        _sceneRenderer.render(_registry, _framebuffer, _camera);
+
+        // Copies the image of the framebuffer to the window.
+        _framebuffer.activate();
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBlitFramebuffer(0,
+            0,
+            width,
+            height,
+            0,
+            0,
+            width,
+            height,
+            GL_COLOR_BUFFER_BIT,
+            GL_NEAREST);
+        window().activate();
     }
 
 private:
@@ -75,6 +96,7 @@ private:
     AssetManager _assets;
     RType::SceneRenderer _sceneRenderer {_assets};
     RType::Camera2D _camera;
+    RType::Framebuffer _framebuffer {window().width(), window().height()};
     RType::Entity _spinning = RType::Registry::entityFromIndex(0);
 };
 } // namespace
