@@ -113,6 +113,8 @@ set(PLATFORM_SRC
         src/platform/Application.cpp
         src/platform/Application.h
         src/platform/KeyChecks.cpp
+        src/platform/RenderTarget.cpp
+        src/platform/RenderTarget.h
 )
 
 add_library(engine_platform STATIC ${PLATFORM_SRC})
@@ -128,6 +130,8 @@ find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 
 set(RENDER2D_SRC
         src/render/Camera2D.h
+        src/render/Framebuffer.cpp
+        src/render/Framebuffer.h
         src/render/Renderer2D.cpp
         src/render/Renderer2D.h
         src/render/SceneRenderer.cpp

@@ -86,13 +86,15 @@ Renderer2D::~Renderer2D()
     glDeleteVertexArrays(1, &_vertexArray);
 }
 
-void Renderer2D::begin(const Window &target, const Camera2D &camera)
+void Renderer2D::begin(RenderTarget &target, const Camera2D &camera)
 {
     const float halfWidth = static_cast<float>(target.width()) / 2.f;
     const float halfHeight = static_cast<float>(target.height()) / 2.f;
 
+    target.activate();
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(
+        GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
     _shader.use();
     glBindVertexArray(_vertexArray);
     glUniform2f(_viewCenter, camera.center.x, camera.center.y);
@@ -134,5 +136,6 @@ void Renderer2D::end()
 {
     glBindVertexArray(0);
     glUseProgram(0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 } // namespace RType

@@ -25,7 +25,7 @@ public:
 
     /** @brief Draws the scene, sorted by zIndex. Skips missing assets. */
     void render(
-        Registry &registry, const Window &target, const Camera2D &camera);
+        Registry &registry, RenderTarget &target, const Camera2D &camera);
 
 private:
     /** @return The texture of an asset, or nullptr if it cannot be loaded. */

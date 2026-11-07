@@ -86,12 +86,12 @@ void Window::swapBuffers()
     glfwSwapBuffers(_handle);
 }
 
-void Window::clear(const Color &color)
+void Window::activate()
 {
     if (glfwGetCurrentContext() != _handle)
         glfwMakeContextCurrent(_handle);
-    glClearColor(color.r, color.g, color.b, color.a);
-    glClear(GL_COLOR_BUFFER_BIT);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glViewport(0, 0, width(), height());
 }
 
 void Window::setKeyCallback(KeyCallback callback)
