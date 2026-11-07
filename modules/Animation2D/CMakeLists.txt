@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10.0)
 
-add_library(animation2d_module SHARED src/Animation2DModule.cpp)
+add_library(animation2d_module SHARED 
+        src/Animation2DModule.cpp
+        src/systems/AnimationSystem.cpp
+)
 
 target_include_directories(
         animation2d_module PUBLIC $ {PROJECT_SOURCE_DIR} / game_engine /
