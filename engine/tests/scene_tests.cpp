@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iterator>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "components/Controllable.h"
@@ -237,7 +238,8 @@ TEST_CASE("Scene saves to and loads from a file", "[scene]")
         scene.source, scene.reflection, file, scene.assets);
     auto spawned = RType::Scene::loadFromFile(
         scene.target, scene.reflection, file, scene.assets);
-    std::filesystem::remove(file);
+    std::error_code error;
+    std::filesystem::remove(file, error);
 
     REQUIRE(spawned.size() == 1);
     CHECK(scene.target.getComponents<RType::Name>()[spawned[0]]->value ==
@@ -288,9 +290,14 @@ TEST_CASE("Scene save failure keeps the existing file", "[scene]")
     CHECK_THROWS(RType::Scene::saveToFile(
         scene.source, scene.reflection, file, scene.assets));
 
-    std::ifstream stream(file);
-    std::string content((std::istreambuf_iterator<char>(stream)),
-        std::istreambuf_iterator<char>());
-    std::filesystem::remove(file);
+    std::string content;
+    {
+        // Closed before remove(): Windows cannot delete an open file.
+        std::ifstream stream(file);
+        content.assign(std::istreambuf_iterator<char>(stream),
+            std::istreambuf_iterator<char>());
+    }
+    std::error_code error;
+    std::filesystem::remove(file, error);
     CHECK(content == "previous scene");
 }
