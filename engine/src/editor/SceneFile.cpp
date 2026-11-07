@@ -29,6 +29,11 @@ std::optional<std::string> openScene(
     } catch (const std::exception &error) {
         return error.what();
     }
+    // Checked before clearing: any JSON file is not a scene, and it would
+    // become the file the next Save overwrites.
+    if (!scene.is_object() || !scene.contains("entities") ||
+        !scene["entities"].is_array())
+        return file.string() + " is not a scene: no \"entities\" array";
     // Without a manager, every asset keeps its default id.
     const AssetManager noAssets;
     newScene(context);

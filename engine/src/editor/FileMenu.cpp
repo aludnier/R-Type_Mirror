@@ -23,7 +23,11 @@ void FileMenu::drawMenu(EditorContext &context)
     const bool enabled = !context.readOnly;
     const bool canSave = enabled && context.assets != nullptr;
 
-    if (enabled) {
+    // Not while typing in a text box or while a popup is open.
+    const bool shortcuts = enabled && !ImGui::GetIO().WantTextInput &&
+        !ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId);
+
+    if (shortcuts) {
         if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_N))
             SceneFile::newScene(context);
         if (ImGui::IsKeyChordPressed(ImGuiMod_Ctrl | ImGuiKey_O))
@@ -70,8 +74,9 @@ void FileMenu::save(EditorContext &context)
         return;
     }
     if (auto error = SceneFile::saveScene(context, *context.scenePath)) {
-        _error = *error;
+        // After request(), which clears the error.
         request(Dialog::SaveAs, context);
+        _error = *error;
     }
 }
 

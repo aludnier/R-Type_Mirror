@@ -6,7 +6,9 @@
 */
 
 #include <exception>
+#include <filesystem>
 #include <iostream>
+#include <string_view>
 
 #include "ecs/Registry.h"
 #include "editor/EditorContext.h"
@@ -19,10 +21,19 @@
 namespace {
 class Editor : public RType::Application {
 public:
-    Editor() :
+    /** @param assetConfig Asset config file to load, may be empty. */
+    explicit Editor(const std::filesystem::path &assetConfig) :
         Application({.title = "Editor"}), _imgui(window())
     {
         RType::reflectCoreComponents(_reflection);
+        if (assetConfig.empty())
+            return;
+        try {
+            _assets.loadConfigFile(assetConfig);
+        } catch (const std::exception &error) {
+            std::cerr << "warning: cannot load the assets: " << error.what()
+                      << "\n";
+        }
     }
 
 protected:
@@ -49,10 +60,19 @@ private:
 };
 } // namespace
 
-int main()
+int main(int argc, char **argv)
 {
+    if (argc > 2 ||
+        (argc == 2 &&
+            (std::string_view(argv[1]) == "-h" ||
+                std::string_view(argv[1]) == "--help"))) {
+        std::cout << "USAGE: " << argv[0] << " [assets.json]\n"
+                  << "    assets.json  Asset config, needed to show and save "
+                     "sprites\n";
+        return argc == 2 ? 0 : 84;
+    }
     try {
-        Editor editor;
+        Editor editor(argc == 2 ? argv[1] : "");
 
         editor.run();
     } catch (const std::exception &error) {

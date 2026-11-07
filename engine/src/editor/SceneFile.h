@@ -20,8 +20,8 @@ namespace RType::Editor::SceneFile {
 void newScene(EditorContext &context);
 
 /**
- * @brief Replaces the scene with @p file. The file is read first: if it
- *        cannot be read, the current scene is kept.
+ * @brief Replaces the scene with @p file. The file is checked first: if it
+ *        cannot be read or is not a scene, the current scene is kept.
  * @return The error, or nothing on success.
  */
 std::optional<std::string> openScene(

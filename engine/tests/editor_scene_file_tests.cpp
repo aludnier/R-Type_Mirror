@@ -107,3 +107,19 @@ TEST_CASE("Opening works without an AssetManager", "[editor]")
     REQUIRE_FALSE(SceneFile::openScene(fixture.context, fixture.file));
     CHECK(fixture.registry.entities().size() == 1);
 }
+
+TEST_CASE(
+    "Opening JSON that is not a scene keeps the current scene", "[editor]")
+{
+    SceneFileFixture fixture;
+    const auto kept = HierarchyPanel::createEntity(fixture.context);
+    {
+        std::ofstream assets(fixture.file);
+        assets << R"({"assets": {"player": {"path": "a.png"}}})";
+    }
+
+    CHECK(SceneFile::openScene(fixture.context, fixture.file));
+
+    CHECK(fixture.registry.entities() == std::vector {kept});
+    CHECK_FALSE(fixture.context.scenePath.has_value());
+}
