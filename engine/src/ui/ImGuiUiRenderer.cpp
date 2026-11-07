@@ -220,6 +220,7 @@ void RType::UI::ImGuiUiRenderer::renderInputText(
 {
     auto value = context.manager.getText(context.key);
     const std::string label = "##" + element.id;
+    ImGui::SetNextItemWidth(context.size.x);
     const bool changed = element.hint.empty()
         ? ImGui::InputText(label.c_str(), &value)
         : ImGui::InputTextWithHint(label.c_str(), element.hint.c_str(), &value);
@@ -234,6 +235,7 @@ void RType::UI::ImGuiUiRenderer::renderCheckbox(
     const UiElement &element, const RenderContext &context)
 {
     auto value = std::get<bool>(context.manager.getValue(context.key));
+    ImGui::SetNextItemWidth(context.size.x);
     if (ImGui::Checkbox(displayText(element).c_str(), &value))
         context.manager.setValue(context.key, value);
 }
@@ -243,6 +245,7 @@ void RType::UI::ImGuiUiRenderer::renderSlider(
     const UiElement &element, const RenderContext &context)
 {
     auto value = std::get<float>(context.manager.getValue(context.key));
+    ImGui::SetNextItemWidth(context.size.x);
     if (ImGui::SliderFloat(displayText(element).c_str(),
             &value,
             element.minimum,
