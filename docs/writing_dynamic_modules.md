@@ -296,6 +296,14 @@ If a subsystem is optional, the game must handle its absence explicitly:
 - show a useful diagnostic to the user or developer;
 - do not continue with a partially registered module.
 
+### Lua bindings
+
+A module never binds its components to Lua from its shared library: Lua is
+static, and the library would use its own copy on the host's state. Its
+bindings are a separate static library compiled in the host, see
+[`scripting.md`](scripting.md#bindings-of-a-dynamic-module) and
+`engine/modules/physics2D/scripting`.
+
 ## 8. Replacement and unloading rules
 
 Before unloading or replacing a module, the core must:
