@@ -210,11 +210,9 @@ private:
         addDllSearchDirectory(modulePath.parent_path());
         addDllSearchDirectory(executableDirectory());
 
-        HMODULE handle = LoadLibraryExA(
-            libFile.c_str(),
+        HMODULE handle = LoadLibraryExA(libFile.c_str(),
             nullptr,
-            LOAD_LIBRARY_SEARCH_DEFAULT_DIRS |
-                LOAD_LIBRARY_SEARCH_USER_DIRS);
+            LOAD_LIBRARY_SEARCH_DEFAULT_DIRS | LOAD_LIBRARY_SEARCH_USER_DIRS);
         if (handle && persistent) {
             HMODULE pinned = nullptr;
             GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_PIN |
