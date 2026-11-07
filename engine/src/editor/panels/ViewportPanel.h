@@ -17,9 +17,6 @@ public:
     static constexpr const char *TITLE = "Viewport";
 
     void draw(EditorContext &context);
-
-private:
-    const char *_title = TITLE;
 };
 } // namespace RType::Editor
 

@@ -20,7 +20,7 @@ ImGuiLayer::ImGuiLayer(Window &window)
     ImGui::CreateContext();
     ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
     ImGui::StyleColorsDark();
-    // true: ImGui installs its callbacks and chains the ones of the window.
+    // true: ImGui installs its callbacks, which call the window ones first.
     if (!ImGui_ImplGlfw_InitForOpenGL(window.nativeHandle(), true)) {
         ImGui::DestroyContext();
         throw std::runtime_error("cannot start the ImGui GLFW backend");

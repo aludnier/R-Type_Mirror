@@ -14,8 +14,8 @@ namespace RType::Editor {
 /**
  * @brief Runs ImGui (docking, GLFW and OpenGL 3 backends) in a window.
  *
- * The GLFW callbacks of the window keep working: ImGui calls them after its
- * own ones.
+ * The GLFW callbacks of the window keep working: ImGui installs its own and
+ * calls the previous ones first, so a key reaches the window, then ImGui.
  *
  * @note Create it after the window and destroy it before.
  */

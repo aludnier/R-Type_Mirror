@@ -12,25 +12,19 @@
 #include "editor/EditorContext.h"
 #include "editor/EditorShell.h"
 #include "editor/ImGuiLayer.h"
-#include "library/Keys.h"
 #include "platform/Application.h"
 
 namespace {
-constexpr RType::ActionId Quit = 0;
-
 class Editor : public RType::Application {
 public:
     Editor() :
         Application({.title = "Editor"}), _imgui(window())
     {
-        input().bind(Quit, RType::Key::Escape);
     }
 
 protected:
     void update(float /*dt*/) override
     {
-        if (input().isActionDown(Quit))
-            window().close();
     }
 
     void render() override

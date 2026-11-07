@@ -52,9 +52,9 @@ void EditorShell::drawMenuBar()
 {
     if (!ImGui::BeginMainMenuBar())
         return;
-    if (ImGui::BeginMenu("File"))
+    // Nothing in File and no play mode yet.
+    if (ImGui::BeginMenu("File", false))
         ImGui::EndMenu();
-    // Play mode is not there yet.
     ImGui::BeginDisabled();
     ImGui::MenuItem("Play");
     ImGui::MenuItem("Stop");
