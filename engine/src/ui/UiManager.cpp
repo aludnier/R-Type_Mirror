@@ -19,30 +19,26 @@ std::string valueKey(std::string_view key)
 } // namespace
 
 void RType::UI::UiManager::collectText(const UiElement &element,
-    const std::string &key, Values &values,
-    TextLimits &)
+    const std::string &key, Values &values, TextLimits &)
 {
     values.insert_or_assign(key, element.text);
 }
 
 void RType::UI::UiManager::collectInputText(const UiElement &element,
-    const std::string &key, Values &values,
-    TextLimits &textLimits)
+    const std::string &key, Values &values, TextLimits &textLimits)
 {
     values.insert_or_assign(key, element.text);
     textLimits.insert_or_assign(key, element.maxLength);
 }
 
 void RType::UI::UiManager::collectCheckbox(const UiElement &element,
-    const std::string &key, Values &values,
-    TextLimits &)
+    const std::string &key, Values &values, TextLimits &)
 {
     values.insert_or_assign(key, element.checked);
 }
 
 void RType::UI::UiManager::collectSlider(const UiElement &element,
-    const std::string &key, Values &values,
-    TextLimits &)
+    const std::string &key, Values &values, TextLimits &)
 {
     values.insert_or_assign(key, element.value);
 }
