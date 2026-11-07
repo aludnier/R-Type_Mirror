@@ -13,6 +13,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "components/Action.h"
 #include "editor/EditorContext.h"
 #include "scripting/ScriptEngine.h"
 
@@ -30,8 +31,11 @@ public:
      * @note Does nothing without an AssetManager, which the snapshot needs.
      */
     void play(EditorContext &context);
-    /** @brief Runs one step of the scene. Does nothing when not playing. */
-    void update(EditorContext &context, float dt);
+    /**
+     * @brief Runs one step of the scene. Does nothing when not playing.
+     * @param actions The active actions, given to every Controllable.
+     */
+    void update(EditorContext &context, float dt, ActionMask actions = 0);
     /** @brief Stops the scripts and restores the scene saved by play(). */
     void stop(EditorContext &context);
 

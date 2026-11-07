@@ -13,6 +13,7 @@
 
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
+#include "library/InputManager.h"
 #include "reflection/Reflection.h"
 #include "render/Framebuffer.h"
 #include "render/SceneRenderer.h"
@@ -25,6 +26,8 @@ struct EditorContext {
     const Reflection &reflection;
     /** @brief Lists the assets of AssetId fields. May be null. */
     const AssetManager *assets = nullptr;
+    /** @brief The actions of the game, for Play mode. May be null. */
+    const InputManager *input = nullptr;
     /** @brief Draws the scene in the viewport. Null in tests. */
     SceneRenderer *sceneRenderer = nullptr;
     /** @brief The image shown in the viewport. Null in tests. */
