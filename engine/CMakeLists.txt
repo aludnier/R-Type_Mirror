@@ -26,12 +26,14 @@ set(CORE_SRC
         src/math/Vector2.h
         src/math/Vector3.h
         src/components/Action.h
+        src/components/AudioSource.h
         src/components/Transform2D.h
         src/components/Transform3D.h
         src/components/Controllable.h
         src/components/Health.h
         src/components/Hitbox.h
         src/components/Name.h
+        src/components/MusicPlayer.h
         src/components/Sprite.h
         src/reflection/Reflection.cpp
         src/reflection/Reflection.h
@@ -93,6 +95,8 @@ find_package(SFML COMPONENTS Graphics Window System Audio CONFIG REQUIRED)
 find_package(ImGui-SFML CONFIG REQUIRED)
 
 set(CLIENT_SRC
+        src/audio/AudioManager.cpp
+        src/audio/AudioManager.h
         src/game/GameApp.cpp
         src/game/GameApp.h
         src/library/ClientAssetManager.cpp
@@ -104,6 +108,8 @@ set(CLIENT_SRC
         src/ui/ImGuiUiRenderer.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
+        src/systems/AudioSystem.cpp
+        src/systems/AudioSystem.h
 )
 
 add_library(engine_client STATIC ${CLIENT_SRC})
@@ -251,6 +257,8 @@ if (BUILD_TESTS)
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
             tests/library_manager_tests.cpp
+            tests/audio_tests.cpp
+            tests/audio_system_tests.cpp
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
             tests/lifetime_module_tests.cpp

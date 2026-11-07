@@ -19,6 +19,7 @@
 #include "library/ClientAssetManager.h"
 #include "library/InputManager.h"
 #include "library/PluginManager.h"
+#include "../systems/AudioSystem.h"
 
 namespace RType::Game {
 
@@ -79,6 +80,7 @@ protected:
     InputManager _inputManager {};
     ClientAssetManager _clientAssetManager {};
     AudioManager _audioManager {_clientAssetManager};
+    RType::AudioSystem _audioSystem {};
     Configuration _configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};
