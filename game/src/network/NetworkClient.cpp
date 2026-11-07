@@ -259,6 +259,12 @@ void NetworkClient::handleReceivedPacket(
             }
             break;
         }
+        case RType::Network::MessageType::PlaySound: {
+            if (auto payload = RType::Network::readPayload<
+                    RType::Network::PlaySoundPacket>(received.packet))
+                _pendingMessages.emplace_back(*payload);
+            break;
+        }
         default:
             break;
     }

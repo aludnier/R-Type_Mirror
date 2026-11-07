@@ -171,6 +171,19 @@ struct HeartbeatReplyPacket {
     static HeartbeatReplyPacket deserialize(ByteReader &reader);
     bool operator==(const HeartbeatReplyPacket &other) const = default;
 };
+
+struct PlaySoundPacket {
+    static constexpr auto TYPE = MessageType::PlaySound;
+    static constexpr bool RELIABLE = false;
+
+    std::string assetName;
+    float volume = 1.f;
+    float pitch = 1.f;
+
+    void serialize(ByteWriter &writer) const;
+    static PlaySoundPacket deserialize(ByteReader &reader);
+    bool operator==(const PlaySoundPacket &other) const = default;
+};
 } // namespace RType::Network
 
 #endif // SERVERPACKETS_H

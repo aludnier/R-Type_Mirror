@@ -17,6 +17,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -117,6 +118,24 @@ protected:
      *        Does nothing if it is not replicated.
      */
     void despawnEntity(Entity entity);
+
+    /**
+     * @brief Asks one client, or every connected client, to play a sound.
+     * @throws std::length_error If @p assetName exceeds MAX_STRING_SIZE.
+     */
+    void playSound(const std::string &assetName, float volume = 1.f,
+        float pitch = 1.f,
+        std::optional<Network::ClientId> target = std::nullopt)
+    {
+        if (assetName.size() > Network::MAX_STRING_SIZE)
+            throw std::length_error("sound asset name exceeds MAX_STRING_SIZE");
+        Network::PlaySoundPacket packet {
+            .assetName = assetName, .volume = volume, .pitch = pitch};
+        if (target)
+            sendTo(*target, packet);
+        else
+            sendToAll(packet);
+    }
 
 private:
     using ReceivedPacket = Network::NetworkThread::ReceivedPacket;
