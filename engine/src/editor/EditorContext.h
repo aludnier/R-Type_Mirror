@@ -8,6 +8,7 @@
 #ifndef EDITORCONTEXT_H_
 #define EDITORCONTEXT_H_
 
+#include <filesystem>
 #include <optional>
 
 #include "ecs/Registry.h"
@@ -24,6 +25,8 @@ struct EditorContext {
     const AssetManager *assets = nullptr;
     /** @brief True while the scene plays: the panels must not edit it. */
     bool readOnly = false;
+    /** @brief The file the scene was opened from or saved to, if any. */
+    std::optional<std::filesystem::path> scenePath;
     /**
      * @brief The entity shown in the inspector, if any. Read it with
      *        selectedEntity(): it may have been killed since.
