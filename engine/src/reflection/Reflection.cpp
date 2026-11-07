@@ -15,6 +15,7 @@
 #include "components/Name.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
+#include "scripting/ScriptComponent.h"
 
 std::vector<RType::ComponentInfo> &RType::Reflection::components()
 {
@@ -50,7 +51,7 @@ void RType::reflectCoreComponents(Reflection &reflection)
         .field("current", &Health::current)
         .field("max", &Health::max);
     reflection.reflect<Sprite>("Sprite")
-        .field("assetId", &Sprite::assetId)
+        .asset("assetId", &Sprite::assetId)
         .field("rectLeft", &Sprite::rectLeft)
         .field("rectTop", &Sprite::rectTop)
         .field("rectWidth", &Sprite::rectWidth)
@@ -66,4 +67,6 @@ void RType::reflectCoreComponents(Reflection &reflection)
     // actionMask is the input of the current frame: not worth editing or
     // saving, only the presence of the component matters.
     reflection.reflect<Controllable>("Controllable");
+    reflection.reflect<ScriptComponent>("Script").field(
+        "scripts", &ScriptComponent::scripts);
 }

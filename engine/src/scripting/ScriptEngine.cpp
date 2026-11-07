@@ -34,8 +34,17 @@ RType::entity_id_type toEntityId(lua_Integer value)
 RType::ScriptEngine::ScriptEngine(Registry &registry) :
     _registry(registry)
 {
+    // ScriptData holds Lua references of a previous state: always start empty.
     _registry.registerComponent<ScriptData>();
-    _registry.registerComponent<ScriptComponent>();
+    // Keep the scripts attached before the engine starts (scenes, editor), but
+    // run their on_start again in this new Lua state.
+    if (_registry.isRegistered<ScriptComponent>()) {
+        for (auto &script : _registry.getComponents<ScriptComponent>())
+            if (script)
+                script->started = 0;
+    } else {
+        _registry.registerComponent<ScriptComponent>();
+    }
     openSandbox();
     Scripting::bindCoreTypes(_lua);
     bindCoreComponents();

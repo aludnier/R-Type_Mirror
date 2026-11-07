@@ -34,6 +34,8 @@ set(CORE_SRC
         src/components/Sprite.h
         src/reflection/Reflection.cpp
         src/reflection/Reflection.h
+        src/scene/Scene.cpp
+        src/scene/Scene.h
         src/systems/ControllableSystem.cpp
         src/systems/ControllableSystem.h
         src/library/AssetManager.cpp
@@ -232,6 +234,7 @@ if (BUILD_TESTS)
             tests/nlohman_reader_test.cpp
             tests/fixed_step_tests.cpp
             tests/reflection_tests.cpp
+            tests/scene_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)

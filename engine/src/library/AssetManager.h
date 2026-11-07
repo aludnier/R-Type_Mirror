@@ -48,6 +48,12 @@ public:
     std::optional<std::reference_wrapper<const Asset>> getAssetById(
         std::uint32_t id) const;
 
+    /**
+     * @brief Gets the name of an asset from its id.
+     * @return The name, or std::nullopt if the id is unknown.
+     */
+    std::optional<std::string> getAssetName(std::uint32_t id) const;
+
 private:
     RType::nlohamReader _reader;
     std::unordered_map<std::string, Asset> _assets;

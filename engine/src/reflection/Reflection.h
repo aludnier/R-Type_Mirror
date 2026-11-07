@@ -12,6 +12,7 @@
 #include <concepts>
 #include <cstddef>
 #include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -32,6 +33,13 @@ enum class FieldType {
     Vector2,
     UInt8,
     UInt32,
+    /** @brief `std::vector<std::filesystem::path>`, like script paths. */
+    PathList,
+    /**
+     * @brief `std::uint32_t` id of a AssetManager asset. Scene files save
+     *        it as the asset name, the editor can show a list of assets.
+     */
+    AssetId,
 };
 
 /**
@@ -84,6 +92,12 @@ constexpr FieldType fieldTypeOf<std::uint32_t>()
     return FieldType::UInt32;
 }
 
+template<>
+constexpr FieldType fieldTypeOf<std::vector<std::filesystem::path>>()
+{
+    return FieldType::PathList;
+}
+
 /**
  * @brief One reflected member of a component.
  *
@@ -96,7 +110,10 @@ struct FieldInfo {
     FieldType type;
     std::function<void *(void *component)> get;
 
-    /** @brief Typed access to the member, @p T must match @ref type. */
+    /**
+     * @brief Typed access to the member, @p T must match @ref type.
+     * @note An AssetId field is read as `std::uint32_t`.
+     */
     template<typename T>
     T &as(void *component) const;
 };
@@ -167,6 +184,15 @@ public:
             return *this;
         }
 
+        /** @brief Declares a AssetManager asset id (FieldType::AssetId). */
+        Builder &asset(const std::string &name, std::uint32_t C::*member)
+        {
+            field(name, member);
+            _reflection._components[_index].fields.back().type =
+                FieldType::AssetId;
+            return *this;
+        }
+
     private:
         Reflection &_reflection;
         std::size_t _index;
@@ -194,9 +220,11 @@ private:
 
 /**
  * @brief Declares the engine components: Name, Transform2D, Health, Sprite,
- *        Hitbox and Controllable.
- * @note Sprite::assetId is a raw id for now. Scene files must save it as an
- *       asset name instead, ids are not stable between runs.
+ *        Hitbox, Controllable and Script (ScriptComponent).
+ * @note Sprite::assetId is an AssetId field: scene files save the asset name,
+ *       ids are not stable between runs.
+ * @note Only ScriptComponent::scripts is reflected: `started` is runtime state
+ *       and goes back to 0 when a scene is loaded.
  */
 void reflectCoreComponents(Reflection &reflection);
 
@@ -247,7 +275,9 @@ template<typename T>
 T &FieldInfo::as(void *component) const
 {
     assert(component != nullptr && "FieldInfo::as on a missing component");
-    assert(fieldTypeOf<T>() == type &&
+    assert((fieldTypeOf<T>() == type ||
+               (type == FieldType::AssetId &&
+                   fieldTypeOf<T>() == FieldType::UInt32)) &&
         "FieldInfo::as with a type that does not match the field");
     return *static_cast<T *>(get(component));
 }
