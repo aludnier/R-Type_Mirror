@@ -239,6 +239,7 @@ if (BUILD_TESTS)
             tests/fixed_step_tests.cpp
             tests/reflection_tests.cpp
             tests/scene_tests.cpp
+            tests/ui_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
