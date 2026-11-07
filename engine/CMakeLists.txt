@@ -300,6 +300,7 @@ if (BUILD_TESTS)
 
     add_executable(engine_editor_tests
             tests/editor_shell_tests.cpp
+            tests/editor_hierarchy_tests.cpp
     )
 
     target_link_libraries(engine_editor_tests PRIVATE engine_editor Catch2::Catch2WithMain)

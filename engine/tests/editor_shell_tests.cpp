@@ -69,7 +69,7 @@ TEST_CASE("Editor context holds one selection", "[editor]")
     RType::Registry registry;
     RType::Editor::EditorContext context {.registry = registry};
 
-    CHECK_FALSE(context.selected.has_value());
+    CHECK_FALSE(context.selectedEntity().has_value());
     context.selected = registry.spawnEntity();
-    CHECK(context.selected == registry.entities().front());
+    CHECK(context.selectedEntity() == registry.entities().front());
 }
