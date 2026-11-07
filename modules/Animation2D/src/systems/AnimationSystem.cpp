@@ -20,7 +20,8 @@ AnimationClip AnimationSystem::createSpriteSheetClip(AnimationFrame region,
         .sheetFrameCount = frameCount};
 }
 
-bool AnimationSystem::addClip(Animator &animator, std::string name, AnimationClip clip)
+bool AnimationSystem::addClip(
+    Animator &animator, std::string name, AnimationClip clip)
 {
     if (name.empty() || !isValid(clip)) {
         return false;
@@ -29,8 +30,8 @@ bool AnimationSystem::addClip(Animator &animator, std::string name, AnimationCli
     return true;
 }
 
-bool AnimationSystem::play(Animator &animator, const std::string &name, bool loop,
-    bool restart)
+bool AnimationSystem::play(
+    Animator &animator, const std::string &name, bool loop, bool restart)
 {
     const auto clip = animator.clips.find(name);
     if (clip == animator.clips.end()) {
@@ -103,8 +104,7 @@ void AnimationSystem::addSystem(Registry &registry)
         });
 }
 
-std::size_t AnimationSystem::sheetFrameCount(
-    const AnimationClip &clip)
+std::size_t AnimationSystem::sheetFrameCount(const AnimationClip &clip)
 {
     if (clip.frameWidth <= 0 || clip.frameHeight <= 0 ||
         clip.sheetRegion.width <= 0 || clip.sheetRegion.height <= 0) {
@@ -117,8 +117,7 @@ std::size_t AnimationSystem::sheetFrameCount(
     return std::min(clip.sheetFrameCount, columns * rows);
 }
 
-float AnimationSystem::deltaTime(
-    SparseArray<AnimationSettings> &settings)
+float AnimationSystem::deltaTime(SparseArray<AnimationSettings> &settings)
 {
     for (const auto &setting : settings) {
         if (setting) {
@@ -137,8 +136,8 @@ void AnimationSystem::setSpriteFrame(
     sprite.rectHeight = frame.height;
 }
 
-void AnimationSystem::advanceNonLooping(Animator &animator,
-    double elapsed, double steps, float duration, std::size_t count)
+void AnimationSystem::advanceNonLooping(Animator &animator, double elapsed,
+    double steps, float duration, std::size_t count)
 {
     const auto remaining = count - animator.frameIndex - 1;
     if (steps >= static_cast<double>(remaining)) {
@@ -149,7 +148,6 @@ void AnimationSystem::advanceNonLooping(Animator &animator,
     animator.frameIndex += static_cast<std::size_t>(steps);
     animator.timer = static_cast<float>(std::fmod(elapsed, duration));
 }
-
 
 void AnimationSystem::advanceFrame(
     Animator &animator, const AnimationClip &clip, std::size_t count, float dt)
@@ -199,5 +197,4 @@ void AnimationSystem::updateOne(Animator &animator, Sprite &sprite, float dt)
     }
 }
 
-} // namespace
-
+} // namespace RType::Animation

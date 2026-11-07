@@ -24,7 +24,8 @@ public:
     static AnimationClip createSpriteSheetClip(AnimationFrame region,
         int frameWidth, int frameHeight, std::size_t frameCount,
         float frameDuration);
-    static bool addClip(Animator &animator, std::string name, AnimationClip clip);
+    static bool addClip(
+        Animator &animator, std::string name, AnimationClip clip);
     static bool play(Animator &animator, const std::string &name,
         bool loop = true, bool restart = true);
     static std::size_t frameCount(const AnimationClip &clip);
