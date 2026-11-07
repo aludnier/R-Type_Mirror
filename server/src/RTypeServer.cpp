@@ -11,12 +11,15 @@
 #include <cstdint>
 #include <unordered_set>
 
+#include "Enemy.h"
+#include "RTypeScripting.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
 #include "network/ByteWriter.h"
+#include "scripting/ScriptComponent.h"
 
 namespace RType {
 namespace {
@@ -33,12 +36,9 @@ namespace {
     constexpr float CHARGE_TIME = 1.5f;
     constexpr float LASER_COOLDOWN = 0.15f;
 
-    constexpr float ENEMY_SPAWN_INTERVAL = 1.5f;
-    constexpr float ENEMY_SPEED = 150.f;
-    constexpr float ENEMY_WAVE_AMPLITUDE = 60.f;
-    constexpr float ENEMY_WAVE_FREQUENCY = 2.f;
-    constexpr float ENEMY_SHOOT_INTERVAL = 2.f;
     constexpr int ENEMY_HEALTH = 2;
+    /** @brief Entity script of every Bydo, in the script directory. */
+    constexpr const char *ENEMY_SCRIPT = "bydo.lua";
 
     /** @brief A projectile moving in a straight line. */
     struct Projectile {
@@ -47,13 +47,6 @@ namespace {
         bool fromPlayer = true;
         /** @brief Goes through the enemies it hits (charged beam). */
         bool piercing = false;
-    };
-
-    /** @brief A Bydo flying left on a sine wave. */
-    struct Enemy {
-        float baseY = 0.f;
-        float elapsed = 0.f;
-        float shootTimer = 0.f;
     };
 
     struct ProjectileStats {
@@ -118,7 +111,19 @@ namespace {
 } // namespace
 
 RTypeServer::RTypeServer(const ServerConfig &config) :
-    GameServer(config)
+    GameServer(config), _scripts(registry())
+{
+    setup(ENGINE_MODULE_DIR "/../config/scripts.json");
+}
+
+RTypeServer::RTypeServer(const Configuration &configuration) :
+    GameServer(configuration), _scripts(registry())
+{
+    // Next to the game configuration.
+    setup(configuration.path().parent_path() / "scripts.json");
+}
+
+void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
 {
     Registry &reg = registry();
 
@@ -128,24 +133,28 @@ RTypeServer::RTypeServer(const ServerConfig &config) :
     reg.registerComponent<Hitbox>();
     // Runs after the engine's systems: players have moved this tick.
     reg.addSystem<Transform2D>([this](auto &) { step(); });
-}
 
-RTypeServer::RTypeServer(const Configuration &configuration) :
-    GameServer(configuration)
-{
-    Registry &reg = registry();
-    reg.registerComponent<Projectile>();
-    reg.registerComponent<Enemy>();
-    reg.registerComponent<Health>();
-    reg.registerComponent<Hitbox>();
-    reg.addSystem<Transform2D>([this](auto &) { step(); });
+    // An entity killed by a script also disappears on the clients.
+    _scripts.setKillHandler([this](Entity entity) {
+        despawnEntity(entity);
+        // Not replicated: despawnEntity() did not kill it.
+        if (!registry().isPendingKill(entity)) {
+            registry().killEntity(entity);
+        }
+    });
+    // Spawned at the end of the tick, like the projectiles.
+    bindRTypeScripting(_scripts,
+        {SCREEN_WIDTH, SCREEN_HEIGHT},
+        [this](EntityKind kind, Vector2 position) {
+            _pendingSpawns.push_back({kind, position});
+        });
+    _scripts.loadConfigFile(scriptsConfig);
 }
 
 void RTypeServer::step()
 {
     updateWeapons();
-    spawnEnemies();
-    updateEnemies();
+    runScripts();
     moveProjectiles();
     resolveHits();
     cleanupOutOfBounds();
@@ -189,44 +198,12 @@ void RTypeServer::updateWeapons()
     }
 }
 
-void RTypeServer::spawnEnemies()
+void RTypeServer::runScripts()
 {
-    _enemySpawnTimer += tickDelta();
-    if (_enemySpawnTimer < ENEMY_SPAWN_INTERVAL) {
-        return;
-    }
-    _enemySpawnTimer = 0.f;
-    std::uniform_real_distribution y(ENEMY_WAVE_AMPLITUDE + 40.f,
-        SCREEN_HEIGHT - ENEMY_WAVE_AMPLITUDE - 40.f);
-
-    _pendingSpawns.push_back(
-        {EntityKind::Enemy, {SCREEN_WIDTH + 40.f, y(_random)}});
-}
-
-void RTypeServer::updateEnemies()
-{
-    auto &transforms = registry().getComponents<Transform2D>();
-    auto &enemies = registry().getComponents<Enemy>();
-    float dt = tickDelta();
-
-    for (std::size_t i = 0; i < enemies.size(); ++i) {
-        if (!enemies[i] || !has(transforms, i)) {
-            continue;
-        }
-        auto &[baseY, elapsed, shootTimer] = *enemies[i];
-        Vector2 &position = transforms[i]->position;
-
-        elapsed += dt;
-        position.x -= ENEMY_SPEED * dt;
-        position.y = baseY +
-            std::sin(elapsed * ENEMY_WAVE_FREQUENCY) * ENEMY_WAVE_AMPLITUDE;
-        shootTimer += dt;
-        if (shootTimer >= ENEMY_SHOOT_INTERVAL && position.x < SCREEN_WIDTH) {
-            shootTimer = 0.f;
-            _pendingSpawns.push_back(
-                {EntityKind::EnemyBullet, {position.x - 20.f, position.y}});
-        }
-    }
+    _scripts.setDeltaTime(tickDelta());
+    // A script error is printed by the engine and only disables that
+    // script: the game goes on.
+    _scripts.update(registry().getComponents<ScriptComponent>());
 }
 
 void RTypeServer::moveProjectiles()
@@ -338,6 +315,7 @@ void RTypeServer::spawn(const SpawnRequest &request)
         reg.addComponent(entity, Enemy {request.position.y, 0.f, 0.f});
         reg.addComponent(entity, Health {ENEMY_HEALTH});
         reg.addComponent(entity, Hitbox {size});
+        reg.addComponent(entity, ScriptComponent {{ENEMY_SCRIPT}});
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
         return;

@@ -26,6 +26,7 @@ never links the client library, so it never depends on the graphics library.
 | `game/`           | `r-type_client`                                         |
 | `engine/modules/` | dynamic modules (see `docs/writing_dynamic_modules.md`) |
 | `engine/scripts/` | example Lua scripts (see `docs/scripting.md`)           |
+| `server/scripts/` | R-Type server game scripts (see `docs/scripting.md`)    |
 | `docs/`           | network protocol (`protocol.md`), architecture diagrams |
 
 ## Requirements

@@ -6,6 +6,7 @@
 #include <fstream>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 #include "TestActions.h"
 #include "components/Controllable.h"
@@ -260,6 +261,37 @@ TEST_CASE("Killed entities lose their components at the end of the frame",
     const auto id = scripts.lua()["enemy"].get<RType::entity_id_type>();
     CHECK_FALSE(registry.getComponents<RType::Health>()[id].has_value());
     CHECK_FALSE(registry.getComponents<RType::ScriptData>()[id].has_value());
+}
+
+TEST_CASE("A kill handler replaces what world.kill does", "[scripting]")
+{
+    RType::Registry registry;
+    registerCoreComponents(registry);
+    RType::ScriptEngine scripts(registry);
+    RType::addScriptSystem(registry, scripts);
+    std::vector<RType::entity_id_type> killed;
+    scripts.setKillHandler([&killed](RType::Entity entity) {
+        killed.push_back(static_cast<RType::entity_id_type>(entity));
+    });
+
+    REQUIRE(scripts.loadString(R"(
+        enemy = world.spawn()
+        world.add(enemy, "Health", Health.new(1))
+        world.kill(enemy)
+    )"));
+    registry.runSystems();
+
+    const auto id = scripts.lua()["enemy"].get<RType::entity_id_type>();
+    REQUIRE(killed == std::vector {id});
+    // The handler did not kill it: the entity is still there.
+    CHECK(registry.getComponents<RType::Health>()[id].has_value());
+
+    scripts.setKillHandler(nullptr);
+    REQUIRE(scripts.loadString("world.kill(enemy)"));
+    registry.runSystems();
+
+    CHECK(killed.size() == 1);
+    CHECK_FALSE(registry.getComponents<RType::Health>()[id].has_value());
 }
 
 TEST_CASE("world.data keeps per-entity Lua fields", "[scripting]")

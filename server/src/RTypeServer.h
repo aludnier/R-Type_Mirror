@@ -10,12 +10,12 @@
 
 #include <cstddef>
 #include <filesystem>
-#include <random>
 #include <unordered_map>
 #include <vector>
 
 #include "GameProtocol.h"
 #include "math/Vector2.h"
+#include "scripting/ScriptEngine.h"
 #include "server/GameServer.h"
 
 namespace RType {
@@ -23,6 +23,9 @@ namespace RType {
  * @brief The R-Type game on top of the engine server: the server decides
  *        when a player shoots, spawns the Bydos and resolves the hits, so
  *        that every client sees the same projectiles and enemies.
+ *
+ * The enemy waves and the Bydo behaviour are Lua scripts
+ * (server/scripts), listed in config/scripts.json.
  */
 class RTypeServer : public GameServer {
 public:
@@ -43,10 +46,17 @@ private:
         float cooldown = 0.f;
     };
 
+    /**
+     * @brief Registers the game components and systems, and loads the
+     *        scripts listed in @p scriptsConfig.
+     * @throws std::runtime_error If a script cannot be loaded.
+     */
+    void setup(const std::filesystem::path &scriptsConfig);
+
     void step();
     void updateWeapons();
-    void spawnEnemies();
-    void updateEnemies();
+    /** @brief Runs the game scripts, then the script of each entity. */
+    void runScripts();
     void moveProjectiles();
     void resolveHits();
     void cleanupOutOfBounds();
@@ -58,8 +68,8 @@ private:
 
     std::vector<SpawnRequest> _pendingSpawns;
     std::unordered_map<std::size_t, Weapon> _weapons;
-    float _enemySpawnTimer = 0.f;
-    std::mt19937 _random {std::random_device {}()};
+    // Member of the derived class: destroyed before the registry.
+    ScriptEngine _scripts;
 };
 } // namespace RType
 

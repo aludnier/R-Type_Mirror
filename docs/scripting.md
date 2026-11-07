@@ -63,6 +63,7 @@ the config file location:
 | `reload()` | Drops the script systems, runs the files again and reloads entity scripts (hot reload). Entities and `world.data` are kept. |
 | `setDeltaTime(dt)` | Delta time passed to the script systems on the next `runSystems()`. |
 | `bindComponent<C>(name)` | Makes a C++ component usable from scripts. |
+| `setKillHandler(fn)` | Makes `world.kill(e)` call `fn(entity)` instead of `Registry::killEntity()` (e.g. a server that must tell its clients). `fn` kills the entity itself; an empty function restores the default. |
 | `lastError()` | Last script error, empty if none. |
 | `lua()` | The underlying `sol::state`, to bind extra types. |
 
@@ -113,7 +114,7 @@ Entities are integers. Components are accessed by name.
 | Function | Description |
 |---|---|
 | `world.spawn()` | Creates an entity and returns its id. |
-| `world.kill(e)` | Destroys `e` at the end of the frame. |
+| `world.kill(e)` | Destroys `e` at the end of the frame (or calls the host's kill handler, see `setKillHandler`). |
 | `world.add(e, name, value)` | Adds a component (`value` may be omitted for a default one) and returns it. |
 | `world.get(e, name)` | Returns the component, or `nil`. |
 | `world.has(e, name)` | Tells whether `e` has the component. |
@@ -161,7 +162,45 @@ A complete example is in [`engine/scripts/examples/waves.lua`](../engine/scripts
 (game script spawning waves) and [`engine/scripts/examples/enemy.lua`](../engine/scripts/examples/enemy.lua)
 (entity script of each enemy).
 
-## 3. Safety
+## 3. The R-Type server scripts
+
+`r-type_server` runs the enemies from Lua: the waves and the Bydo behaviour
+are scripts in [`server/scripts`](../server/scripts), listed in
+`config/scripts.json`, which the server reads next to `game.json` (the copy in
+the build tree uses the same layout):
+
+```json
+{ "directory": "../server/scripts", "scripts": ["waves.lua"] }
+```
+
+- [`waves.lua`](../server/scripts/waves.lua), game script: a
+  `world.add_system` that spawns a Bydo past the right edge every 1.5 s, at a
+  random height.
+- [`bydo.lua`](../server/scripts/bydo.lua), entity script attached by the
+  server to every enemy it spawns: flies left on a sine wave and shoots an
+  `EnemyBullet` every 2 s once on screen.
+
+Every tick, after the player weapons, `RTypeServer` sets the delta time and
+runs the scripts, then moves the projectiles, resolves the hits, removes what
+left the screen and spawns what was requested. The scripts change the
+components of entities the server already replicates, so their positions reach
+the clients like any other entity.
+
+On top of the `world` API, the server gives the scripts:
+
+| Name | Description |
+|---|---|
+| `rtype.spawn(kind, x, y)` | Spawns a replicated `"Enemy"`, `"EnemyBullet"`, `"PlayerLaser"` or `"ChargedBeam"` at the end of the tick (nothing is returned). An enemy gets its health, hitbox and `bydo.lua`; a projectile its speed and damage. |
+| `rtype.SCREEN_WIDTH`, `rtype.SCREEN_HEIGHT` | Size of the play area, in pixels (1920 x 1080). |
+| `Enemy` component | State of a Bydo: `base_y` (spawn height), `elapsed` and `shoot_timer` (seconds). |
+
+`world.kill(e)` goes through the server's kill handler: a replicated entity is
+also removed on the clients (`ENTITY_DESPAWN`). Random numbers come from
+`math.random`. A script error is printed on stderr and disables that script
+only; the server keeps running. A script that cannot be loaded at startup stops
+the server with an error.
+
+## 4. Safety
 
 - **Sandbox**: only the `base`, `math`, `string`, `table`, `coroutine` and
   `utf8` libraries are opened. `io`, `os`, `package`, `debug`, `require`,
@@ -176,7 +215,7 @@ A complete example is in [`engine/scripts/examples/waves.lua`](../engine/scripts
   types, unknown components and negative entity ids raise Lua errors instead
   of undefined behaviour.
 
-## 4. Why Lua (comparative study)
+## 5. Why Lua (comparative study)
 
 | Criteria | Lua 5.5 + sol2 | Python + pybind11 | AngelScript / ChaiScript | JavaScript (QuickJS) |
 |---|---|---|---|---|
