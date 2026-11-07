@@ -6,6 +6,7 @@
 #include "ecs/Registry.h"
 #include "editor/EditorContext.h"
 #include "editor/EditorShell.h"
+#include "library/InputManager.h"
 #include "reflection/Reflection.h"
 
 namespace {
@@ -77,4 +78,26 @@ TEST_CASE("Editor context holds one selection", "[editor]")
     CHECK_FALSE(context.selectedEntity().has_value());
     context.selected = registry.spawnEntity();
     CHECK(context.selectedEntity() == registry.entities().front());
+}
+
+TEST_CASE("Game actions stop while ImGui uses the keyboard", "[editor]")
+{
+    HeadlessImGui imgui;
+    RType::Registry registry;
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
+    using RType::Editor::EditorShell;
+
+    CHECK(EditorShell::gameActions(context) == 0);
+
+    InputManager input;
+    input.defineAction("Shoot", 0);
+    input.bind(0, 32);
+    input.setKeyState(32, true);
+    context.input = &input;
+
+    CHECK(EditorShell::gameActions(context) == 1);
+    ImGui::GetIO().WantCaptureKeyboard = true;
+    CHECK(EditorShell::gameActions(context) == 0);
 }

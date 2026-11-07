@@ -7,6 +7,7 @@
 
 #include "PlayMode.h"
 
+#include "components/Controllable.h"
 #include "ecs/SparseArray.h"
 #include "scene/Scene.h"
 #include "scripting/ScriptComponent.h"
@@ -22,13 +23,19 @@ void PlayMode::play(EditorContext &context)
     _snapshot =
         Scene::toJson(context.registry, context.reflection, *context.assets);
     _scripts.emplace(context.registry);
+    if (context.input != nullptr)
+        for (const auto &[name, action] : context.input->actions())
+            _scripts->defineAction(name, action);
     context.readOnly = true;
 }
 
-void PlayMode::update(EditorContext &context, float dt)
+void PlayMode::update(EditorContext &context, float dt, ActionMask actions)
 {
     if (!isPlaying())
         return;
+    for (auto &controllable : context.registry.getComponents<Controllable>())
+        if (controllable)
+            controllable->actionMask = actions;
     _scripts->setDeltaTime(dt);
     _scripts->update(context.registry.getComponents<ScriptComponent>());
     context.registry.runSystems();

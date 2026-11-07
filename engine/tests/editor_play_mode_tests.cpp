@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "components/Controllable.h"
 #include "components/Name.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
@@ -14,6 +15,7 @@
 #include "editor/PlayMode.h"
 #include "editor/panels/HierarchyPanel.h"
 #include "library/AssetManager.h"
+#include "library/InputManager.h"
 #include "reflection/Reflection.h"
 #include "scripting/ScriptComponent.h"
 
@@ -29,6 +31,17 @@ return {
         local transform = world.get(id, "Transform2D")
         transform.position = transform.position + Vector2.new(10, 0)
         world.spawn()
+    end,
+}
+)";
+
+constexpr const char *INPUT_SCRIPT = R"(
+return {
+    on_update = function(id, dt)
+        local transform = world.get(id, "Transform2D")
+        if world.get(id, "Controllable"):is_active(Action.Right) then
+            transform.position = transform.position + Vector2.new(5, 0)
+        end
     end,
 }
 )";
@@ -171,4 +184,28 @@ TEST_CASE("Update and Stop do nothing when not playing", "[editor]")
 
     CHECK(fixture.registry.isAlive(entity));
     CHECK(fixture.context.selectedEntity() == entity);
+}
+
+TEST_CASE("Scripts read the actions during Play", "[editor]")
+{
+    PlayFixture fixture;
+    InputManager input;
+    constexpr RType::ActionId right = 3;
+    constexpr RType::ActionMask pressed = RType::ActionMask {1} << right;
+    input.defineAction("Right", right);
+    fixture.context.input = &input;
+    std::ofstream(fixture.script) << INPUT_SCRIPT;
+    const auto entity = fixture.scripted();
+    fixture.reflection.find("Controllable")->add(fixture.registry, entity);
+
+    fixture.play.play(fixture.context);
+    const auto &transforms =
+        fixture.registry.getComponents<RType::Transform2D>();
+
+    fixture.play.update(fixture.context, 1.f / 60.f, 0);
+    CHECK(transforms[entity]->position.x == 0.f);
+    fixture.play.update(fixture.context, 1.f / 60.f, pressed);
+    CHECK(transforms[entity]->position.x == 5.f);
+    fixture.play.update(fixture.context, 1.f / 60.f, 0);
+    CHECK(transforms[entity]->position.x == 5.f);
 }
