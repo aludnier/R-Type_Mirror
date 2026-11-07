@@ -390,8 +390,7 @@ void RType::ScriptEngine::setDeltaTime(float dt)
     _deltaTime = dt;
 }
 
-void RType::ScriptEngine::setKillHandler(
-    std::function<void(Entity)> handler)
+void RType::ScriptEngine::setKillHandler(std::function<void(Entity)> handler)
 {
     _killHandler = std::move(handler);
 }
