@@ -9,6 +9,7 @@
 #define EDITORSHELL_H_
 
 #include "editor/EditorContext.h"
+#include "editor/FileMenu.h"
 #include "editor/panels/HierarchyPanel.h"
 #include "editor/panels/InspectorPanel.h"
 #include "editor/panels/ViewportPanel.h"
@@ -27,8 +28,9 @@ public:
     void draw(EditorContext &context);
 
 private:
-    static void drawMenuBar();
+    void drawMenuBar(EditorContext &context);
 
+    FileMenu _fileMenu;
     HierarchyPanel _hierarchy;
     ViewportPanel _viewport;
     InspectorPanel _inspector;

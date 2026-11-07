@@ -156,8 +156,12 @@ set(EDITOR_SRC
         src/editor/EditorContext.h
         src/editor/EditorShell.cpp
         src/editor/EditorShell.h
+        src/editor/FileMenu.cpp
+        src/editor/FileMenu.h
         src/editor/ImGuiLayer.cpp
         src/editor/ImGuiLayer.h
+        src/editor/SceneFile.cpp
+        src/editor/SceneFile.h
         src/editor/panels/HierarchyPanel.cpp
         src/editor/panels/HierarchyPanel.h
         src/editor/panels/InspectorPanel.cpp
@@ -306,6 +310,7 @@ if (BUILD_TESTS)
             tests/editor_shell_tests.cpp
             tests/editor_hierarchy_tests.cpp
             tests/editor_inspector_tests.cpp
+            tests/editor_scene_file_tests.cpp
     )
 
     target_link_libraries(engine_editor_tests PRIVATE engine_editor Catch2::Catch2WithMain)

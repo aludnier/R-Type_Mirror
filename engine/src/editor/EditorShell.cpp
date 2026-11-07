@@ -34,7 +34,7 @@ void buildDefaultLayout(ImGuiID dockspace, const ImGuiViewport *viewport)
 namespace RType::Editor {
 void EditorShell::draw(EditorContext &context)
 {
-    drawMenuBar();
+    drawMenuBar(context);
 
     const ImGuiViewport *viewport = ImGui::GetMainViewport();
     const ImGuiID dockspace = ImGui::GetID("EditorDockSpace");
@@ -48,17 +48,21 @@ void EditorShell::draw(EditorContext &context)
     _inspector.draw(context);
 }
 
-void EditorShell::drawMenuBar()
+void EditorShell::drawMenuBar(EditorContext &context)
 {
-    if (!ImGui::BeginMainMenuBar())
-        return;
-    // Nothing in File and no play mode yet.
-    if (ImGui::BeginMenu("File", false))
-        ImGui::EndMenu();
-    ImGui::BeginDisabled();
-    ImGui::MenuItem("Play");
-    ImGui::MenuItem("Stop");
-    ImGui::EndDisabled();
-    ImGui::EndMainMenuBar();
+    if (ImGui::BeginMainMenuBar()) {
+        _fileMenu.drawMenu(context);
+        // No play mode yet.
+        ImGui::BeginDisabled();
+        ImGui::MenuItem("Play");
+        ImGui::MenuItem("Stop");
+        ImGui::EndDisabled();
+        ImGui::Separator();
+        ImGui::TextDisabled("%s",
+            context.scenePath ? context.scenePath->filename().string().c_str()
+                              : "untitled");
+        ImGui::EndMainMenuBar();
+    }
+    _fileMenu.drawPopups(context);
 }
 } // namespace RType::Editor
