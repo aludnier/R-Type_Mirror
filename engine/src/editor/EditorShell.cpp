@@ -52,11 +52,12 @@ void EditorShell::drawMenuBar(EditorContext &context)
 {
     if (ImGui::BeginMainMenuBar()) {
         _fileMenu.drawMenu(context);
-        // No play mode yet.
-        ImGui::BeginDisabled();
-        ImGui::MenuItem("Play");
-        ImGui::MenuItem("Stop");
-        ImGui::EndDisabled();
+        const bool playing = _playMode.isPlaying();
+        if (ImGui::MenuItem(
+                "Play", nullptr, false, !playing && context.assets != nullptr))
+            _playMode.play(context);
+        if (ImGui::MenuItem("Stop", nullptr, false, playing))
+            _playMode.stop(context);
         ImGui::Separator();
         ImGui::TextDisabled("%s",
             context.scenePath ? context.scenePath->filename().string().c_str()
@@ -64,5 +65,10 @@ void EditorShell::drawMenuBar(EditorContext &context)
         ImGui::EndMainMenuBar();
     }
     _fileMenu.drawPopups(context);
+}
+
+void EditorShell::update(EditorContext &context, float dt)
+{
+    _playMode.update(context, dt);
 }
 } // namespace RType::Editor
