@@ -19,7 +19,7 @@ SceneRenderer::SceneRenderer(const AssetManager &assets) :
 }
 
 void SceneRenderer::render(
-    Registry &registry, const Window &target, const Camera2D &camera)
+    Registry &registry, RenderTarget &target, const Camera2D &camera)
 {
     auto &transforms = registry.getComponents<Transform2D>();
     auto &sprites = registry.getComponents<Sprite>();

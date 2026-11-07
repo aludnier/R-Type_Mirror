@@ -13,7 +13,7 @@
 #include "Texture.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
-#include "platform/Window.h"
+#include "platform/RenderTarget.h"
 
 namespace RType {
 /** @brief Draws sprites. Needs an active OpenGL context. */
@@ -25,8 +25,8 @@ public:
     Renderer2D(const Renderer2D &) = delete;
     Renderer2D &operator=(const Renderer2D &) = delete;
 
-    /** @brief Starts drawing to a window, as seen by a camera. */
-    void begin(const Window &target, const Camera2D &camera);
+    /** @brief Starts drawing to a target, as seen by a camera. */
+    void begin(RenderTarget &target, const Camera2D &camera);
     void drawSprite(const Texture &texture, const Transform2D &transform,
         const Sprite &sprite) const;
     static void end();
