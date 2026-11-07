@@ -10,9 +10,12 @@
 
 namespace Game {
 
-    Enemy::Enemy(std::string type, float interval, int score, float initY)
-        : enemyType(std::move(type)), shootInterval(interval), scoreValue(score), initialY(initY)
-    {
-    }
+Enemy::Enemy(std::string type, float interval, int score, float initY) :
+    enemyType(std::move(type)),
+    shootInterval(interval),
+    scoreValue(score),
+    initialY(initY)
+{
+}
 
 } // namespace Game

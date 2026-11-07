@@ -10,18 +10,18 @@
 
 namespace Game {
 
-    /**
-     * @brief Identifies projectiles (player laser, charged beam, enemy plasma).
-     */
-    struct Projectile {
-        bool isPlayerBullet = true;
-        int damage = 1;
-        bool isChargedBeam = false;
-        float speed = 800.0f;
+/**
+ * @brief Identifies projectiles (player laser, charged beam, enemy plasma).
+ */
+struct Projectile {
+    bool isPlayerBullet = true;
+    int damage = 1;
+    bool isChargedBeam = false;
+    float speed = 800.0f;
 
-        Projectile() = default;
-        Projectile(bool isPlayer, int dmg, bool charged, float spd);
-    };
+    Projectile() = default;
+    Projectile(bool isPlayer, int dmg, bool charged, float spd);
+};
 
 } // namespace Game
 
