@@ -74,6 +74,20 @@ void RType::UI::ImGuiUiRenderer::render(UiManager &manager,
         ImGui::End();
     }
     ImGui::PopStyleVar();
+
+    std::vector<std::string> pendingClicks;
+    pendingClicks.swap(_pendingClicks);
+    for (const auto &key : pendingClicks) {
+        try {
+            manager.click(key);
+        } catch (const std::exception &error) {
+            std::cerr << "[UI] Click handler for '" << key
+                      << "' failed: " << error.what() << std::endl;
+        } catch (...) {
+            std::cerr << "[UI] Click handler for '" << key
+                      << "' failed with an unknown error" << std::endl;
+        }
+    }
 }
 
 void RType::UI::ImGuiUiRenderer::renderElements(
@@ -193,7 +207,7 @@ void RType::UI::ImGuiUiRenderer::renderButton(
     const UiElement &element, const RenderContext &context)
 {
     if (ImGui::Button(displayText(element).c_str(), context.size))
-        context.manager.click(context.key);
+        _pendingClicks.push_back(context.key);
 }
 
 // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
