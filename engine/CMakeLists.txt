@@ -364,3 +364,5 @@ add_subdirectory(modules/environment2D)
 add_subdirectory(modules/Animation2D)
 add_subdirectory(modules/lifetime)
 add_subdirectory(modules/sfmlAssets)
+
+target_link_libraries(engine_client PUBLIC Eng::sfml_assets)

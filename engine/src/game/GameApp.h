@@ -12,8 +12,6 @@
 #include <memory>
 
 #include "../systems/AudioSystem.h"
-#include "DLLoader.hpp"
-#include "Module.h"
 #include "audio/AudioManager.h"
 #include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"

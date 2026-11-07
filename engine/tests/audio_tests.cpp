@@ -6,6 +6,7 @@
 #include <limits>
 #include <string>
 
+#include "audio/AudioManager.h"
 #include "GameAssetTypes.h"
 #include "TempConfigFile.hpp"
 #include "audio/AudioManager.h"
