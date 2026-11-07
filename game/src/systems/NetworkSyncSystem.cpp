@@ -25,8 +25,7 @@
 namespace Game {
 
 void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
-    const InputManager &input, ResourceManager &resources,
-    NetworkClient &client)
+    const InputManager &input, AssetManager &resources, NetworkClient &client)
 {
     client.update(0.0f);
 
@@ -50,7 +49,7 @@ void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
 struct NetworkSyncSystem::ServerMessageVisitor {
     NetworkSyncSystem &system;
     RType::Registry &registry;
-    ResourceManager &resources;
+    AssetManager &resources;
     RType::Network::NetworkId localLinkedEntity;
 
     void operator()(const RType::Network::AcceptConnectPacket &packet) const
@@ -94,7 +93,7 @@ struct NetworkSyncSystem::ServerMessageVisitor {
 
 void NetworkSyncSystem::processServerMessages(
     const std::vector<NetworkClient::ServerMessage> &messages,
-    RType::Registry &registry, ResourceManager &resources,
+    RType::Registry &registry, AssetManager &resources,
     RType::Network::NetworkId localLinkedEntity)
 {
     if (messages.empty()) {
@@ -140,7 +139,7 @@ std::optional<RType::Entity> NetworkSyncSystem::findEntity(
 
 void NetworkSyncSystem::handleAcceptConnect(
     const RType::Network::AcceptConnectPacket &packet,
-    RType::Registry &registry, const ResourceManager &resources)
+    RType::Registry &registry, const AssetManager &resources)
 {
     if (packet.linkedEntity == RType::Network::NO_ENTITY) {
         return;
@@ -176,7 +175,7 @@ void NetworkSyncSystem::handleAcceptConnect(
 
 void NetworkSyncSystem::handlePlayerConnected(
     const RType::Network::PlayerConnectedPacket &packet,
-    RType::Registry &registry, const ResourceManager &resources,
+    RType::Registry &registry, const AssetManager &resources,
     RType::Network::NetworkId localLinkedEntity)
 {
     _clientToNetwork[packet.clientId] = packet.linkedEntity;
@@ -242,8 +241,7 @@ void NetworkSyncSystem::handlePlayerDisconnected(
 
 void NetworkSyncSystem::handleEntitySpawn(
     const RType::Network::EntitySpawnPacket &packet, RType::Registry &registry,
-    const ResourceManager &resources,
-    RType::Network::NetworkId localLinkedEntity)
+    const AssetManager &resources, RType::Network::NetworkId localLinkedEntity)
 {
     auto it = _networkToEntity.find(packet.networkId);
     RType::Entity entity = it != _networkToEntity.end()

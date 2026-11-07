@@ -14,7 +14,7 @@
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
-#include "library/RessourceManager.h"
+#include "library/AssetManager.h"
 #include "reflection/Reflection.h"
 #include "scene/Scene.h"
 #include "scripting/ScriptComponent.h"
@@ -37,13 +37,14 @@ struct SceneFixture {
         registerSceneComponents(source);
         registerSceneComponents(target);
         RType::reflectCoreComponents(reflection);
-        playerTexture = assets.addAsset("player", "assets/player.png");
+        playerTexture = assets.addAsset(
+            "player", "assets/player.png", AssetManager::AssetType::Texture);
     }
 
     RType::Registry source;
     RType::Registry target;
     RType::Reflection reflection;
-    ResourceManager assets;
+    AssetManager assets;
     std::uint32_t playerTexture = 0;
 };
 
@@ -125,9 +126,11 @@ TEST_CASE("Scene uses the format of the plan", "[scene]")
 TEST_CASE("Scene resolves asset names on load", "[scene]")
 {
     SceneFixture scene;
-    ResourceManager otherRun;
-    otherRun.addAsset("enemy", "assets/enemy.png");
-    const auto player = otherRun.addAsset("player", "assets/player.png");
+    AssetManager otherRun;
+    otherRun.addAsset(
+        "enemy", "assets/enemy.png", AssetManager::AssetType::Texture);
+    const auto player = otherRun.addAsset(
+        "player", "assets/player.png", AssetManager::AssetType::Texture);
     spawnPlayer(scene);
 
     auto text = RType::Scene::saveToString(
@@ -147,7 +150,7 @@ TEST_CASE("Scene keeps defaults for unknown assets", "[scene]")
     auto text = RType::Scene::saveToString(
         scene.source, scene.reflection, scene.assets);
 
-    ResourceManager empty;
+    AssetManager empty;
     auto withoutAsset = RType::Scene::loadFromString(
         scene.target, scene.reflection, text, empty);
     for (auto entity : withoutAsset) {
@@ -202,7 +205,7 @@ TEST_CASE("Scene registers missing storages", "[scene]")
     registry.registerComponent<RType::Health>();
     RType::Reflection reflection;
     RType::reflectCoreComponents(reflection);
-    ResourceManager assets;
+    AssetManager assets;
 
     auto spawned = RType::Scene::loadFromString(registry,
         reflection,

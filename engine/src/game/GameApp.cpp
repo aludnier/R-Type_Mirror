@@ -27,15 +27,16 @@ void GameApp::init()
     _registry.registerComponent<Sprite>();
     _registry.registerComponent<Controllable>();
     registerComponents();
-    setupResources();
     setupKeyBindings();
     setupSystems();
+    setupResources();
     spawnInitialEntities();
 }
 
 void GameApp::setupSystems()
 {
-    _pluginManager.loadConfig(_configuration, _registry);
+    _pluginManager.loadConfig(
+        _configuration, _registry, _clientAssetManager.loaderRegistry());
     addControllableSystem(
         _registry, _configuration.game().playerSpeed, _fixedDeltaTime, {});
 }
@@ -133,9 +134,14 @@ InputManager &GameApp::getInputManager()
     return _inputManager;
 }
 
-ResourceManager &GameApp::getResourceManager()
+AssetManager &GameApp::getAssetManager()
 {
-    return _resourceManager;
+    return _clientAssetManager.metadata();
+}
+
+ClientAssetManager &GameApp::getClientAssetManager()
+{
+    return _clientAssetManager;
 }
 
 sf::RenderWindow &GameApp::getWindow() const

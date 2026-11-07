@@ -11,8 +11,8 @@
 #include <cstdint>
 #include <string>
 #include <thread>
+#include "AssetManager.h"
 #include "InputManager.h"
-#include "RessourceManager.h"
 #include "components/Sprite.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
@@ -53,16 +53,17 @@ public:
         _isRunning = false;
     }
 
-    void importAsset(const std::string &assetName, const std::string &assetPath)
+    void importAsset(const std::string &assetName, const std::string &assetPath,
+        std::string_view assetType)
     {
-        _resources.addAsset(assetName, assetPath);
+        _resources.addAsset(assetName, assetPath, assetType);
     }
 
     void applyAsset(RType::Entity entity, const std::string &assetName,
-        const std::string &assetPath = "")
+        const std::string &assetPath, std::string_view assetType)
     {
         if (!_resources.hasAsset(assetName))
-            _resources.addAsset(assetName, assetPath);
+            _resources.addAsset(assetName, assetPath, assetType);
         _registry.addComponent<RType::Sprite>(
             entity, RType::Sprite {_resources.getAsset(assetName).id});
     }
@@ -97,12 +98,12 @@ public:
         return _input.actionMask();
     }
 
-    ResourceManager &resources()
+    AssetManager &resources()
     {
         return _resources;
     }
 
-    const ResourceManager &resources() const
+    const AssetManager &resources() const
     {
         return _resources;
     }
@@ -118,7 +119,7 @@ public:
     }
 
 private:
-    ResourceManager _resources;
+    AssetManager _resources;
     InputManager _input;
     RType::Registry _registry;
     std::uint32_t _actionPerSeconds = 60;

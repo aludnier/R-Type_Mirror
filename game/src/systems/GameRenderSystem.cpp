@@ -22,7 +22,7 @@
 namespace Game {
 
 void GameRenderSystem::renderFrame(RType::Registry &registry,
-    const ResourceManager &resources, sf::RenderWindow &window)
+    const AssetManager &resources, sf::RenderWindow &window)
 {
     window.clear(sf::Color(10, 10, 25));
 

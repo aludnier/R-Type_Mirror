@@ -15,9 +15,9 @@
 #include "Module.h"
 #include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
+#include "library/ClientAssetManager.h"
 #include "library/InputManager.h"
 #include "library/PluginManager.h"
-#include "library/RessourceManager.h"
 
 namespace RType::Game {
 
@@ -34,7 +34,8 @@ public:
 
     [[nodiscard]] Registry &getRegistry();
     [[nodiscard]] InputManager &getInputManager();
-    [[nodiscard]] ResourceManager &getResourceManager();
+    [[nodiscard]] AssetManager &getAssetManager();
+    [[nodiscard]] ClientAssetManager &getClientAssetManager();
     [[nodiscard]] sf::RenderWindow &getWindow() const;
 
 protected:
@@ -74,7 +75,7 @@ protected:
     void close();
 
     InputManager _inputManager {};
-    ResourceManager _resourceManager {};
+    ClientAssetManager _clientAssetManager {};
     Configuration _configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};

@@ -47,31 +47,16 @@ void GameApp::registerComponents()
 
 void GameApp::setupResources()
 {
-    auto &resources = getResourceManager();
-    using Type = ResourceManager::AssetType;
-    resources.addAsset(
-        "player_ship", "assets/sprites/r_type_player.png", Type::Texture);
-    resources.addAsset(
-        "force_pod", "assets/sprites/force_pod.png", Type::Texture);
-    resources.addAsset(
-        "enemy_bydo_scout", "assets/sprites/bydo_scout.png", Type::Texture);
-    resources.addAsset(
-        "laser_bullet", "assets/sprites/laser_bullet.png", Type::Texture);
-    resources.addAsset(
-        "wave_cannon", "assets/sprites/wave_cannon.png", Type::Texture);
-    resources.addAsset(
-        "bg_space_stars", "assets/backgrounds/space_stars.png", Type::Texture);
-    resources.addAsset(
-        "bg_nebula", "assets/backgrounds/nebula.png", Type::Texture);
-    resources.addAsset("sfx_laser", "assets/audio/laser.wav", Type::Sound);
-    resources.addAsset(
-        "sfx_explosion", "assets/audio/explosion.wav", Type::Sound);
-    resources.addAsset("bgm_stage1", "assets/audio/stage1.ogg", Type::Music);
+    getClientAssetManager().metadata().loadConfigFile(
+        _configuration.path().parent_path() / "assets.json");
 }
 
 void GameApp::setupSystems()
 {
     RType::Game::GameApp::setupSystems();
+    _pluginManager.loadModule(GAME_ASSET_MODULE_PATH,
+        getRegistry(),
+        getClientAssetManager().loaderRegistry());
     auto &registry = getRegistry();
     PlayerWeaponSystem::addSystem(registry, getInputManager(), _fixedDeltaTime);
     ForcePodSystem::addSystem(registry);
@@ -171,13 +156,13 @@ void GameApp::updateGame(float dt)
     }
     registry.runSystems();
     _networkSyncSystem.syncWithServer(
-        registry, getInputManager(), getResourceManager(), _networkClient);
+        registry, getInputManager(), getAssetManager(), _networkClient);
 }
 
 void GameApp::renderGame()
 {
     GameRenderSystem::renderFrame(
-        getRegistry(), getResourceManager(), getWindow());
+        getRegistry(), getAssetManager(), getWindow());
     ImGui::SFML::Render(getWindow());
 }
 

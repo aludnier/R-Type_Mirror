@@ -36,7 +36,7 @@ enum class FieldType {
     /** @brief `std::vector<std::filesystem::path>`, like script paths. */
     PathList,
     /**
-     * @brief `std::uint32_t` id of a ResourceManager asset. Scene files save
+     * @brief `std::uint32_t` id of a AssetManager asset. Scene files save
      *        it as the asset name, the editor can show a list of assets.
      */
     AssetId,
@@ -184,7 +184,7 @@ public:
             return *this;
         }
 
-        /** @brief Declares a ResourceManager asset id (FieldType::AssetId). */
+        /** @brief Declares a AssetManager asset id (FieldType::AssetId). */
         Builder &asset(const std::string &name, std::uint32_t C::*member)
         {
             field(name, member);
