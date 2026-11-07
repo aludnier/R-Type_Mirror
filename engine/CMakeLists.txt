@@ -160,6 +160,8 @@ set(EDITOR_SRC
         src/editor/FileMenu.h
         src/editor/ImGuiLayer.cpp
         src/editor/ImGuiLayer.h
+        src/editor/PlayMode.cpp
+        src/editor/PlayMode.h
         src/editor/SceneFile.cpp
         src/editor/SceneFile.h
         src/editor/panels/HierarchyPanel.cpp
@@ -172,7 +174,7 @@ set(EDITOR_SRC
 
 add_library(engine_editor STATIC ${EDITOR_SRC})
 
-target_link_libraries(engine_editor PUBLIC engine_render2d imgui::imgui)
+target_link_libraries(engine_editor PUBLIC engine_render2d engine_scripting imgui::imgui)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
@@ -310,6 +312,7 @@ if (BUILD_TESTS)
             tests/editor_shell_tests.cpp
             tests/editor_hierarchy_tests.cpp
             tests/editor_inspector_tests.cpp
+            tests/editor_play_mode_tests.cpp
             tests/editor_scene_file_tests.cpp
     )
 
