@@ -141,6 +141,15 @@ public:
     void setDeltaTime(float dt);
 
     /**
+     * @brief Replaces what `world.kill(e)` does, for a host that must know
+     *        when scripts destroy an entity (a server telling its clients).
+     *
+     * By default `world.kill` calls Registry::killEntity(). The handler must
+     * kill the entity itself. An empty function restores the default.
+     */
+    void setKillHandler(std::function<void(Entity)> handler);
+
+    /**
      * @brief Runs one frame: the `world.add_system` systems, then the scripts
      *        of every entity having a ScriptComponent.
      *
@@ -205,6 +214,7 @@ private:
     std::set<std::pair<entity_id_type, std::string>> _failedEntityScripts;
     std::string _lastError;
     float _deltaTime = 0.f;
+    std::function<void(Entity)> _killHandler;
 };
 } // namespace RType
 

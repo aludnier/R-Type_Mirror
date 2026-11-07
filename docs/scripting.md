@@ -63,6 +63,7 @@ the config file location:
 | `reload()` | Drops the script systems, runs the files again and reloads entity scripts (hot reload). Entities and `world.data` are kept. |
 | `setDeltaTime(dt)` | Delta time passed to the script systems on the next `runSystems()`. |
 | `bindComponent<C>(name)` | Makes a C++ component usable from scripts. |
+| `setKillHandler(fn)` | Makes `world.kill(e)` call `fn(entity)` instead of `Registry::killEntity()` (e.g. a server that must tell its clients). `fn` kills the entity itself; an empty function restores the default. |
 | `lastError()` | Last script error, empty if none. |
 | `lua()` | The underlying `sol::state`, to bind extra types. |
 
@@ -113,7 +114,7 @@ Entities are integers. Components are accessed by name.
 | Function | Description |
 |---|---|
 | `world.spawn()` | Creates an entity and returns its id. |
-| `world.kill(e)` | Destroys `e` at the end of the frame. |
+| `world.kill(e)` | Destroys `e` at the end of the frame (or calls the host's kill handler, see `setKillHandler`). |
 | `world.add(e, name, value)` | Adds a component (`value` may be omitted for a default one) and returns it. |
 | `world.get(e, name)` | Returns the component, or `nil`. |
 | `world.has(e, name)` | Tells whether `e` has the component. |

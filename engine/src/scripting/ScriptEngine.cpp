@@ -13,6 +13,7 @@
 #include <lua.h>
 #include <map>
 #include <stdexcept>
+#include <utility>
 
 #include "CoreBindings.h"
 #include "components/Controllable.h"
@@ -124,7 +125,11 @@ lua_Integer RType::ScriptEngine::spawn() const
 
 void RType::ScriptEngine::kill(lua_Integer e)
 {
-    _registry.killEntity(Registry::entityFromIndex(toEntityId(e)));
+    const Entity entity = Registry::entityFromIndex(toEntityId(e));
+    if (_killHandler)
+        _killHandler(entity);
+    else
+        _registry.killEntity(entity);
 }
 
 bool RType::ScriptEngine::has(lua_Integer e, const std::string &name) const
@@ -383,6 +388,12 @@ void RType::ScriptEngine::setScriptDirectory(
 void RType::ScriptEngine::setDeltaTime(float dt)
 {
     _deltaTime = dt;
+}
+
+void RType::ScriptEngine::setKillHandler(
+    std::function<void(Entity)> handler)
+{
+    _killHandler = std::move(handler);
 }
 
 const std::string &RType::ScriptEngine::lastError() const
