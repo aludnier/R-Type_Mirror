@@ -89,6 +89,7 @@ endif ()
 # The graphics library is linked here, never in engine_core.
 # ---------------------------------------------------------------------------
 find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
+find_package(ImGui-SFML CONFIG REQUIRED)
 
 set(CLIENT_SRC
         src/game/GameApp.cpp
@@ -102,7 +103,7 @@ set(CLIENT_SRC
 
 add_library(engine_client STATIC ${CLIENT_SRC})
 
-target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
+target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System ImGui-SFML::ImGui-SFML)
 
 # ---------------------------------------------------------------------------
 # engine_platform: window, OpenGL context and main loop (GLFW + glad). Client
