@@ -112,15 +112,13 @@ namespace {
 } // namespace
 
 RTypeServer::RTypeServer(const ServerConfig &config) :
-    GameServer(config),
-    _scripts(registry())
+    GameServer(config), _scripts(registry())
 {
     setup(ENGINE_MODULE_DIR "/../config/scripts.json");
 }
 
 RTypeServer::RTypeServer(const Configuration &configuration) :
-    GameServer(configuration),
-    _scripts(registry())
+    GameServer(configuration), _scripts(registry())
 {
     // Next to the game configuration.
     setup(configuration.path().parent_path() / "scripts.json");
