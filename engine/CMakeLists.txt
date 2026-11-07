@@ -130,6 +130,8 @@ find_path(STB_INCLUDE_DIRS "stb_image.h" REQUIRED)
 
 set(RENDER2D_SRC
         src/render/Camera2D.h
+        src/render/Framebuffer.cpp
+        src/render/Framebuffer.h
         src/render/Renderer2D.cpp
         src/render/Renderer2D.h
         src/render/SceneRenderer.cpp
