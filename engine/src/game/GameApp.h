@@ -80,7 +80,7 @@ protected:
     InputManager _inputManager {};
     ClientAssetManager _clientAssetManager {};
     AudioManager _audioManager {_clientAssetManager};
-    RType::AudioSystem _audioSystem {};
+    AudioSystem _audioSystem {};
     Configuration _configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};
