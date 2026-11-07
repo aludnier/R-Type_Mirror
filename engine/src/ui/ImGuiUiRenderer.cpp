@@ -50,6 +50,7 @@ std::string displayText(const RType::UI::UiElement &element)
 void RType::UI::ImGuiUiRenderer::render(UiManager &manager,
     const AssetManager &assets, const sf::RenderWindow &window)
 {
+    manager.clearClickedEvents();
     const auto windowSize = window.getSize();
     const ImVec2 size(
         static_cast<float>(windowSize.x), static_cast<float>(windowSize.y));
