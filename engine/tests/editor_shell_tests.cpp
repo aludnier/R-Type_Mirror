@@ -6,6 +6,7 @@
 #include "ecs/Registry.h"
 #include "editor/EditorContext.h"
 #include "editor/EditorShell.h"
+#include "reflection/Reflection.h"
 
 namespace {
 /** @brief ImGui without a window or a renderer, like a test backend. */
@@ -44,7 +45,9 @@ TEST_CASE("Editor shell docks the three panels", "[editor]")
 {
     HeadlessImGui imgui;
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
     RType::Editor::EditorShell shell;
 
     for (int frame = 0; frame < 3; ++frame)
@@ -67,7 +70,9 @@ TEST_CASE("Editor shell docks the three panels", "[editor]")
 TEST_CASE("Editor context holds one selection", "[editor]")
 {
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
 
     CHECK_FALSE(context.selectedEntity().has_value());
     context.selected = registry.spawnEntity();

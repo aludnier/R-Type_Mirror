@@ -15,6 +15,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <vector>
 #include "NlohmanReader.h"
 
 class AssetManager {
@@ -53,6 +54,9 @@ public:
      * @return The name, or std::nullopt if the id is unknown.
      */
     std::optional<std::string> getAssetName(std::uint32_t id) const;
+
+    /** @return The names of every asset, sorted. */
+    std::vector<std::string> names() const;
 
 private:
     RType::nlohamReader _reader;

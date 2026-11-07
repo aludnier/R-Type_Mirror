@@ -12,7 +12,9 @@
 #include "editor/EditorContext.h"
 #include "editor/EditorShell.h"
 #include "editor/ImGuiLayer.h"
+#include "library/AssetManager.h"
 #include "platform/Application.h"
+#include "reflection/Reflection.h"
 
 namespace {
 class Editor : public RType::Application {
@@ -20,6 +22,7 @@ public:
     Editor() :
         Application({.title = "Editor"}), _imgui(window())
     {
+        RType::reflectCoreComponents(_reflection);
     }
 
 protected:
@@ -38,7 +41,10 @@ protected:
 private:
     RType::Editor::ImGuiLayer _imgui;
     RType::Registry _registry;
-    RType::Editor::EditorContext _context {.registry = _registry};
+    RType::Reflection _reflection;
+    AssetManager _assets;
+    RType::Editor::EditorContext _context {
+        .registry = _registry, .reflection = _reflection, .assets = &_assets};
     RType::Editor::EditorShell _shell {};
 };
 } // namespace

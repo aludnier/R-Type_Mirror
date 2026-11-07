@@ -7,13 +7,16 @@
 #include "ecs/SparseArray.h"
 #include "editor/EditorContext.h"
 #include "editor/panels/HierarchyPanel.h"
+#include "reflection/Reflection.h"
 
 using RType::Editor::HierarchyPanel;
 
 TEST_CASE("Hierarchy creates a named entity and selects it", "[editor]")
 {
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
 
     const auto entity = HierarchyPanel::createEntity(context);
 
@@ -26,7 +29,9 @@ TEST_CASE("Hierarchy creates a named entity and selects it", "[editor]")
 TEST_CASE("Hierarchy deletes an entity and clears the selection", "[editor]")
 {
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
     const auto kept = HierarchyPanel::createEntity(context);
     const auto deleted = HierarchyPanel::createEntity(context);
 
@@ -45,7 +50,9 @@ TEST_CASE("Hierarchy deletes an entity and clears the selection", "[editor]")
 TEST_CASE("Deleting another entity keeps the selection", "[editor]")
 {
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
     const auto other = HierarchyPanel::createEntity(context);
     const auto selected = HierarchyPanel::createEntity(context);
 
@@ -57,7 +64,9 @@ TEST_CASE("Deleting another entity keeps the selection", "[editor]")
 TEST_CASE("Selection ignores dead entities", "[editor]")
 {
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
     const auto entity = registry.spawnEntity();
 
     context.selected = entity;
@@ -73,7 +82,9 @@ TEST_CASE("Selection ignores dead entities", "[editor]")
 TEST_CASE("Hierarchy renames entities", "[editor]")
 {
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
     const auto unnamed = registry.spawnEntity();
 
     CHECK(HierarchyPanel::label(registry, unnamed) == "Entity 0");
@@ -92,7 +103,9 @@ TEST_CASE("Hierarchy panel draws the entities", "[editor]")
     io.DeltaTime = 1.f / 60.f;
     io.Fonts->Build();
     RType::Registry registry;
-    RType::Editor::EditorContext context {.registry = registry};
+    RType::Reflection reflection;
+    RType::Editor::EditorContext context {
+        .registry = registry, .reflection = reflection};
     HierarchyPanel panel;
     HierarchyPanel::createEntity(context);
     registry.spawnEntity();
