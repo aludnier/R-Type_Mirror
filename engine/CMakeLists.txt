@@ -293,9 +293,11 @@ if (BUILD_TESTS)
 
     add_executable(engine_scripting_tests
             tests/scripting_tests.cpp
+            tests/physics2d_scripting_tests.cpp
     )
 
-    target_link_libraries(engine_scripting_tests PRIVATE engine_scripting Catch2::Catch2WithMain)
+    # physics2d_scripting is defined in modules/physics2D (see below).
+    target_link_libraries(engine_scripting_tests PRIVATE engine_scripting physics2d_scripting Catch2::Catch2WithMain)
 
     target_compile_definitions(engine_scripting_tests PRIVATE
             EXAMPLE_SCRIPT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/scripts/examples")

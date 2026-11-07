@@ -94,6 +94,9 @@ protected:
     /** @return The simulated duration of one tick, in seconds. */
     [[nodiscard]] float tickDelta() const;
 
+    /** @return Whether the module @p name was loaded from the configuration. */
+    [[nodiscard]] bool isModuleLoaded(const std::string &name) const;
+
     /**
      * @brief Makes @p entity replicated and sends its ENTITY_SPAWN to
      *        every client (and later to the clients that join).

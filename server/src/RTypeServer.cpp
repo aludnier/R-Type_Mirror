@@ -12,6 +12,7 @@
 #include <unordered_set>
 
 #include "Enemy.h"
+#include "Physics2DBindings.h"
 #include "RTypeScripting.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
@@ -144,6 +145,10 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
             registry().killEntity(entity);
         }
     });
+    // Its components are registered only when the module is loaded.
+    if (isModuleLoaded(Physics2D::MODULE_NAME)) {
+        Physics2D::bindScripting(_scripts);
+    }
     // Spawned at the end of the tick, like the projectiles.
     bindRTypeScripting(_scripts,
         {SCREEN_WIDTH, SCREEN_HEIGHT},
