@@ -11,7 +11,6 @@
 #include <imgui.h>
 #include <iostream>
 
-#include "GameAssetTypes.h"
 #include "components/Controllable.h"
 #include "components/Enemy.h"
 #include "components/ForcePod.h"
@@ -48,35 +47,8 @@ void GameApp::registerComponents()
 
 void GameApp::setupResources()
 {
-    auto &resources = getAssetManager();
-    resources.addAsset("player_ship",
-        "assets/sprites/r_type_player.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset("force_pod",
-        "assets/sprites/force_pod.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset("enemy_bydo_scout",
-        "assets/sprites/bydo_scout.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset("laser_bullet",
-        "assets/sprites/laser_bullet.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset("wave_cannon",
-        "assets/sprites/wave_cannon.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset("bg_space_stars",
-        "assets/backgrounds/space_stars.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset("bg_nebula",
-        "assets/backgrounds/nebula.png",
-        GameTextureAsset::JSON_TYPE);
-    resources.addAsset(
-        "sfx_laser", "assets/audio/laser.wav", GameSoundAsset::JSON_TYPE);
-    resources.addAsset("sfx_explosion",
-        "assets/audio/explosion.wav",
-        GameSoundAsset::JSON_TYPE);
-    resources.addAsset(
-        "bgm_stage1", "assets/audio/stage1.ogg", GameMusicAsset::JSON_TYPE);
+    getClientAssetManager().metadata().loadConfigFile(
+        _configuration.path().parent_path() / "assets.json");
 }
 
 void GameApp::setupSystems()
