@@ -39,8 +39,9 @@ public:
     }
 
 protected:
-    void update(float /*dt*/) override
+    void update(float dt) override
     {
+        _shell.update(_context, dt);
     }
 
     void render() override

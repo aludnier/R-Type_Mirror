@@ -10,6 +10,7 @@
 
 #include "editor/EditorContext.h"
 #include "editor/FileMenu.h"
+#include "editor/PlayMode.h"
 #include "editor/panels/HierarchyPanel.h"
 #include "editor/panels/InspectorPanel.h"
 #include "editor/panels/ViewportPanel.h"
@@ -26,11 +27,14 @@ class EditorShell {
 public:
     /** @brief Draws one frame. Call it between ImGuiLayer begin/endFrame. */
     void draw(EditorContext &context);
+    /** @brief Runs one step of the scene while it plays. */
+    void update(EditorContext &context, float dt);
 
 private:
     void drawMenuBar(EditorContext &context);
 
     FileMenu _fileMenu;
+    PlayMode _playMode;
     HierarchyPanel _hierarchy;
     ViewportPanel _viewport;
     InspectorPanel _inspector;
