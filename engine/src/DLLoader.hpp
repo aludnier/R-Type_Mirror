@@ -195,7 +195,7 @@ private:
     void closeLibrary(void *handle)
     {
 #if defined(_WIN32) || defined(_WIN64)
-        FreeLibrary((HMODULE) handle);
+        FreeLibrary(static_cast<HMODULE>(handle));
 #else
         dlclose(handle);
 #endif
@@ -209,12 +209,12 @@ private:
             return "Unknown error";
         char buffer[1024];
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM,
-            NULL,
+            nullptr,
             dw,
             MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
             buffer,
             sizeof(buffer),
-            NULL);
+            nullptr);
         return std::string(buffer);
 #else
         return dlerror();
@@ -225,7 +225,7 @@ private:
     {
 #if defined(_WIN32) || defined(_WIN64)
         return (void *) GetProcAddress(
-            (HMODULE) this->_handle, funcName.data());
+            static_cast<HMODULE>(this->_handle), funcName.data());
 #else
         return dlsym(this->_handle, funcName.data());
 #endif
