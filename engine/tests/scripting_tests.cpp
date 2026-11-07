@@ -135,6 +135,17 @@ TEST_CASE("Lua scripts can show and update UI documents", "[scripting][ui]")
 
     ui.click("menu/play");
     CHECK(lua["clicked"].get<bool>());
+    REQUIRE(
+        lua.safe_script(R"(
+        click_events = ui.take_clicked_events()
+        click_event_count = #click_events
+        click_event_key = click_events[1]
+        empty_click_event_count = #ui.take_clicked_events()
+    )")
+            .valid());
+    CHECK(lua["click_event_count"].get<int>() == 1);
+    CHECK(lua["click_event_key"].get<std::string>() == "menu/play");
+    CHECK(lua["empty_click_event_count"].get<int>() == 0);
 }
 
 TEST_CASE("world.get returns a live reference to the component", "[scripting]")
