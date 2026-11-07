@@ -157,6 +157,11 @@ void RType::UI::UiManager::click(std::string_view key)
         handler();
 }
 
+void RType::UI::UiManager::clearClickedEvents()
+{
+    _clickedEvents.clear();
+}
+
 std::vector<std::string> RType::UI::UiManager::takeClickedEvents()
 {
     std::vector<std::string> events;

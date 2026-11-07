@@ -41,6 +41,7 @@ public:
 
     void onClick(std::string key, ClickHandler handler);
     void click(std::string_view key);
+    void clearClickedEvents();
     [[nodiscard]] std::vector<std::string> takeClickedEvents();
 
 private:
