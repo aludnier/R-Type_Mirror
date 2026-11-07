@@ -11,6 +11,7 @@ enable_testing()
 
 configure_file(config/game.json ${CMAKE_BINARY_DIR}/config/game.json COPYONLY)
 configure_file(config/assets.json ${CMAKE_BINARY_DIR}/config/assets.json COPYONLY)
+configure_file(config/scripts.json ${CMAKE_BINARY_DIR}/config/scripts.json COPYONLY)
 
 add_subdirectory(engine)
 add_subdirectory(game)
