@@ -28,7 +28,8 @@ TEST_CASE("Lifetime system schedules destruction after elapsed duration",
     RType::Registry registry;
     manager.loadModule(LIFETIME_MODULE_PATH, registry);
     const auto entity = registry.spawnEntity();
-    registry.emplaceComponent<RType::Lifetime::TimerSettings>(entity)->dt = 0.5f;
+    registry.emplaceComponent<RType::Lifetime::TimerSettings>(entity)->dt =
+        0.5f;
     registry.emplaceComponent<RType::Lifetime::Lifetime>(entity)->duration =
         1.0f;
 
@@ -44,7 +45,8 @@ TEST_CASE("Timer system emits one named event on expiry", "[plugins][lifetime]")
     RType::Registry registry;
     manager.loadModule(LIFETIME_MODULE_PATH, registry);
     const auto entity = registry.spawnEntity();
-    registry.emplaceComponent<RType::Lifetime::TimerSettings>(entity)->dt = 1.0f;
+    registry.emplaceComponent<RType::Lifetime::TimerSettings>(entity)->dt =
+        1.0f;
     registry.emplaceComponent<RType::Lifetime::Timer>(entity)->duration = 1.0f;
     registry.getComponents<RType::Lifetime::Timer>()[entity]->eventName =
         "expired";

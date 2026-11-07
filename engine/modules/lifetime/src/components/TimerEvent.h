@@ -14,7 +14,6 @@ struct TimerEvents {
     std::vector<TimerEvent> events;
 };
 
-
 } // namespace RType::Lifetime
 
 #endif

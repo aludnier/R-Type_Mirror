@@ -12,8 +12,7 @@ namespace RType::Lifetime {
 class TimerSystem {
 public:
     static void update(SparseArray<Timer> &timers,
-        SparseArray<TimerEvents> &events,
-        SparseArray<TimerSettings> &settings);
+        SparseArray<TimerEvents> &events, SparseArray<TimerSettings> &settings);
     static void addSystem(Registry &registry);
 
 private:
