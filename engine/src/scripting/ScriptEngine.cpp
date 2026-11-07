@@ -19,6 +19,7 @@
 #include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Name.h"
+#include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "library/NlohmanReader.h"
 
@@ -87,6 +88,7 @@ void RType::ScriptEngine::bindCoreComponents()
     bindComponent<Health>("Health");
     bindComponent<Hitbox>("Hitbox");
     bindComponent<Name>("Name");
+    bindComponent<Sprite>("Sprite");
     bindComponent<Controllable>("Controllable");
     bindComponent<ScriptComponent>("Script");
 }

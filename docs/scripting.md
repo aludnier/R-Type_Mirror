@@ -128,7 +128,9 @@ keep them across frames, store the entity id instead.
 
 Bound types: `Vector2` (`x`, `y`, `+`, `-`, `* number`), `Transform2D`
 (`position`, `scale`, `rotation`), `Health` (`current`, `max`, `is_dead()`,
-`take_damage(n)`), `Hitbox` (`size`), `Name` (`value`), `Controllable` (`action_mask`,
+`take_damage(n)`), `Hitbox` (`size`), `Name` (`value`), `Sprite` (`asset_id`,
+`rect_left`, `rect_top`, `rect_width`, `rect_height`, `origin_x`, `origin_y`,
+`r`, `g`, `b`, `a`, `z_index`; `Sprite.new(asset_id, z_index)`), `Controllable` (`action_mask`,
 `is_active(Action.X)`, `set_active(Action.X, bool)`) and the `Action` table,
 which is empty until the game fills it with `ScriptEngine::defineAction()`.
 

@@ -12,6 +12,7 @@
 #include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Name.h"
+#include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
@@ -61,6 +62,7 @@ void registerCoreComponents(RType::Registry &registry)
     registry.registerComponent<RType::Hitbox>();
     registry.registerComponent<RType::Controllable>();
     registry.registerComponent<RType::Name>();
+    registry.registerComponent<RType::Sprite>();
 }
 
 struct Score {
@@ -568,4 +570,33 @@ TEST_CASE("Script components attached before the engine starts are kept",
         ").starts"));
     CHECK(scripts.lua()["starts"].get<int>() == 1);
     CHECK(scripts.lastError().empty());
+}
+
+TEST_CASE("Scripts add and edit sprites", "[scripting]")
+{
+    RType::Registry registry;
+    registerCoreComponents(registry);
+    RType::ScriptEngine scripts(registry);
+
+    REQUIRE(scripts.loadString(R"(
+        ship = world.spawn()
+        world.add(ship, "Sprite", Sprite.new(7, 2))
+        local sprite = world.get(ship, "Sprite")
+        sprite.rect_width = 32
+        sprite.origin_x = 0.25
+        sprite.a = 128
+        z = sprite.z_index
+        default_alpha = Sprite.new().a
+    )"));
+
+    const auto id = scripts.lua()["ship"].get<RType::entity_id_type>();
+    const auto &sprite = registry.getComponents<RType::Sprite>()[id];
+    REQUIRE(sprite.has_value());
+    CHECK(sprite->assetId == 7);
+    CHECK(sprite->zIndex == 2);
+    CHECK(sprite->rectWidth == 32);
+    CHECK(sprite->originX == 0.25f);
+    CHECK(sprite->a == 128);
+    CHECK(scripts.lua()["z"].get<int>() == 2);
+    CHECK(scripts.lua()["default_alpha"].get<int>() == 255);
 }
