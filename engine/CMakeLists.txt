@@ -50,6 +50,10 @@ set(CORE_SRC
         src/library/InputManager.cpp
         src/library/InputManager.h
         src/library/Keys.h
+        src/ui/UiDocument.cpp
+        src/ui/UiDocument.h
+        src/ui/UiManager.cpp
+        src/ui/UiManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
@@ -85,6 +89,7 @@ endif ()
 # The graphics library is linked here, never in engine_core.
 # ---------------------------------------------------------------------------
 find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
+find_package(ImGui-SFML CONFIG REQUIRED)
 
 set(CLIENT_SRC
         src/game/GameApp.cpp
@@ -92,13 +97,15 @@ set(CLIENT_SRC
         src/library/ClientAssetManager.cpp
         src/library/ClientAssetManager.h
         src/library/engine.h
+        src/ui/ImGuiUiRenderer.cpp
+        src/ui/ImGuiUiRenderer.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
 )
 
 add_library(engine_client STATIC ${CLIENT_SRC})
 
-target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System)
+target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System ImGui-SFML::ImGui-SFML)
 
 # ---------------------------------------------------------------------------
 # engine_platform: window, OpenGL context and main loop (GLFW + glad). Client
@@ -209,6 +216,8 @@ set(SCRIPTING_SRC
         src/scripting/ScriptEngine.h
         src/scripting/ScriptSystem.cpp
         src/scripting/ScriptSystem.h
+        src/scripting/UiBindings.cpp
+        src/scripting/UiBindings.h
 )
 
 add_library(engine_scripting STATIC ${SCRIPTING_SRC})
@@ -245,6 +254,7 @@ if (BUILD_TESTS)
             tests/fixed_step_tests.cpp
             tests/reflection_tests.cpp
             tests/scene_tests.cpp
+            tests/ui_tests.cpp
     )
 
     target_link_libraries(game_engine_tests PRIVATE engine_client Catch2::Catch2WithMain)
