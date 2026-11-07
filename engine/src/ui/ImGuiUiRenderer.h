@@ -12,6 +12,7 @@
 #include <imgui.h>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #include "ui/UiDocument.h"
@@ -64,6 +65,7 @@ private:
         };
 
     std::unordered_map<std::string, sf::Texture> _textures;
+    std::unordered_set<std::string> _reportedErrors;
 };
 
 } // namespace RType::UI

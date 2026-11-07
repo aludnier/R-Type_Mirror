@@ -11,7 +11,10 @@
 #include <imgui.h>
 #include <imgui_stdlib.h>
 
+#include <exception>
+#include <iostream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 #include "library/AssetManager.h"
@@ -87,8 +90,19 @@ void RType::UI::ImGuiUiRenderer::renderElements(
         const ImVec2 itemSize = dimensions(element.rect, parentSize);
         ImGui::SetCursorScreenPos(itemPosition);
         ImGui::PushID(key.c_str());
-        const RenderContext context {key, prefix, itemSize, manager, assets};
-        (this->*elementRenderers.at(element.type))(element, context);
+        try {
+            const RenderContext context {
+                key, prefix, itemSize, manager, assets};
+            (this->*elementRenderers.at(element.type))(element, context);
+        } catch (const std::exception &error) {
+            if (_reportedErrors.insert(key).second)
+                std::cerr << "[UI] Failed to render '" << key
+                          << "': " << error.what() << std::endl;
+        } catch (...) {
+            if (_reportedErrors.insert(key).second)
+                std::cerr << "[UI] Failed to render '" << key
+                          << "' with an unknown error" << std::endl;
+        }
         ImGui::PopID();
     }
 }
