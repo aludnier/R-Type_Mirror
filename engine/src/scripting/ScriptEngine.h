@@ -71,8 +71,9 @@ public:
      * @brief Makes a component type usable from scripts under @p name.
      *
      * The Lua usertype of @p C (constructors, fields) must be declared with
-     * lua().new_usertype<C>() before scripts use it. The component storage
-     * must be registered in the registry.
+     * lua().new_usertype<C>() before scripts use it. `world.add` registers
+     * the component storage if needed, the other functions see a missing
+     * storage as no component.
      *
      * @tparam C Component type.
      * @param name Name used in `world.add/get/has/remove/each`.

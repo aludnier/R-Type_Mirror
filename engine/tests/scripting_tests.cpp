@@ -632,3 +632,54 @@ TEST_CASE("Scripts add and edit sprites", "[scripting]")
     CHECK(scripts.lua()["z"].get<int>() == 2);
     CHECK(scripts.lua()["default_alpha"].get<int>() == 255);
 }
+
+TEST_CASE(
+    "Sprite colors are clamped and the rect constructor works", "[scripting]")
+{
+    RType::Registry registry;
+    registerCoreComponents(registry);
+    RType::ScriptEngine scripts(registry);
+
+    REQUIRE(scripts.loadString(R"(
+        local sprite = Sprite.new(1, 0, 0, 32, 16)
+        sprite.a = 300
+        sprite.r = -5
+        sprite.g = 12
+        width, height, z = sprite.rect_width, sprite.rect_height, sprite.z_index
+        a, r, g = sprite.a, sprite.r, sprite.g
+    )"));
+
+    CHECK(scripts.lua()["width"].get<int>() == 32);
+    CHECK(scripts.lua()["height"].get<int>() == 16);
+    CHECK(scripts.lua()["z"].get<int>() == 0);
+    CHECK(scripts.lua()["a"].get<int>() == 255);
+    CHECK(scripts.lua()["r"].get<int>() == 0);
+    CHECK(scripts.lua()["g"].get<int>() == 12);
+}
+
+TEST_CASE(
+    "Scripts handle components whose storage is not registered", "[scripting]")
+{
+    RType::Registry registry;
+    RType::ScriptEngine scripts(registry);
+
+    REQUIRE(scripts.loadString(R"(
+        e = world.spawn()
+        had = world.has(e, "Sprite")
+        got = world.get(e, "Sprite")
+        world.remove(e, "Sprite")
+        visited = 0
+        world.each({"Sprite"}, function() visited = visited + 1 end)
+        world.add(e, "Sprite", Sprite.new(4))
+        has_now = world.has(e, "Sprite")
+    )"));
+
+    CHECK_FALSE(scripts.lua()["had"].get<bool>());
+    CHECK_FALSE(scripts.lua()["got"].valid());
+    CHECK(scripts.lua()["visited"].get<int>() == 0);
+    CHECK(scripts.lua()["has_now"].get<bool>());
+    REQUIRE(registry.isRegistered<RType::Sprite>());
+    const auto id = scripts.lua()["e"].get<RType::entity_id_type>();
+    CHECK(registry.getComponents<RType::Sprite>()[id]->assetId == 4);
+    CHECK(scripts.lastError().empty());
+}
