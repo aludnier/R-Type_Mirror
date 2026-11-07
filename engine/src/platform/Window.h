@@ -54,6 +54,12 @@ public:
     /** @brief Sets the function called when a key is pressed or released. */
     void setKeyCallback(KeyCallback callback);
 
+    /** @brief The GLFW window, for libraries like ImGui. */
+    [[nodiscard]] GLFWwindow *nativeHandle() const
+    {
+        return _handle;
+    }
+
     /** @return Seconds since the window was created. */
     [[nodiscard]] static double time();
 

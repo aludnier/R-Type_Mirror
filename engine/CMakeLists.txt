@@ -143,9 +143,23 @@ target_include_directories(engine_render2d PRIVATE ${STB_INCLUDE_DIRS})
 # ---------------------------------------------------------------------------
 find_package(imgui CONFIG REQUIRED)
 
-add_library(engine_editor INTERFACE)
+set(EDITOR_SRC
+        src/editor/EditorContext.h
+        src/editor/EditorShell.cpp
+        src/editor/EditorShell.h
+        src/editor/ImGuiLayer.cpp
+        src/editor/ImGuiLayer.h
+        src/editor/panels/HierarchyPanel.cpp
+        src/editor/panels/HierarchyPanel.h
+        src/editor/panels/InspectorPanel.cpp
+        src/editor/panels/InspectorPanel.h
+        src/editor/panels/ViewportPanel.cpp
+        src/editor/panels/ViewportPanel.h
+)
 
-target_link_libraries(engine_editor INTERFACE engine_render2d imgui::imgui)
+add_library(engine_editor STATIC ${EDITOR_SRC})
+
+target_link_libraries(engine_editor PUBLIC engine_render2d imgui::imgui)
 
 # ---------------------------------------------------------------------------
 # engine_server: server runtime (game loop, client sessions). Server only,
@@ -277,6 +291,14 @@ if (BUILD_TESTS)
             EXAMPLE_SCRIPT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/scripts/examples")
 
     add_test(NAME engine_scripting_tests COMMAND engine_scripting_tests)
+
+    add_executable(engine_editor_tests
+            tests/editor_shell_tests.cpp
+    )
+
+    target_link_libraries(engine_editor_tests PRIVATE engine_editor Catch2::Catch2WithMain)
+
+    add_test(NAME engine_editor_tests COMMAND engine_editor_tests)
 endif ()
 
 add_subdirectory(apps/sandbox)
