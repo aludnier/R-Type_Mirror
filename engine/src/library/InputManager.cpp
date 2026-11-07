@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <map>
 #include <stdexcept>
+#include <ranges>
 
 namespace {
 struct InputEntry {
@@ -67,6 +68,34 @@ void InputManager::loadConfigFile(const std::filesystem::path &configFile)
 std::string InputManager::keyCodeId(KeyCode key)
 {
     return "KEY_CODE_" + std::to_string(key);
+}
+
+void InputManager::loadActions(const std::filesystem::path &configFile)
+{
+    const auto [bindings] =
+        RType::nlohamReader(configFile).convertJson<InputConfig>();
+    RType::ActionMask used = 0;
+    std::size_t next = 0;
+
+    for (const RType::ActionId action : _actionNames | std::views::values)
+        used |= RType::ActionMask {1} << action;
+    for (const auto &name : bindings | std::views::keys) {
+        if (_actionNames.contains(name))
+            continue;
+        while (next < RType::MAX_ACTIONS && ((used >> next) & 1U) != 0)
+            ++next;
+        if (next == RType::MAX_ACTIONS)
+            throw std::out_of_range("too many actions in the config file");
+        defineAction(name, static_cast<RType::ActionId>(next));
+        used |= RType::ActionMask {1} << next;
+    }
+    loadConfigFile(configFile);
+}
+
+const std::map<std::string, RType::ActionId, std::less<>> &
+    InputManager::actions() const
+{
+    return _actionNames;
 }
 
 void InputManager::bind(RType::ActionId action, KeyCode key)

@@ -710,3 +710,37 @@ TEST_CASE(
     REQUIRE_THROWS_AS(manager.defineAction("TooBig", 32), std::out_of_range);
     REQUIRE_THROWS_AS(manager.bind(32, 42), std::out_of_range);
 }
+
+TEST_CASE("InputManager defines the actions of a config file",
+    "[input][manager][config]")
+{
+    TempConfigFile config(R"({
+        "bindings": {
+            "Jump": [10],
+            "Shoot": [32]
+        }
+    })");
+    InputManager manager;
+
+    manager.defineAction("Shoot", 0);
+    manager.loadActions(config.path());
+
+    REQUIRE(manager.actions().size() == 2);
+    CHECK(manager.actions().at("Shoot") == 0);
+    CHECK(manager.actions().at("Jump") == 1);
+
+    manager.setKeyState(10, true);
+    CHECK(manager.isActionDown(1));
+    CHECK_FALSE(manager.isActionDown(0));
+}
+
+TEST_CASE("InputManager refuses too many actions", "[input][manager][config]")
+{
+    std::string bindings;
+    for (std::size_t i = 0; i <= RType::MAX_ACTIONS; ++i)
+        bindings += (i == 0 ? "\"A" : ",\"A") + std::to_string(i) + "\": [1]";
+    TempConfigFile config(R"({"bindings": {)" + bindings + "}}");
+    InputManager manager;
+
+    CHECK_THROWS_AS(manager.loadActions(config.path()), std::out_of_range);
+}

@@ -45,6 +45,22 @@ public:
     void loadConfigFile(const std::filesystem::path &configFile);
 
     /**
+     * @brief Defines the actions of a config file, then loads its bindings.
+     *
+     * Each new action takes the lowest free bit, so the bits depend on the
+     * file: use it when nothing outside the program reads them. A networked
+     * game calls defineAction() with fixed bits instead.
+     *
+     * @param configFile JSON file with a "bindings" object, see loadConfigFile.
+     * @throws std::out_of_range if there are more than MAX_ACTIONS actions.
+     */
+    void loadActions(const std::filesystem::path &configFile);
+
+    /** @return The bit of every defined action, by name. */
+    [[nodiscard]] const std::map<std::string, RType::ActionId, std::less<>> &
+        actions() const;
+
+    /**
      * @brief Binds a key to an action.
      * @param action Action triggered by the key.
      * @param key Key to bind.
