@@ -52,6 +52,8 @@ set(CORE_SRC
         src/library/Keys.h
         src/ui/UiDocument.cpp
         src/ui/UiDocument.h
+        src/ui/UiManager.cpp
+        src/ui/UiManager.h
         src/network/ByteReader.cpp
         src/network/ByteWriter.cpp
         src/network/ClientPackets.cpp
