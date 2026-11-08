@@ -32,6 +32,14 @@
             "path": "assets/backgrounds/nebula.png",
             "type": "Texture"
         },
+        "bg_stars_far": {
+            "path": "assets/backgrounds/stars_far.png",
+            "type": "Texture"
+        },
+        "bg_stars_near": {
+            "path": "assets/backgrounds/stars_near.png",
+            "type": "Texture"
+        },
         "sfx_laser": {
             "path": "assets/audio/laser.wav",
             "type": "Sound"
