@@ -13,7 +13,7 @@ function bydo.on_update(e, dt)
     local position = world.get(e, "Transform2D").position
 
     enemy.elapsed = enemy.elapsed + dt
-    position.x = position.x - SPEED * dt
+    position.x = position.x - SPEED * (rtype.speed_scale or 1) * dt
     position.y = enemy.base_y
         + math.sin(enemy.elapsed * WAVE_FREQUENCY) * WAVE_AMPLITUDE
 end

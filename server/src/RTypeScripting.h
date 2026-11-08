@@ -9,19 +9,24 @@
 #define RTYPESCRIPTING_H
 
 #include <functional>
+#include <optional>
 
 #include "GameProtocol.h"
 #include "math/Vector2.h"
 #include "scripting/ScriptEngine.h"
 
 namespace RType {
-/** @brief Spawns a replicated entity of @p kind at @p position. */
-using SpawnFunction =
-    std::function<void(Game::Protocol::EntityKind kind, Vector2 position)>;
+/**
+ * @brief Spawns a replicated entity of @p kind at @p position. A projectile
+ *        given a @p velocity moves at it instead of its default one.
+ */
+using SpawnFunction = std::function<void(Game::Protocol::EntityKind kind,
+    Vector2 position, std::optional<Vector2> velocity)>;
 
 /**
  * @brief Exposes the R-Type game to the server scripts: the Enemy
- *        component, and the `rtype` table (`rtype.spawn(kind, x, y)`,
+ *        and Boss components, and the `rtype` table
+ *        (`rtype.spawn(kind, x, y [, vx, vy])`,
  *        `rtype.SCREEN_WIDTH`, `rtype.SCREEN_HEIGHT`), see
  *        docs/scripting.md.
  * @param screenSize Size of the play area, in pixels.

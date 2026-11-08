@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <optional>
 #include <vector>
 
 #include "Enemy.h"
@@ -27,7 +28,20 @@ constexpr float TICK = 0.25f;
 struct SpawnRequest {
     EntityKind kind {};
     RType::Vector2 position;
+    std::optional<RType::Vector2> velocity;
 };
+
+const char *scriptOf(EntityKind kind)
+{
+    switch (kind) {
+        case EntityKind::Gunner:
+            return "gunner.lua";
+        case EntityKind::Boss:
+            return "boss.lua";
+        default:
+            return "bydo.lua";
+    }
+}
 
 /**
  * @brief The scripted part of RTypeServer, without the network: scripts
@@ -42,10 +56,14 @@ struct ScriptedGame {
         registry.registerComponent<RType::Health>();
         registry.registerComponent<RType::Hitbox>();
         registry.registerComponent<RType::Enemy>();
+        registry.registerComponent<RType::Boss>();
         RType::bindRTypeScripting(scripts,
             {SCREEN_WIDTH, SCREEN_HEIGHT},
-            [this](EntityKind kind, RType::Vector2 position) {
-                pending.push_back({kind, position});
+            [this](EntityKind kind,
+                RType::Vector2 position,
+                std::optional<RType::Vector2>
+                    velocity) {
+                pending.push_back({kind, position, velocity});
             });
     }
 
@@ -56,7 +74,8 @@ struct ScriptedGame {
         for (const auto &request : pending) {
             spawned.push_back(request);
             if (request.kind != EntityKind::Enemy &&
-                request.kind != EntityKind::Gunner) {
+                request.kind != EntityKind::Gunner &&
+                request.kind != EntityKind::Boss) {
                 continue;
             }
             RType::Entity entity = registry.spawnEntity();
@@ -65,10 +84,12 @@ struct ScriptedGame {
                 entity, RType::Transform2D {request.position});
             registry.addComponent(
                 entity, RType::Enemy {request.position.y, 0.f, 0.f});
-            registry.addComponent(entity,
-                RType::ScriptComponent {
-                    {request.kind == EntityKind::Gunner ? "gunner.lua"
-                                                        : "bydo.lua"}});
+            registry.addComponent(
+                entity, RType::ScriptComponent {{scriptOf(request.kind)}});
+            if (request.kind == EntityKind::Boss) {
+                registry.addComponent(entity, RType::Boss {});
+                registry.addComponent(entity, RType::Health {60});
+            }
             enemies.push_back(entity);
         }
         pending.clear();
@@ -149,6 +170,76 @@ TEST_CASE("Gunners shoot once on screen", "[server][scripting]")
     CHECK(bullets == 1);
     CHECK(game.position(gunner).x < 1800.f);
     CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE("The boss shoots a fan of bullets", "[server][scripting]")
+{
+    ScriptedGame game;
+    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
+    REQUIRE(game.scripts.loadString(R"(rtype.spawn("Boss", 1500, 540))"));
+    game.tick();
+    REQUIRE_FALSE(game.enemies.empty());
+    const RType::Entity boss = game.enemies.front();
+
+    for (int i = 0; i < 8; ++i) {
+        game.tick();
+    }
+    std::vector<SpawnRequest> bullets;
+    for (const auto &request : game.spawned) {
+        if (request.kind == EntityKind::EnemyBullet) {
+            bullets.push_back(request);
+        }
+    }
+    REQUIRE(bullets.size() == 5);
+    for (const auto &bullet : bullets) {
+        REQUIRE(bullet.velocity.has_value());
+        CHECK(bullet.velocity->x < 0.f);
+    }
+    CHECK(bullets.front().velocity->y < 0.f);
+    CHECK(bullets.back().velocity->y > 0.f);
+    // Its health was set from the level.
+    CHECK(game.registry.getComponents<RType::Health>()[boss]->max == 60);
+    CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE(
+    "A level ends with a boss, then the next one starts", "[server][scripting]")
+{
+    ScriptedGame game;
+    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
+
+    // 45 s of waves, then the boss 4 s later.
+    std::optional<RType::Entity> boss;
+    for (int i = 0; i < 250 && !boss; ++i) {
+        game.tick();
+        for (std::size_t j = 0; j < game.spawned.size(); ++j) {
+            if (game.spawned[j].kind == EntityKind::Boss) {
+                boss = game.enemies.back();
+            }
+        }
+    }
+    REQUIRE(boss.has_value());
+    CHECK(game.scripts.loadString("assert(rtype.level == 1)"));
+
+    game.tick();
+    game.registry.killEntity(*boss);
+    game.registry.killAllEntities();
+    game.tick();
+    CHECK(game.scripts.loadString(
+        "assert(rtype.level == 2 and rtype.speed_scale > 1)"));
+    CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE("rtype.spawn takes an optional velocity", "[server][scripting]")
+{
+    ScriptedGame game;
+
+    REQUIRE(game.scripts.loadString(
+        R"(rtype.spawn("EnemyBullet", 10, 20, -100, 50))"));
+    REQUIRE(game.pending.size() == 1);
+    REQUIRE(game.pending[0].velocity.has_value());
+    CHECK(game.pending[0].velocity->x == Approx(-100.f));
+    CHECK(game.pending[0].velocity->y == Approx(50.f));
 }
 
 TEST_CASE("rtype.spawn only accepts the kinds scripts may spawn",

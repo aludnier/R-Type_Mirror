@@ -222,15 +222,25 @@ are scripts in [`server/scripts`](../server/scripts), listed in
 the build tree uses the same layout):
 
 ```json
-{ "directory": "../server/scripts", "scripts": ["waves.lua"] }
+{ "directory": "../server/scripts", "scripts": ["waves.lua", "collision.lua", "cleanup.lua"] }
 ```
 
-- [`waves.lua`](../server/scripts/waves.lua), game script: a
-  `world.add_system` that spawns a Bydo past the right edge every 1.5 s, at a
-  random height.
-- [`bydo.lua`](../server/scripts/bydo.lua), entity script attached by the
-  server to every enemy it spawns: flies left on a sine wave and shoots an
-  `EnemyBullet` every 2 s once on screen.
+- [`waves.lua`](../server/scripts/waves.lua), game script: the levels. A
+  `world.add_system` spawns an enemy past the right edge at a random height
+  (every 1.5 s at level 1, a gunner every 4 enemies) for 45 s, then the
+  boss. When the boss is shot down, the next level starts with more and
+  faster enemies (`rtype.level`, `rtype.speed_scale`).
+- [`bydo.lua`](../server/scripts/bydo.lua), entity script of the Bydo
+  scouts: flies left on a sine wave. Scouts do not shoot.
+- [`gunner.lua`](../server/scripts/gunner.lua), entity script of the
+  gunners: flies left slowly, drifting up and down, and shoots an
+  `EnemyBullet` every 1.5 s once on screen.
+- [`boss.lua`](../server/scripts/boss.lua), entity script of the boss: comes
+  in from the right, moves up and down and shoots a fan of 5 bullets. Its
+  health is 60 per level.
+- `collision.lua` resolves the hits: a player bullet damages an enemy, an
+  enemy or its bullet makes a player lose a life (`rtype.hit_player`).
+- `cleanup.lua` removes what left the screen.
 
 Every tick, after the player weapons, `RTypeServer` sets the delta time and
 runs the scripts, then moves the projectiles, resolves the hits, removes what
@@ -242,9 +252,12 @@ On top of the `world` API, the server gives the scripts:
 
 | Name | Description |
 |---|---|
-| `rtype.spawn(kind, x, y)` | Spawns a replicated `"Enemy"`, `"EnemyBullet"`, `"PlayerLaser"` or `"ChargedBeam"` at the end of the tick (nothing is returned). An enemy gets its health, hitbox and `bydo.lua`; a projectile its speed and damage. |
+| `rtype.spawn(kind, x, y [, vx, vy])` | Spawns a replicated `"Enemy"` (Bydo scout), `"Gunner"`, `"Boss"`, `"EnemyBullet"`, `"PlayerLaser"` or `"ChargedBeam"` at the end of the tick (nothing is returned). An enemy gets its health, hitbox and entity script; a projectile its speed and damage, or the velocity `vx, vy` if given. |
+| `rtype.hit_player(e)` | The player `e` loses a life and respawns, unless it is invulnerable after its last hit; without lives left its ship is despawned. |
+| `rtype.level`, `rtype.speed_scale` | Current level (from 1) and the speed factor of the enemies, set by `waves.lua`. |
 | `rtype.SCREEN_WIDTH`, `rtype.SCREEN_HEIGHT` | Size of the play area, in pixels (1920 x 1080). |
-| `Enemy` component | State of a Bydo: `base_y` (spawn height), `elapsed` and `shoot_timer` (seconds). |
+| `Enemy` component | State of an enemy: `base_y` (spawn height), `elapsed` and `shoot_timer` (seconds). |
+| `Boss` component | Marks the boss, so `waves.lua` can tell when it is shot down. |
 
 `world.kill(e)` goes through the server's kill handler: a replicated entity is
 also removed on the clients (`ENTITY_DESPAWN`). Random numbers come from

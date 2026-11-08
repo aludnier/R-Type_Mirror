@@ -8,6 +8,8 @@
 #include "systems/NetworkSyncSystem.h"
 #include <cmath>
 #include <iostream>
+#include <string>
+#include <utility>
 #include "components/Controllable.h"
 #include "components/Enemy.h"
 #include "components/Hitbox.h"
@@ -35,6 +37,14 @@ namespace AnimationFrames {
     // Gunner: the robot of the player sheet, facing left (3 frames)
     const std::vector<RType::Animation::AnimationFrame> gunner = {
         {238, 30, 22, 30}, {271, 30, 22, 30}, {304, 30, 22, 30}};
+
+    // Boss: the walking cannon of the player sheet (6 frames)
+    const std::vector<RType::Animation::AnimationFrame> boss = {{1, 2, 31, 25},
+        {34, 3, 32, 24},
+        {67, 4, 32, 23},
+        {100, 2, 31, 25},
+        {133, 3, 31, 24},
+        {166, 4, 32, 23}};
 
     // Force pod animation (12 frames)
     const std::vector<RType::Animation::AnimationFrame> forcePod = {
@@ -237,11 +247,18 @@ void NetworkSyncSystem::reset()
     _clientToNetwork.clear();
     _localNetworkId = RType::Network::NO_ENTITY;
     _gameOver = false;
+    _bosses.clear();
+    _banner.reset();
 }
 
 bool NetworkSyncSystem::isGameOver() const
 {
     return _gameOver;
+}
+
+std::optional<std::string> NetworkSyncSystem::takeBanner()
+{
+    return std::exchange(_banner, std::nullopt);
 }
 
 std::optional<RType::Entity> NetworkSyncSystem::findEntity(
@@ -300,6 +317,8 @@ void NetworkSyncSystem::handleAcceptConnect(
     _clientToNetwork[packet.clientId] = packet.linkedEntity;
     _localNetworkId = packet.linkedEntity;
     _gameOver = false;
+    _level = 1;
+    _banner = "LEVEL 1";
     if (packet.linkedEntity == RType::Network::NO_ENTITY) {
         return;
     }
@@ -456,6 +475,11 @@ void NetworkSyncSystem::handleEntityDespawn(
     if (packet.networkId == _localNetworkId &&
         _localNetworkId != RType::Network::NO_ENTITY)
         _gameOver = true;
+    // The boss only goes away when it is shot down: next level.
+    if (_bosses.erase(packet.networkId) > 0) {
+        ++_level;
+        _banner = "LEVEL " + std::to_string(_level);
+    }
     auto it = _networkToEntity.find(packet.networkId);
     if (it != _networkToEntity.end()) {
         std::size_t entityId = it->second;
@@ -648,6 +672,28 @@ void NetworkSyncSystem::applyEntityKind(
                 transforms[entity].has_value()) {
                 transforms[entity]->scale = {1.75f, 1.75f};
             }
+            break;
+        }
+        case Protocol::EntityKind::Boss: {
+            _registry->get().addComponent<Enemy>(entity, Enemy());
+            if (entityId >= sprites.size() || !sprites[entity].has_value()) {
+                addAnimatedSprite(
+                    entity, "player_ship", AnimationFrames::boss, 0.15f, 6);
+                if (sprites[entity]) {
+                    sprites[entity]->g = 120;
+                    sprites[entity]->b = 120;
+                }
+            }
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {5.f, 5.f};
+            }
+            if (const auto network = _entityToNetwork.find(entityId);
+                network != _entityToNetwork.end())
+                _bosses.insert(network->second);
+            _banner = "BOSS";
             break;
         }
         case Protocol::EntityKind::PlayerLaser: {

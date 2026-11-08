@@ -48,11 +48,13 @@ enum class EntityKind : std::uint8_t {
     EnemyBullet = 4,
     /** @brief Enemy that shoots, with more health than a Bydo scout. */
     Gunner = 5,
+    /** @brief The boss at the end of each level. */
+    Boss = 6,
 };
 
 constexpr bool isValidKind(std::uint8_t kind)
 {
-    return kind <= static_cast<std::uint8_t>(EntityKind::Gunner);
+    return kind <= static_cast<std::uint8_t>(EntityKind::Boss);
 }
 } // namespace Game::Protocol
 

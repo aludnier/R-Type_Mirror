@@ -124,3 +124,30 @@ TEST_CASE("NetworkSyncSystem reports game over when the local ship despawns",
     sync.reset();
     CHECK_FALSE(sync.isGameOver());
 }
+
+TEST_CASE(
+    "NetworkSyncSystem announces the levels and the boss", "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+    RType::Network::ByteWriter kind;
+    kind.write(static_cast<std::uint8_t>(Game::Protocol::EntityKind::Boss));
+
+    sync.processServerMessages({RType::Network::AcceptConnectPacket {
+                                   .clientId = 1, .linkedEntity = 10}},
+        10);
+    CHECK(sync.takeBanner() == "LEVEL 1");
+    CHECK_FALSE(sync.takeBanner().has_value());
+
+    sync.processServerMessages(
+        {RType::Network::EntitySpawnPacket {.networkId = 20,
+            .components = {{Game::Protocol::ENTITY_KIND, kind.release()}}}},
+        10);
+    CHECK(sync.takeBanner() == "BOSS");
+
+    sync.processServerMessages({RType::Network::EntityDespawnPacket {20}}, 10);
+    CHECK(sync.takeBanner() == "LEVEL 2");
+}

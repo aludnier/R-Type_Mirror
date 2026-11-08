@@ -54,6 +54,9 @@ namespace {
                 return EnemyStats {2, {70.f, 52.5f}, "bydo.lua"};
             case EntityKind::Gunner:
                 return EnemyStats {4, {38.5f, 52.5f}, "gunner.lua"};
+            // boss.lua scales its health with the level.
+            case EntityKind::Boss:
+                return EnemyStats {60, {160.f, 120.f}, "boss.lua"};
             default:
                 return std::nullopt;
         }
@@ -160,6 +163,7 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
 
     reg.registerComponent<Projectile>();
     reg.registerComponent<Enemy>();
+    reg.registerComponent<Boss>();
     reg.registerComponent<Health>();
     reg.registerComponent<Hitbox>();
     // Ensure player entities (marked Controllable) have a collider so
@@ -193,8 +197,11 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     // Spawned at the end of the tick, like the projectiles.
     bindRTypeScripting(_scripts,
         {SCREEN_WIDTH, SCREEN_HEIGHT},
-        [this](EntityKind kind, Vector2 position) {
-            _pendingSpawns.push_back({kind, position});
+        [this](EntityKind kind,
+            Vector2 position,
+            std::optional<Vector2>
+                velocity) {
+            _pendingSpawns.push_back({kind, position, velocity});
         });
     // Projectile is in an anonymous namespace, so bind it here.
     _scripts.lua().new_usertype<Projectile>("Projectile",
@@ -342,11 +349,18 @@ void RTypeServer::spawn(const SpawnRequest &request)
             RType::Physics2D::BoxCollider2D {size, {}, true, 1, 0xFFFFFFFFu});
         reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
         reg.addComponent(entity, ScriptComponent {{stats->script}});
+        if (request.kind == EntityKind::Boss) {
+            reg.addComponent(entity, Boss {});
+        }
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
         return;
     }
     auto [velocity, hitbox, damage, piercing] = statsOf(request.kind);
+
+    if (request.velocity) {
+        velocity = *request.velocity;
+    }
 
     reg.addComponent(entity,
         Projectile {velocity,

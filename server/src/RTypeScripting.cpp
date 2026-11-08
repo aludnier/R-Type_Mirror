@@ -20,10 +20,11 @@ namespace {
     using Game::Protocol::EntityKind;
 
     // Players are spawned when a client connects, not by scripts.
-    constexpr std::array<std::pair<std::string_view, EntityKind>, 5>
+    constexpr std::array<std::pair<std::string_view, EntityKind>, 6>
         SPAWNABLE_KINDS = {{
             {"Enemy", EntityKind::Enemy},
             {"Gunner", EntityKind::Gunner},
+            {"Boss", EntityKind::Boss},
             {"PlayerLaser", EntityKind::PlayerLaser},
             {"ChargedBeam", EntityKind::ChargedBeam},
             {"EnemyBullet", EntityKind::EnemyBullet},
@@ -54,14 +55,27 @@ void bindRTypeScripting(
         "shoot_timer",
         &Enemy::shootTimer);
     scripts.bindComponent<Enemy>("Enemy");
+    lua.new_usertype<Boss>("Boss", sol::constructors<Boss()>());
+    scripts.bindComponent<Boss>("Boss");
 
     sol::table rtype = lua.create_named_table("rtype");
 
     rtype["SCREEN_WIDTH"] = screenSize.x;
     rtype["SCREEN_HEIGHT"] = screenSize.y;
     rtype.set_function("spawn",
-        [spawn = std::move(spawn)](const std::string &kind, float x, float y) {
-            spawn(kindFromName(kind), {x, y});
+        [spawn = std::move(spawn)](const std::string &kind,
+            float x,
+            float y,
+            std::optional<float>
+                vx,
+            std::optional<float>
+                vy) {
+            std::optional<Vector2> velocity;
+
+            if (vx && vy) {
+                velocity = Vector2 {*vx, *vy};
+            }
+            spawn(kindFromName(kind), {x, y}, velocity);
         });
 }
 } // namespace RType

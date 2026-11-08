@@ -7,6 +7,7 @@
 
 #include "GameApp.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 #include <imgui.h>
@@ -32,6 +33,10 @@
 #include "systems/RenderSystem.h"
 
 namespace Game {
+namespace {
+    /** @brief Seconds a "LEVEL n" or "BOSS" banner stays on screen. */
+    constexpr float BANNER_TIME = 2.5f;
+} // namespace
 
 void GameApp::registerComponents()
 {
@@ -229,6 +234,11 @@ void GameApp::updateGame(float dt)
     _networkSyncSystem.syncWithServer(
         getInputManager(), _networkClient, &getAudioManager());
     _shipTilt.update(registry, getInputManager(), dt);
+    if (auto banner = _networkSyncSystem.takeBanner()) {
+        _bannerText = std::move(*banner);
+        _bannerTime = BANNER_TIME;
+    }
+    _bannerTime = std::max(_bannerTime - dt, 0.f);
 }
 
 void GameApp::renderGame()
@@ -364,6 +374,19 @@ void GameApp::renderHud()
             getWindow().draw(miniShip);
         }
         break; // HUD of the local player only
+    }
+    if (_bannerTime > 0.f && !_networkSyncSystem.isGameOver()) {
+        constexpr float SIZE = 72.f;
+        const auto window = getWindow().getSize();
+        ImFont *font = ImGui::GetFont();
+        const ImVec2 size =
+            font->CalcTextSizeA(SIZE, FLT_MAX, 0.f, _bannerText.c_str());
+        ImGui::GetForegroundDrawList()->AddText(font,
+            SIZE,
+            ImVec2((static_cast<float>(window.x) - size.x) / 2.f,
+                static_cast<float>(window.y) / 4.f),
+            IM_COL32(255, 220, 90, 255),
+            _bannerText.c_str());
     }
     if (_networkSyncSystem.isGameOver()) {
         constexpr const char *GAME_OVER = "GAME OVER";

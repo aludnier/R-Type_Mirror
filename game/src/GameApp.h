@@ -10,6 +10,7 @@
 
 #include <imgui-SFML.h>
 #include <memory>
+#include <string>
 
 #include "components/ParallaxBackground.h"
 #include "game/GameApp.h"
@@ -59,6 +60,9 @@ private:
     void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
 
     bool _inGameOverlayVisible = false;
+    /** @brief "LEVEL n" or "BOSS", shown for _bannerTime more seconds. */
+    std::string _bannerText;
+    float _bannerTime = 0.f;
 
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};

@@ -13,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 #include "audio/IAudioPlayer.h"
 #include "components/AnimationClip.h"
@@ -79,6 +80,13 @@ public:
     /** @return Whether the server despawned the local player's ship. */
     [[nodiscard]] bool isGameOver() const;
 
+    /**
+     * @return Text to show for a while ("LEVEL 2", "BOSS") since the last
+     *         call, if any: a level starts when the player joins and each
+     *         time a boss is shot down.
+     */
+    [[nodiscard]] std::optional<std::string> takeBanner();
+
 private:
     struct ServerMessageVisitor;
 
@@ -135,6 +143,9 @@ private:
     bool _wasConnected = false;
     RType::Network::NetworkId _localNetworkId = RType::Network::NO_ENTITY;
     bool _gameOver = false;
+    std::unordered_set<RType::Network::NetworkId> _bosses {};
+    int _level = 1;
+    std::optional<std::string> _banner {};
 };
 
 } // namespace Game

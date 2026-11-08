@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -40,6 +41,8 @@ private:
     struct SpawnRequest {
         Game::Protocol::EntityKind kind {};
         Vector2 position;
+        /** @brief Velocity of a projectile, instead of its default one. */
+        std::optional<Vector2> velocity;
     };
 
     /** @brief Shooting state of a player, kept between ticks. */

@@ -22,6 +22,9 @@ struct Enemy {
     /** @brief Seconds since its last shot. */
     float shootTimer = 0.f;
 };
+
+/** @brief Marks the boss, so waves.lua knows when it is shot down. */
+struct Boss {};
 } // namespace RType
 
 #endif // ENEMY_H

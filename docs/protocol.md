@@ -435,7 +435,8 @@ and how a `ClientId` maps to a player color.
 
 ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
 An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy (Bydo), `2` player laser, `3` charged beam
-(wave cannon), `4` enemy bullet, `5` gunner (an enemy that shoots).
+(wave cannon), `4` enemy bullet, `5` gunner (an enemy that shoots), `6`
+boss.
 A client ignores an unknown value.
 
 Enemies and projectiles also carry PHYSICS in their ENTITY_SPAWN, with their
@@ -456,6 +457,11 @@ enemy bullet touches it; it then respawns at (100, 540) and takes no hit for
 2 s. When its last life is lost, the server despawns its entity with
 ENTITY_DESPAWN: the client shows the game is over, and the session stays
 open.
+
+Levels: each level sends enemies for 45 s, then a boss. The boss only
+leaves when it is shot down: when its ENTITY_DESPAWN arrives, the next level
+starts, with more and faster enemies. The client counts the levels this way
+to show "LEVEL n" and "BOSS"; no message announces them.
 
 Player colors: the client tints each player's ship by `ClientId`. Client 1
 keeps the colors of the sprite, then client 2 is orange (`#E69F00`), client
