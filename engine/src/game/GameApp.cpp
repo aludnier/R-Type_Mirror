@@ -8,8 +8,8 @@
 #include "game/GameApp.h"
 
 #include <SFML/Window/Keyboard.hpp>
-#include "components/Controllable.h"
 #include "components/AudioSource.h"
+#include "components/Controllable.h"
 #include "components/MusicPlayer.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -98,7 +98,8 @@ void GameApp::close()
 void GameApp::update(float dt)
 {
     updateGame(dt);
-    _audioSystem.update(_registry, _clientAssetManager.metadata(), _audioManager);
+    _audioSystem.update(
+        _registry, _clientAssetManager.metadata(), _audioManager);
     _audioManager.update();
 }
 
