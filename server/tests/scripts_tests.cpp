@@ -69,6 +69,10 @@ struct ScriptedGame {
                     velocity) {
                 pending.push_back({kind, position, velocity});
             });
+        // waves.lua only spawns enemies while a player is alive.
+        player = registry.spawnEntity();
+        registry.addComponent(player, RType::Controllable {});
+        registry.addComponent(player, RType::Transform2D {{100.f, 500.f}});
         // Bound by RTypeServer: here it only records the hits.
         scripts.lua()["rtype"]["hit_player"] = [this](std::size_t entity) {
             hits.push_back(entity);
@@ -115,6 +119,7 @@ struct ScriptedGame {
     std::vector<SpawnRequest> spawned;
     std::vector<RType::Entity> enemies;
     std::vector<std::size_t> hits;
+    RType::Entity player = RType::Registry::entityFromIndex(0);
 };
 } // namespace
 
@@ -283,6 +288,24 @@ TEST_CASE("A player that touches the ground is hit", "[server][scripting]")
     game.tick();
 
     CHECK(game.hits == std::vector<std::size_t> {low});
+    CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE("Without players the game waits at level 1", "[server][scripting]")
+{
+    ScriptedGame game;
+    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
+    REQUIRE(game.scripts.loadString("rtype.level = 3"));
+
+    game.registry.killEntity(game.player);
+    game.registry.killAllEntities();
+    for (int i = 0; i < 12; ++i) {
+        game.tick();
+    }
+
+    CHECK(game.spawned.empty());
+    CHECK(game.scripts.loadString(
+        "assert(rtype.level == 1 and rtype.speed_scale == 1)"));
     CHECK(game.scripts.lastError().empty());
 }
 

@@ -2,8 +2,8 @@
 -- for WAVES_TIME seconds, past the right edge of the screen at a random
 -- height (a Bydo scout, and a gunner every GUNNER_EVERY enemies) and
 -- walkers on the ground, then the boss. When the boss is shot down, the next level starts, with more and
--- faster enemies. rtype.level and rtype.speed_scale are read by the enemy
--- scripts.
+-- faster enemies. When no player is left, it goes back to level 1 and
+-- waits. rtype.level and rtype.speed_scale are read by the enemy scripts.
 
 local SPAWN_INTERVAL = 1.5
 local MIN_SPAWN_INTERVAL = 0.6
@@ -38,6 +38,24 @@ local function spawn_interval()
         SPAWN_INTERVAL - 0.3 * (rtype.level - 1))
 end
 
+local function players_alive()
+    local alive = false
+    world.each({"Controllable"}, function() alive = true end)
+    return alive
+end
+
+-- Without players, the game waits at level 1: a new player starts from
+-- the beginning, without a boss left on screen.
+local function reset()
+    rtype.level = 1
+    rtype.speed_scale = 1
+    state = "waves"
+    timer = 0
+    walker_timer = 0
+    level_time = 0
+    world.each({"Boss"}, function(e) world.kill(e) end)
+end
+
 local function boss_alive()
     local alive = false
     world.each({"Boss"}, function() alive = true end)
@@ -57,6 +75,12 @@ local function spawn_enemy()
 end
 
 world.add_system("levels", function(dt)
+    if not players_alive() then
+        if rtype.level ~= 1 or state ~= "waves" or level_time > 0 then
+            reset()
+        end
+        return
+    end
     timer = timer + dt
     if state == "waves" then
         level_time = level_time + dt

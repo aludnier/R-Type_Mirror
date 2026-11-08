@@ -229,7 +229,8 @@ the build tree uses the same layout):
   `world.add_system` spawns an enemy past the right edge at a random height
   (every 1.5 s at level 1, a gunner every 4 enemies) for 45 s, then the
   boss. When the boss is shot down, the next level starts with more and
-  faster enemies (`rtype.level`, `rtype.speed_scale`).
+  faster enemies (`rtype.level`, `rtype.speed_scale`). When no player is
+  left, it goes back to level 1 and waits for one.
 - [`bydo.lua`](../server/scripts/bydo.lua), entity script of the Bydo
   scouts: flies left on a sine wave. Scouts do not shoot.
 - [`gunner.lua`](../server/scripts/gunner.lua), entity script of the

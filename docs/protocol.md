@@ -461,7 +461,9 @@ COMPONENT_UPDATE is not reliable. A player loses a life when an enemy or an
 enemy bullet touches it; it then respawns at (100, 540) and takes no hit for
 2 s. When its last life is lost, the server despawns its entity with
 ENTITY_DESPAWN: the client shows the game is over, and the session stays
-open.
+open. To play again, the client sends ASK_DISCONNECT and then ASK_CONNECT:
+the server gives the new session a new ship with 3 lives. When no player is
+left, the game goes back to level 1.
 
 Levels: each level sends enemies for 45 s, then a boss. The boss only
 leaves when it is shot down: when its ENTITY_DESPAWN arrives, the next level
