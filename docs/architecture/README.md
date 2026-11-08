@@ -19,3 +19,5 @@
 | `game_server`        | `GameServer` in `engine_server` | `engine/src/server/`      |
 
 The server links `engine_server` and `engine_core` only, never `engine_client`.
+
+The diagrams are drawn on the documentation site: see [Architecture diagrams](diagrams.md).
