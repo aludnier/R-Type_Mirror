@@ -13,7 +13,6 @@ public:
         _path = std::filesystem::temp_directory_path() /
             ("rtype_resource_manager_test_" + std::to_string(counter++) +
                 ".json");
-        _path = std::filesystem::canonical(_path);
         std::ofstream output(_path, std::ios::trunc);
         if (!output) {
             throw std::runtime_error("Unable to create temporary config file");
@@ -22,6 +21,8 @@ public:
         if (!output) {
             throw std::runtime_error("Unable to write temporary config file");
         }
+        output.close();
+        _path = std::filesystem::canonical(_path);
     }
 
     ~TempConfigFile()
