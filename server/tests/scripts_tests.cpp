@@ -84,8 +84,8 @@ struct ScriptedGame {
 };
 } // namespace
 
-TEST_CASE("The server scripts spawn Bydos that fly left and shoot",
-    "[server][scripting]")
+TEST_CASE(
+    "The server scripts spawn Bydo scouts that fly left", "[server][scripting]")
 {
     ScriptedGame game;
     game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
@@ -111,18 +111,15 @@ TEST_CASE("The server scripts spawn Bydos that fly left and shoot",
     CHECK(game.position(bydo).y >= baseY - 60.f);
     CHECK(game.position(bydo).y <= baseY + 60.f);
 
-    // Shoots 2 s after it appeared, once on screen. A second enemy came
-    // 1.5 s after the first one.
-    for (int i = 0; i < 6; ++i) {
+    // Scouts do not shoot: only the next enemy comes, 1.5 s after the
+    // first one.
+    for (int i = 0; i < 10; ++i) {
         game.tick();
     }
+    for (const auto &request : game.spawned) {
+        CHECK(request.kind == EntityKind::Enemy);
+    }
     CHECK(game.spawned.size() == 2);
-    game.tick();
-    REQUIRE(game.spawned.size() == 3);
-    CHECK(game.spawned[1].kind == EntityKind::Enemy);
-    CHECK(game.spawned[2].kind == EntityKind::EnemyBullet);
-    CHECK(game.spawned[2].position.x == Approx(game.position(bydo).x - 20.f));
-    CHECK(game.spawned[2].position.y == Approx(game.position(bydo).y));
     CHECK(game.scripts.lastError().empty());
 }
 
