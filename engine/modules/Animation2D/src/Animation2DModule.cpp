@@ -2,6 +2,7 @@
 
 #include "components/AnimationSettings.h"
 #include "components/Animator.h"
+#include "components/Sprite.h"
 #include "systems/AnimationSystem.h"
 
 namespace {
@@ -10,6 +11,7 @@ RType::ModuleStatus registerAnimationModule(RType::Registry &registry)
 {
     registry.registerComponent<RType::Animation::Animator>();
     registry.registerComponent<RType::Animation::AnimationSettings>();
+    registry.registerComponent<RType::Sprite>();
     RType::Animation::AnimationSystem::addSystem(registry);
     return RType::ModuleStatus::Success;
 }

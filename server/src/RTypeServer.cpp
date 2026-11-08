@@ -61,11 +61,11 @@ namespace {
     {
         switch (kind) {
             case EntityKind::ChargedBeam:
-                return {{900.f, 0.f}, {48.f, 24.f}, 5, true};
+                return {{900.f, 0.f}, {42.f, 21.f}, 5, true};
             case EntityKind::EnemyBullet:
-                return {{-450.f, 0.f}, {12.f, 12.f}, 1, false};
+                return {{-450.f, 0.f}, {21.f, 21.f}, 1, false};
             default:
-                return {{700.f, 0.f}, {16.f, 8.f}, 1, false};
+                return {{700.f, 0.f}, {28.f, 14.f}, 1, false};
         }
     }
 
@@ -133,7 +133,7 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
                 for (std::size_t i = 0; i < controllables.size(); ++i) {
                     if (controllables[i] && !colliders[i] && transforms[i]) {
                         colliders[i] = Physics2D::BoxCollider2D {
-                            {30.f, 30.f}, {}, true, 1, 0xFFFFFFFFu};
+                            {52.5f, 52.5f}, {}, true, 1, 0xFFFFFFFFu};
                     }
                 }
             });
@@ -243,7 +243,7 @@ void RTypeServer::spawn(const SpawnRequest &request)
 
     reg.addComponent(entity, Transform2D {request.position});
     if (request.kind == EntityKind::Enemy) {
-        Vector2 size {40.f, 30.f};
+        Vector2 size {70.f, 52.5f};
 
         reg.addComponent(entity, Enemy {request.position.y, 0.f, 0.f});
         reg.addComponent(entity, Health {ENEMY_HEALTH});

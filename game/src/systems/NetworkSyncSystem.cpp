@@ -22,7 +22,98 @@
 
 #include "components/NetworkEntity.h"
 
+#include "components/AnimationClip.h"
+#include "components/Animator.h"
+#include "systems/AnimationSystem.h"
+
 namespace Game {
+
+// Animation frame data extracted from sprite sheets
+namespace AnimationFrames {
+
+    // Player idle animation (row 1 of laser bullet sheet - 10 frames)
+    const std::vector<RType::Animation::AnimationFrame> playerIdle = {
+        {101, 3, 32, 14},
+        {134, 3, 32, 13},
+        {167, 3, 32, 12},
+        {200, 3, 32, 13},
+        {233, 2, 32, 14},
+        {267, 2, 32, 14},
+        {300, 3, 32, 13},
+        {333, 3, 32, 12},
+        {366, 3, 32, 13},
+        {399, 3, 32, 14}};
+
+    // Force pod animation (12 frames)
+    const std::vector<RType::Animation::AnimationFrame> forcePod = {
+        {1, 2, 16, 12},
+        {18, 2, 16, 12},
+        {35, 2, 16, 12},
+        {52, 2, 16, 14},
+        {69, 4, 16, 12},
+        {86, 4, 16, 12},
+        {103, 4, 16, 12},
+        {120, 4, 16, 12},
+        {137, 4, 16, 12},
+        {154, 2, 16, 14},
+        {171, 2, 16, 12},
+        {188, 2, 16, 12}};
+
+    // Bydo scout animation (16 frames)
+    const std::vector<RType::Animation::AnimationFrame> bydoScout = {
+        {5, 6, 21, 24},
+        {38, 12, 21, 14},
+        {71, 16, 21, 7},
+        {104, 10, 21, 14},
+        {137, 6, 21, 24},
+        {170, 12, 21, 14},
+        {203, 13, 21, 7},
+        {236, 10, 21, 14},
+        {276, 10, 21, 14},
+        {309, 13, 21, 7},
+        {342, 12, 21, 14},
+        {375, 6, 21, 24},
+        {408, 10, 21, 14},
+        {441, 16, 21, 7},
+        {474, 12, 21, 14},
+        {507, 6, 21, 24}};
+
+    // Laser bullet animation (row 4 of laser bullet sheet - 6 frames)
+    const std::vector<RType::Animation::AnimationFrame> laserBullet = {
+        {9, 82, 1, 1},
+        {19, 81, 1, 1},
+        {72, 81, 1, 1},
+        {459, 81, 1, 1},
+        {512, 81, 1, 1},
+        {522, 82, 1, 1}};
+
+    // Wave cannon energy beam animation (row 6 of laser bullet sheet)
+    const std::vector<RType::Animation::AnimationFrame> waveCannon = {
+        {232, 103, 16, 12},
+        {249, 103, 16, 12},
+        {267, 103, 16, 12},
+        {284, 103, 16, 12}};
+
+    // Enemy bullet animation (frames 0-19 from enemy bullet sheet - first row)
+    const std::vector<RType::Animation::AnimationFrame> enemyBullet = {
+        {118, 3, 32, 28},
+        {151, 3, 32, 28},
+        {184, 9, 16, 16},
+        {209, 12, 22, 10},
+        {237, 13, 26, 8},
+        {275, 17, 2, 1},
+        {278, 16, 4, 2},
+        {283, 14, 12, 6},
+        {305, 14, 12, 6},
+        {318, 16, 4, 2},
+        {323, 17, 2, 1},
+        {337, 13, 26, 8},
+        {369, 12, 22, 10},
+        {400, 9, 16, 16},
+        {417, 3, 32, 28},
+        {450, 3, 32, 28}};
+
+} // namespace AnimationFrames
 
 void NetworkSyncSystem::init(RType::Registry &registry, AssetManager &resources)
 {
@@ -160,7 +251,7 @@ void NetworkSyncSystem::handleAcceptConnect(
         _registry->get().addComponent<NetworkEntity>(
             entity, NetworkEntity(packet.linkedEntity, true));
         _registry->get().addComponent<RType::Transform2D>(
-            entity, RType::Transform2D({150.0f, 540.0f}));
+            entity, RType::Transform2D({150.0f, 540.0f}, {1.75f, 1.75f}));
         _registry->get().addComponent<RType::Controllable>(
             entity, RType::Controllable(0));
         _registry->get().addComponent<Player>(entity, Player(3, true));
@@ -170,9 +261,26 @@ void NetworkSyncSystem::handleAcceptConnect(
             entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
 
         try {
-            auto &asset = _resources->get().getAsset("player_ship");
-            _registry->get().addComponent<RType::Sprite>(
-                entity, RType::Sprite(asset.id, 10));
+            auto &asset = _resources->get().getAsset("laser_bullet");
+            const auto &firstFrame = AnimationFrames::playerIdle[0];
+            _registry->get().addComponent<RType::Sprite>(entity,
+                RType::Sprite(asset.id,
+                    firstFrame.left,
+                    firstFrame.top,
+                    firstFrame.width,
+                    firstFrame.height,
+                    10));
+            auto &animatorOpt =
+                _registry->get().addComponent<RType::Animation::Animator>(
+                    entity, RType::Animation::Animator {});
+            if (animatorOpt) {
+                RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                    "idle",
+                    RType::Animation::AnimationSystem::createClip(
+                        AnimationFrames::playerIdle, 0.12f));
+                RType::Animation::AnimationSystem::play(
+                    *animatorOpt, "idle", true);
+            }
         } catch (...) {
         }
     }
@@ -199,7 +307,7 @@ void NetworkSyncSystem::handlePlayerConnected(
         _registry->get().addComponent<NetworkEntity>(
             entity, NetworkEntity(packet.linkedEntity, false));
         _registry->get().addComponent<RType::Transform2D>(
-            entity, RType::Transform2D({150.0f, 540.0f}));
+            entity, RType::Transform2D({150.0f, 540.0f}, {1.75f, 1.75f}));
         _registry->get().addComponent<Player>(entity, Player(3, false));
         _registry->get().addComponent<RType::Physics2D::Rigidbody2D>(
             entity, RType::Physics2D::Rigidbody2D {});
@@ -207,9 +315,26 @@ void NetworkSyncSystem::handlePlayerConnected(
             entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
 
         try {
-            auto &asset = _resources->get().getAsset("player_ship");
-            _registry->get().addComponent<RType::Sprite>(
-                entity, RType::Sprite(asset.id, 10));
+            auto &asset = _resources->get().getAsset("laser_bullet");
+            const auto &firstFrame = AnimationFrames::playerIdle[0];
+            _registry->get().addComponent<RType::Sprite>(entity,
+                RType::Sprite(asset.id,
+                    firstFrame.left,
+                    firstFrame.top,
+                    firstFrame.width,
+                    firstFrame.height,
+                    10));
+            auto &animatorOpt =
+                _registry->get().addComponent<RType::Animation::Animator>(
+                    entity, RType::Animation::Animator {});
+            if (animatorOpt) {
+                RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                    "idle",
+                    RType::Animation::AnimationSystem::createClip(
+                        AnimationFrames::playerIdle, 0.12f));
+                RType::Animation::AnimationSystem::play(
+                    *animatorOpt, "idle", true);
+            }
         } catch (...) {
         }
     }
@@ -298,11 +423,32 @@ void NetworkSyncSystem::handleEntitySpawn(
     auto &sprites = _registry->get().getComponents<RType::Sprite>();
     if (entityId >= sprites.size() || !sprites[entity].has_value()) {
         try {
-            auto &asset = _resources->get().getAsset("player_ship");
-            _registry->get().addComponent<RType::Sprite>(
-                entity, RType::Sprite(asset.id, 10));
+            auto &asset = _resources->get().getAsset("laser_bullet");
+            const auto &firstFrame = AnimationFrames::playerIdle[0];
+            _registry->get().addComponent<RType::Sprite>(entity,
+                RType::Sprite(asset.id,
+                    firstFrame.left,
+                    firstFrame.top,
+                    firstFrame.width,
+                    firstFrame.height,
+                    10));
+            auto &animatorOpt =
+                _registry->get().addComponent<RType::Animation::Animator>(
+                    entity, RType::Animation::Animator {});
+            if (animatorOpt) {
+                RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                    "idle",
+                    RType::Animation::AnimationSystem::createClip(
+                        AnimationFrames::playerIdle, 0.12f));
+                RType::Animation::AnimationSystem::play(
+                    *animatorOpt, "idle", true);
+            }
         } catch (...) {
         }
+    }
+    auto &transforms = _registry->get().getComponents<RType::Transform2D>();
+    if (entityId < transforms.size() && transforms[entity].has_value()) {
+        transforms[entity]->scale = {1.75f, 1.75f};
     }
 }
 
@@ -446,54 +592,154 @@ void NetworkSyncSystem::applyEntityKind(
     auto &sprites = _registry->get().getComponents<RType::Sprite>();
     auto entityId = static_cast<std::size_t>(entity);
     switch (static_cast<Protocol::EntityKind>(kind)) {
-        case Protocol::EntityKind::Enemy:
+        case Protocol::EntityKind::Enemy: {
             _registry->get().addComponent<Enemy>(entity, Enemy());
             if (entityId >= sprites.size() || !sprites[entity].has_value()) {
                 try {
                     auto &asset =
                         _resources->get().getAsset("enemy_bydo_scout");
-                    _registry->get().addComponent<RType::Sprite>(
-                        entity, RType::Sprite(asset.id, 5));
+                    const auto &firstFrame = AnimationFrames::bydoScout[0];
+                    _registry->get().addComponent<RType::Sprite>(entity,
+                        RType::Sprite(asset.id,
+                            firstFrame.left,
+                            firstFrame.top,
+                            firstFrame.width,
+                            firstFrame.height,
+                            5));
+                    auto &animatorOpt =
+                        _registry->get()
+                            .addComponent<RType::Animation::Animator>(
+                                entity, RType::Animation::Animator {});
+                    if (animatorOpt) {
+                        RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                            "idle",
+                            RType::Animation::AnimationSystem::createClip(
+                                AnimationFrames::bydoScout, 0.1f));
+                        RType::Animation::AnimationSystem::play(
+                            *animatorOpt, "idle", true);
+                    }
                 } catch (...) {
                 }
             }
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {1.75f, 1.75f};
+            }
             break;
-        case Protocol::EntityKind::PlayerLaser:
+        }
+        case Protocol::EntityKind::PlayerLaser: {
             _registry->get().addComponent<Projectile>(
                 entity, Projectile(true, 1, false, 700.0f));
             if (entityId >= sprites.size() || !sprites[entity].has_value()) {
                 try {
                     auto &asset = _resources->get().getAsset("laser_bullet");
-                    _registry->get().addComponent<RType::Sprite>(
-                        entity, RType::Sprite(asset.id, 15));
+                    const auto &firstFrame = AnimationFrames::laserBullet[0];
+                    _registry->get().addComponent<RType::Sprite>(entity,
+                        RType::Sprite(asset.id,
+                            firstFrame.left,
+                            firstFrame.top,
+                            firstFrame.width,
+                            firstFrame.height,
+                            15));
+                    auto &animatorOpt =
+                        _registry->get()
+                            .addComponent<RType::Animation::Animator>(
+                                entity, RType::Animation::Animator {});
+                    if (animatorOpt) {
+                        RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                            "shoot",
+                            RType::Animation::AnimationSystem::createClip(
+                                AnimationFrames::laserBullet, 0.05f));
+                        RType::Animation::AnimationSystem::play(
+                            *animatorOpt, "shoot", true);
+                    }
                 } catch (...) {
                 }
             }
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {5.25f, 5.25f};
+            }
             break;
-        case Protocol::EntityKind::ChargedBeam:
+        }
+        case Protocol::EntityKind::ChargedBeam: {
             _registry->get().addComponent<Projectile>(
                 entity, Projectile(true, 5, true, 900.0f));
             if (entityId >= sprites.size() || !sprites[entity].has_value()) {
                 try {
-                    auto &asset = _resources->get().getAsset("wave_cannon");
-                    _registry->get().addComponent<RType::Sprite>(
-                        entity, RType::Sprite(asset.id, 15));
+                    auto &asset = _resources->get().getAsset("laser_bullet");
+                    const auto &firstFrame = AnimationFrames::waveCannon[0];
+                    _registry->get().addComponent<RType::Sprite>(entity,
+                        RType::Sprite(asset.id,
+                            firstFrame.left,
+                            firstFrame.top,
+                            firstFrame.width,
+                            firstFrame.height,
+                            15));
+                    auto &animatorOpt =
+                        _registry->get()
+                            .addComponent<RType::Animation::Animator>(
+                                entity, RType::Animation::Animator {});
+                    if (animatorOpt) {
+                        RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                            "idle",
+                            RType::Animation::AnimationSystem::createClip(
+                                AnimationFrames::waveCannon, 0.1f));
+                        RType::Animation::AnimationSystem::play(
+                            *animatorOpt, "idle", true);
+                    }
                 } catch (...) {
                 }
             }
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {4.375f, 4.375f};
+            }
             break;
-        case Protocol::EntityKind::EnemyBullet:
+        }
+        case Protocol::EntityKind::EnemyBullet: {
             _registry->get().addComponent<Projectile>(
                 entity, Projectile(false, 1, false, 450.0f));
             if (entityId >= sprites.size() || !sprites[entity].has_value()) {
                 try {
                     auto &asset = _resources->get().getAsset("enemy_bullet");
-                    _registry->get().addComponent<RType::Sprite>(
-                        entity, RType::Sprite(asset.id, 15));
+                    const auto &firstFrame = AnimationFrames::enemyBullet[0];
+                    _registry->get().addComponent<RType::Sprite>(entity,
+                        RType::Sprite(asset.id,
+                            firstFrame.left,
+                            firstFrame.top,
+                            firstFrame.width,
+                            firstFrame.height,
+                            15));
+                    auto &animatorOpt =
+                        _registry->get()
+                            .addComponent<RType::Animation::Animator>(
+                                entity, RType::Animation::Animator {});
+                    if (animatorOpt) {
+                        RType::Animation::AnimationSystem::addClip(*animatorOpt,
+                            "shoot",
+                            RType::Animation::AnimationSystem::createClip(
+                                AnimationFrames::enemyBullet, 0.08f));
+                        RType::Animation::AnimationSystem::play(
+                            *animatorOpt, "shoot", true);
+                    }
                 } catch (...) {
                 }
             }
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {1.75f, 1.75f};
+            }
             break;
+        }
         case Protocol::EntityKind::Player:
             break;
     }

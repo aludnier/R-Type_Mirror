@@ -14,5 +14,9 @@ target_link_libraries(animation2d_module PRIVATE engine_core)
 
 target_compile_features(animation2d_module PRIVATE cxx_std_23)
 
-set_target_properties(animation2d_module PROPERTIES PREFIX
-        "" OUTPUT_NAME "Animation_Module")
+set_target_properties(animation2d_module PROPERTIES
+        PREFIX ""
+        OUTPUT_NAME "Animation_Module"
+        LIBRARY_OUTPUT_DIRECTORY "$<1:${ENGINE_MODULE_DIR}>"
+        RUNTIME_OUTPUT_DIRECTORY "$<1:${ENGINE_MODULE_DIR}>"
+)
