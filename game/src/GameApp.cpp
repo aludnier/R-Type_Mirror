@@ -7,6 +7,7 @@
 
 #include "GameApp.h"
 
+#include <cfloat>
 #include <cmath>
 #include <imgui.h>
 #include <iostream>
@@ -335,6 +336,19 @@ void GameApp::renderHud()
             getWindow().draw(miniShip);
         }
         break; // HUD of the local player only
+    }
+    if (_networkSyncSystem.isGameOver()) {
+        constexpr const char *GAME_OVER = "GAME OVER";
+        constexpr float SIZE = 96.f;
+        const auto window = getWindow().getSize();
+        ImFont *font = ImGui::GetFont();
+        const ImVec2 size = font->CalcTextSizeA(SIZE, FLT_MAX, 0.f, GAME_OVER);
+        ImGui::GetForegroundDrawList()->AddText(font,
+            SIZE,
+            ImVec2((static_cast<float>(window.x) - size.x) / 2.f,
+                (static_cast<float>(window.y) - size.y) / 2.f),
+            IM_COL32(255, 80, 80, 255),
+            GAME_OVER);
     }
 }
 

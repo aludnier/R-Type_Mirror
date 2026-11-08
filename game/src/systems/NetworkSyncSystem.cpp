@@ -243,6 +243,13 @@ void NetworkSyncSystem::reset()
     _networkToEntity.clear();
     _entityToNetwork.clear();
     _clientToNetwork.clear();
+    _localNetworkId = RType::Network::NO_ENTITY;
+    _gameOver = false;
+}
+
+bool NetworkSyncSystem::isGameOver() const
+{
+    return _gameOver;
 }
 
 std::optional<RType::Entity> NetworkSyncSystem::findEntity(
@@ -259,6 +266,8 @@ void NetworkSyncSystem::handleAcceptConnect(
     const RType::Network::AcceptConnectPacket &packet)
 {
     _clientToNetwork[packet.clientId] = packet.linkedEntity;
+    _localNetworkId = packet.linkedEntity;
+    _gameOver = false;
     if (packet.linkedEntity == RType::Network::NO_ENTITY) {
         return;
     }
@@ -477,6 +486,10 @@ void NetworkSyncSystem::handleEntitySpawn(
 void NetworkSyncSystem::handleEntityDespawn(
     const RType::Network::EntityDespawnPacket &packet)
 {
+    // The server despawns a player's ship when it has no lives left.
+    if (packet.networkId == _localNetworkId &&
+        _localNetworkId != RType::Network::NO_ENTITY)
+        _gameOver = true;
     auto it = _networkToEntity.find(packet.networkId);
     if (it != _networkToEntity.end()) {
         std::size_t entityId = it->second;
@@ -523,6 +536,13 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
 
     if (compData.typeId == Protocol::ENTITY_KIND) {
         applyEntityKind(entity, reader);
+        return;
+    }
+    if (compData.typeId == Protocol::PLAYER_LIVES) {
+        const auto lives = reader.read<std::uint8_t>();
+        auto &players = _registry->get().getComponents<Player>();
+        if (reader.ok() && entityId < players.size() && players[entity])
+            players[entity]->lives = lives;
         return;
     }
 

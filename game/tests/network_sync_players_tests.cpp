@@ -14,6 +14,8 @@
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
+#include "network/ByteWriter.h"
+#include "network/GameProtocol.h"
 #include "systems/NetworkSyncSystem.h"
 
 namespace {
@@ -72,4 +74,53 @@ TEST_CASE(
     CHECK(sprites[*local]->b == localTint[2]);
     CHECK(sprites[*other]->r == 255);
     CHECK(sprites[*other]->b == 255);
+}
+
+TEST_CASE("NetworkSyncSystem applies the lives sent by the server",
+    "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+    RType::Network::ByteWriter lives;
+    lives.write(std::uint8_t {1});
+
+    sync.processServerMessages(
+        {RType::Network::AcceptConnectPacket {
+             .clientId = 1, .linkedEntity = 10},
+            RType::Network::ComponentUpdatePacket {.tick = 1,
+                .entities = {{10,
+                    {{Game::Protocol::PLAYER_LIVES, lives.release()}}}}}},
+        10);
+
+    const auto local = sync.findEntity(10);
+    REQUIRE(local);
+    auto &players = registry.getComponents<Game::Player>();
+    REQUIRE(players[*local]);
+    CHECK(players[*local]->lives == 1);
+    CHECK_FALSE(sync.isGameOver());
+}
+
+TEST_CASE("NetworkSyncSystem reports game over when the local ship despawns",
+    "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+
+    sync.processServerMessages({RType::Network::AcceptConnectPacket {
+                                    .clientId = 1, .linkedEntity = 10},
+                                   RType::Network::EntityDespawnPacket {11}},
+        10);
+    CHECK_FALSE(sync.isGameOver());
+
+    sync.processServerMessages({RType::Network::EntityDespawnPacket {10}}, 10);
+    CHECK(sync.isGameOver());
+
+    sync.reset();
+    CHECK_FALSE(sync.isGameOver());
 }

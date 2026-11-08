@@ -73,6 +73,9 @@ public:
     [[nodiscard]] static std::array<std::uint8_t, 3> playerTint(
         RType::Network::ClientId clientId);
 
+    /** @return Whether the server despawned the local player's ship. */
+    [[nodiscard]] bool isGameOver() const;
+
 private:
     struct ServerMessageVisitor;
 
@@ -119,6 +122,8 @@ private:
     std::unordered_map<RType::Network::ClientId, RType::Network::NetworkId>
         _clientToNetwork {};
     bool _wasConnected = false;
+    RType::Network::NetworkId _localNetworkId = RType::Network::NO_ENTITY;
+    bool _gameOver = false;
 };
 
 } // namespace Game
