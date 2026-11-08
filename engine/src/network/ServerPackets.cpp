@@ -300,4 +300,21 @@ HeartbeatReplyPacket HeartbeatReplyPacket::deserialize(ByteReader &reader)
     packet.serverTick = reader.read<Tick>();
     return packet;
 }
+
+void PlaySoundMsgPacket::serialize(ByteWriter &writer) const
+{
+    writer.writeString(assetName);
+    writer.writeFloat(volume);
+    writer.writeFloat(pitch);
+}
+
+PlaySoundMsgPacket PlaySoundMsgPacket::deserialize(ByteReader &reader)
+{
+    PlaySoundMsgPacket packet;
+
+    packet.assetName = reader.readString();
+    packet.volume = reader.readFloat();
+    packet.pitch = reader.readFloat();
+    return packet;
+}
 } // namespace RType::Network

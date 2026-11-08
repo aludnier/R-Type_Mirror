@@ -9,6 +9,7 @@
 #define GAME_NETWORKSYNCSYSTEM_H
 
 #include <unordered_map>
+#include "audio/IAudioPlayer.h"
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
 #include "library/InputManager.h"
@@ -36,7 +37,8 @@ public:
      * @param client The network client managing the connection.
      */
     void syncWithServer(RType::Registry &registry, const InputManager &input,
-        AssetManager &resources, NetworkClient &client);
+        AssetManager &resources, NetworkClient &client,
+        RType::IAudioPlayer *audio = nullptr);
 
     /**
      * @brief Clears all replicated entities and resets network mappings on
@@ -49,6 +51,12 @@ public:
      */
     [[nodiscard]] std::optional<RType::Entity> findEntity(
         RType::Network::NetworkId id) const;
+
+    void processServerMessages(
+        const std::vector<NetworkClient::ServerMessage> &messages,
+        RType::Registry &registry, AssetManager &resources,
+        RType::Network::NetworkId localLinkedEntity,
+        RType::IAudioPlayer *audio = nullptr);
 
 private:
     struct ServerMessageVisitor;
@@ -83,11 +91,6 @@ private:
     /** @brief Adds the game component matching an ENTITY_KIND component. */
     static void applyEntityKind(RType::Entity entity,
         RType::Network::ByteReader &reader, RType::Registry &registry);
-
-    void processServerMessages(
-        const std::vector<NetworkClient::ServerMessage> &messages,
-        RType::Registry &registry, AssetManager &resources,
-        RType::Network::NetworkId localLinkedEntity);
 
     static void sendLocalPlayerInput(
         const InputManager &input, NetworkClient &client);

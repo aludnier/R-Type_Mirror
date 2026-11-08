@@ -11,8 +11,8 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 
-#include "DLLoader.hpp"
-#include "Module.h"
+#include "../systems/AudioSystem.h"
+#include "audio/AudioManager.h"
 #include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
 #include "library/ClientAssetManager.h"
@@ -36,6 +36,7 @@ public:
     [[nodiscard]] InputManager &getInputManager();
     [[nodiscard]] AssetManager &getAssetManager();
     [[nodiscard]] ClientAssetManager &getClientAssetManager();
+    [[nodiscard]] AudioManager &getAudioManager();
     [[nodiscard]] sf::RenderWindow &getWindow() const;
 
 protected:
@@ -76,6 +77,8 @@ protected:
 
     InputManager _inputManager {};
     ClientAssetManager _clientAssetManager {};
+    AudioManager _audioManager {_clientAssetManager};
+    AudioSystem _audioSystem {};
     Configuration _configuration;
     PluginManager _pluginManager;
     std::unique_ptr<sf::RenderWindow> _window {nullptr};

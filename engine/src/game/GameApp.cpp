@@ -8,7 +8,9 @@
 #include "game/GameApp.h"
 
 #include <SFML/Window/Keyboard.hpp>
+#include "components/AudioSource.h"
 #include "components/Controllable.h"
+#include "components/MusicPlayer.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
@@ -26,6 +28,8 @@ void GameApp::init()
     _registry.registerComponent<Transform2D>();
     _registry.registerComponent<Sprite>();
     _registry.registerComponent<Controllable>();
+    _registry.registerComponent<AudioSource>();
+    _registry.registerComponent<MusicPlayer>();
     registerComponents();
     setupKeyBindings();
     setupSystems();
@@ -94,6 +98,9 @@ void GameApp::close()
 void GameApp::update(float dt)
 {
     updateGame(dt);
+    _audioSystem.update(
+        _registry, _clientAssetManager.metadata(), _audioManager);
+    _audioManager.update();
 }
 
 void GameApp::render()
@@ -120,6 +127,7 @@ int GameApp::run()
         update(dt);
         render();
     }
+    _audioManager.stopAll();
     onShutdown();
     return 0;
 }
@@ -142,6 +150,11 @@ AssetManager &GameApp::getAssetManager()
 ClientAssetManager &GameApp::getClientAssetManager()
 {
     return _clientAssetManager;
+}
+
+AudioManager &GameApp::getAudioManager()
+{
+    return _audioManager;
 }
 
 sf::RenderWindow &GameApp::getWindow() const

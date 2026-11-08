@@ -3,9 +3,11 @@
 #include <atomic>
 #include <chrono>
 #include <cstdint>
+#include <mutex>
 #include <optional>
 #include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include "TestActions.h"
@@ -25,6 +27,54 @@ namespace {
 constexpr auto TIMEOUT = std::chrono::seconds(2);
 /** @brief How long a client listens to check that nothing comes. */
 constexpr auto SILENCE = std::chrono::milliseconds(200);
+
+class SoundGameServer : public GameServer {
+public:
+    explicit SoundGameServer(const ServerConfig &config) :
+        GameServer(config)
+    {
+        registry().addSystem([this] { sendQueuedSound(); });
+    }
+
+    void requestPlaySound(const std::string &name, float volume, float pitch,
+        std::optional<ClientId> target)
+    {
+        std::lock_guard lock(_requestMutex);
+        _request = Request {
+            .name = name, .volume = volume, .pitch = pitch, .target = target};
+    }
+
+    void rejectLongSoundName(const std::string &name)
+    {
+        playSound(name);
+    }
+
+private:
+    struct Request {
+        std::string name;
+        float volume;
+        float pitch;
+        std::optional<ClientId> target;
+    };
+
+    void sendQueuedSound()
+    {
+        std::optional<Request> request;
+        {
+            std::lock_guard lock(_requestMutex);
+            request = std::move(_request);
+            _request.reset();
+        }
+        if (request)
+            playSound(request->name,
+                request->volume,
+                request->pitch,
+                request->target);
+    }
+
+    std::mutex _requestMutex;
+    std::optional<Request> _request;
+};
 
 /** @brief A GameServer running on its own thread, on a free port. */
 class RunningServer {
@@ -53,9 +103,20 @@ public:
         return _server.localPort();
     }
 
+    void requestPlaySound(const std::string &name, float volume, float pitch,
+        std::optional<ClientId> target = std::nullopt)
+    {
+        _server.requestPlaySound(name, volume, pitch, target);
+    }
+
+    void rejectLongSoundName(const std::string &name)
+    {
+        _server.rejectLongSoundName(name);
+    }
+
 private:
     std::atomic<bool> _stopRequested {false};
-    GameServer _server {ServerConfig {.port = 0}};
+    SoundGameServer _server {ServerConfig {.port = 0}};
     std::thread _thread;
 };
 
@@ -316,6 +377,51 @@ TEST_CASE("Server announces a departure to the remaining clients",
     for (auto *client : {&alice, &bob, &carol}) {
         assertSequencesFollow(*client);
     }
+}
+
+TEST_CASE("Server sends PLAY_SOUND to all clients or only its target",
+    "[server][sending][audio]")
+{
+    RunningServer server;
+    TestClient alice(server.port());
+    TestClient bob(server.port());
+    const auto aliceAccept = alice.connect("alice");
+    (void) alice.expect<EntitySpawnPacket>();
+    (void) bob.connect("bob");
+
+    for (auto *client : {&alice, &bob}) {
+        while (client->next(SILENCE)) {
+        }
+    }
+
+    server.requestPlaySound("sfx_explosion", 0.6f, 1.2f);
+    for (auto *client : {&alice, &bob}) {
+        auto sound = client->expect<PlaySoundMsgPacket>();
+
+        REQUIRE(sound.has_value());
+        CHECK(sound->assetName == "sfx_explosion");
+        CHECK(sound->volume == 0.6f);
+        CHECK(sound->pitch == 1.2f);
+    }
+
+    server.requestPlaySound("sfx_laser", 0.4f, 0.9f, aliceAccept.clientId);
+    auto targeted = alice.expect<PlaySoundMsgPacket>();
+
+    REQUIRE(targeted.has_value());
+    CHECK(targeted->assetName == "sfx_laser");
+    CHECK(targeted->volume == 0.4f);
+    CHECK(targeted->pitch == 0.9f);
+    CHECK(bob.receivesNothing());
+}
+
+TEST_CASE("GameServer rejects overlong PLAY_SOUND names immediately",
+    "[server][sending][audio]")
+{
+    RunningServer server;
+
+    REQUIRE_THROWS_AS(
+        server.rejectLongSoundName(std::string(MAX_STRING_SIZE + 1, 'x')),
+        std::length_error);
 }
 
 TEST_CASE("Server moves a player's entity with its controls",

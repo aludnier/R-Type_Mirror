@@ -7,9 +7,11 @@
 #include <system_error>
 #include <vector>
 
+#include "components/AudioSource.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/MusicPlayer.h"
 #include "components/Name.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
@@ -23,8 +25,10 @@ namespace {
 void registerSceneComponents(RType::Registry &registry)
 {
     registry.registerComponent<RType::Name>();
+    registry.registerComponent<RType::AudioSource>();
     registry.registerComponent<RType::Transform2D>();
     registry.registerComponent<RType::Health>();
+    registry.registerComponent<RType::MusicPlayer>();
     registry.registerComponent<RType::Sprite>();
     registry.registerComponent<RType::ScriptComponent>();
     registry.registerComponent<RType::Hitbox>();
@@ -39,6 +43,10 @@ struct SceneFixture {
         RType::reflectCoreComponents(reflection);
         playerTexture = assets.addAsset(
             "player", "assets/player.png", AssetManager::AssetType::Texture);
+        sound = assets.addAsset(
+            "laser", "assets/laser.wav", AssetManager::AssetType::Sound);
+        music = assets.addAsset(
+            "stage", "assets/stage.ogg", AssetManager::AssetType::Music);
     }
 
     RType::Registry source;
@@ -46,6 +54,8 @@ struct SceneFixture {
     RType::Reflection reflection;
     AssetManager assets;
     std::uint32_t playerTexture = 0;
+    std::uint32_t sound = 0;
+    std::uint32_t music = 0;
 };
 
 RType::Entity spawnPlayer(SceneFixture &scene)
@@ -53,9 +63,24 @@ RType::Entity spawnPlayer(SceneFixture &scene)
     auto player = scene.source.spawnEntity();
     scene.source.addComponent(player, RType::Name {"Player"});
     scene.source.addComponent(player,
+        RType::AudioSource {
+            .assetId = scene.sound,
+            .volume = 0.7f,
+            .pitch = 1.2f,
+            .loop = false,
+            .playOnSpawn = true,
+            .playing = true,
+        });
+    scene.source.addComponent(player,
         RType::Transform2D {
             RType::Vector2 {120.f, 40.f}, RType::Vector2 {2.f, 3.f}, 0.5f});
     scene.source.addComponent(player, RType::Health {2, 5});
+    scene.source.addComponent(player,
+        RType::MusicPlayer {
+            .assetId = scene.music,
+            .loop = true,
+            .volume = 0.4f,
+        });
     RType::Sprite sprite(scene.playerTexture, 1, 2, 32, 16, 4);
     sprite.originX = 0.25f;
     sprite.r = 10;
@@ -88,6 +113,10 @@ TEST_CASE("Scene round trip keeps every reflected component", "[scene]")
         scene.source.getComponents<RType::Transform2D>()[player]);
     CHECK(scene.target.getComponents<RType::Health>()[loaded] ==
         scene.source.getComponents<RType::Health>()[player]);
+    CHECK(scene.target.getComponents<RType::AudioSource>()[loaded] ==
+        scene.source.getComponents<RType::AudioSource>()[player]);
+    CHECK(scene.target.getComponents<RType::MusicPlayer>()[loaded] ==
+        scene.source.getComponents<RType::MusicPlayer>()[player]);
     CHECK(scene.target.getComponents<RType::Sprite>()[loaded] ==
         scene.source.getComponents<RType::Sprite>()[player]);
     const auto &script =
