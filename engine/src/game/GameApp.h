@@ -11,9 +11,9 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 
-#include "audio/AudioManager.h"
 #include "DLLoader.hpp"
 #include "Module.h"
+#include "audio/AudioManager.h"
 #include "configuration/Configuration.hpp"
 #include "ecs/Registry.h"
 #include "library/ClientAssetManager.h"

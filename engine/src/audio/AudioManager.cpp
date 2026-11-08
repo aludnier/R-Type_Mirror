@@ -31,12 +31,12 @@ AudioManager::~AudioManager()
 RType::SoundHandle AudioManager::playSoundImpl(
     const std::string &name, float volume, float pitch, bool loop)
 {
-    const GameSoundAsset *asset = nullptr;
+    const GameSoundAsset *asset;
     try {
         asset = &_assets.load<GameSoundAsset>(name);
     } catch (const std::exception &error) {
-        std::cerr << "AudioManager: cannot play sound '" << name << "': "
-                  << error.what() << '\n';
+        std::cerr << "AudioManager: cannot play sound '" << name
+                  << "': " << error.what() << '\n';
         return {};
     }
 
@@ -52,10 +52,12 @@ RType::SoundHandle AudioManager::playSoundImpl(
         }
     }
     if (index == _voices.size()) {
-        index = static_cast<std::size_t>(std::min_element(_voices.begin(),
-            _voices.end(), [](const Voice &left, const Voice &right) {
-                return left.startOrder < right.startOrder;
-            }) - _voices.begin());
+        index = static_cast<std::size_t>(
+            std::ranges::min_element(_voices,
+                [](const Voice &left, const Voice &right) {
+                    return left.startOrder < right.startOrder;
+                }) -
+            _voices.begin());
     }
 
     Voice &voice = _voices[index];
@@ -97,14 +99,14 @@ bool AudioManager::isSoundPlaying(RType::SoundHandle handle) const
 void AudioManager::playMusicImpl(
     const std::string &name, bool loop, float volume)
 {
-    const GameMusicAsset *asset = nullptr;
+    const GameMusicAsset *asset;
     try {
         asset = &_assets.load<GameMusicAsset>(name);
         if (!asset->resource)
             throw std::runtime_error("music asset has no stream");
     } catch (const std::exception &error) {
-        std::cerr << "AudioManager: cannot play music '" << name << "': "
-                  << error.what() << '\n';
+        std::cerr << "AudioManager: cannot play music '" << name
+                  << "': " << error.what() << '\n';
         return;
     }
 
@@ -248,7 +250,8 @@ void AudioManager::applyVolumes()
             voice.sound->setVolume(
                 effectiveVolume(AudioChannel::Sound, voice.baseVolume));
     if (_music)
-        _music->setVolume(effectiveVolume(AudioChannel::Music, _musicBaseVolume));
+        _music->setVolume(
+            effectiveVolume(AudioChannel::Music, _musicBaseVolume));
 }
 
 void AudioManager::recycleFinishedVoices()
