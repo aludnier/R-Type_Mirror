@@ -15,6 +15,7 @@ nav:
       - Diagrams: architecture/diagrams.md
   - Network protocol: protocol.md
   - Engine:
+      - Editor: editor.md
       - Dynamic modules: writing_dynamic_modules.md
       - Lua scripting: scripting.md
       - UI documents: ui.md

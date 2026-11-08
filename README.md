@@ -101,6 +101,7 @@ GitHub Pages: <https://aludnier.github.io/R-Type_Mirror/>.
   [diagrams](docs/architecture/diagrams.md)
 - [Network protocol](docs/protocol.md): binary protocol between the server
   and the clients
+- [Editor](docs/editor.md): panels, Play mode and key bindings
 - [Writing dynamic modules](docs/writing_dynamic_modules.md)
 - [Scripting games in Lua](docs/scripting.md)
 - [UI documents](docs/ui.md)
