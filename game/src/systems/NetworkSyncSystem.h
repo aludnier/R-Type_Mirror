@@ -92,7 +92,6 @@ private:
     static void applyEntityKind(RType::Entity entity,
         RType::Network::ByteReader &reader, RType::Registry &registry);
 
-
     static void sendLocalPlayerInput(
         const InputManager &input, NetworkClient &client);
 

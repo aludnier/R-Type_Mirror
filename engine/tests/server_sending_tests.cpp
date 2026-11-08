@@ -30,7 +30,8 @@ constexpr auto SILENCE = std::chrono::milliseconds(200);
 
 class SoundGameServer : public GameServer {
 public:
-    explicit SoundGameServer(const ServerConfig &config) : GameServer(config)
+    explicit SoundGameServer(const ServerConfig &config) :
+        GameServer(config)
     {
         registry().addSystem([this] { sendQueuedSound(); });
     }
@@ -39,10 +40,8 @@ public:
         std::optional<ClientId> target)
     {
         std::lock_guard lock(_requestMutex);
-        _request = Request {.name = name,
-            .volume = volume,
-            .pitch = pitch,
-            .target = target};
+        _request = Request {
+            .name = name, .volume = volume, .pitch = pitch, .target = target};
     }
 
     void rejectLongSoundName(const std::string &name)
@@ -67,7 +66,9 @@ private:
             _request.reset();
         }
         if (request)
-            playSound(request->name, request->volume, request->pitch,
+            playSound(request->name,
+                request->volume,
+                request->pitch,
                 request->target);
     }
 
@@ -403,8 +404,7 @@ TEST_CASE("Server sends PLAY_SOUND to all clients or only its target",
         CHECK(sound->pitch == 1.2f);
     }
 
-    server.requestPlaySound(
-        "sfx_laser", 0.4f, 0.9f, aliceAccept.clientId);
+    server.requestPlaySound("sfx_laser", 0.4f, 0.9f, aliceAccept.clientId);
     auto targeted = alice.expect<PlaySoundMsgPacket>();
 
     REQUIRE(targeted.has_value());

@@ -155,8 +155,10 @@ void GameApp::updateGame(float dt)
             controllables[i]->actionMask = 0;
     }
     registry.runSystems();
-    _networkSyncSystem.syncWithServer(
-        registry, getInputManager(), getAssetManager(), _networkClient,
+    _networkSyncSystem.syncWithServer(registry,
+        getInputManager(),
+        getAssetManager(),
+        _networkClient,
         &getAudioManager());
 }
 
