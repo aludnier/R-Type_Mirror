@@ -12,13 +12,14 @@
 
 namespace Game {
 
-    /**
-     * @brief System responsible for enemy wave motion patterns and projectile firing.
-     */
-    class EnemyAISystem {
-    public:
-        static void addSystem(RType::Registry &registry, float dt);
-    };
+/**
+ * @brief System responsible for enemy wave motion patterns and projectile
+ * firing.
+ */
+class EnemyAISystem {
+public:
+    static void addSystem(RType::Registry &registry, float dt);
+};
 
 } // namespace Game
 

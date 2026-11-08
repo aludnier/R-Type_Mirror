@@ -2,83 +2,61 @@
 ** EPITECH PROJECT, 2026
 ** R-Type
 ** File description:
-** GameApp header
+** R-Type game application
 */
 
 #ifndef GAME_GAMEAPP_H
 #define GAME_GAMEAPP_H
 
-#include "ecs/Registry.h"
-#include "library/InputManager.h"
-#include "library/RessourceManager.h"
-#include "network/NetworkClient.h"
-#include "ui/ConnectionDialog.h"
-#include "systems/NetworkSyncSystem.h"
-#include "components/ParallaxBackground.h"
-#include <SFML/Graphics.hpp>
+#include <imgui-SFML.h>
 #include <memory>
 
-#include "DLLoader.hpp"
-#include "Module.h"
+#include "components/ParallaxBackground.h"
+#include "game/GameApp.h"
+#include "network/NetworkClient.h"
+#include "systems/NetworkSyncSystem.h"
+#include "ui/ConnectionDialog.h"
+#include "ui/ImGuiUiRenderer.h"
+#include "ui/UiManager.h"
 
 namespace Game {
 
-    /**
-     * @brief Screen state indicating whether the client is in the connection lobby or active gameplay.
-     */
-    enum class ScreenState {
-        Connection,
-        Game
-    };
+enum class ScreenState { Connection, Game };
+using ParallaxBackground = RType::Environment::ParallaxBackground;
 
-    using ParallaxBackground = RType::Environment::ParallaxBackground;
+class GameApp : public RType::Game::GameApp {
+public:
+    explicit GameApp(const RType::Configuration &configuration);
 
-    /**
-     * @brief Main Game Application class managing game lifecycle, systems, resources, and main loop.
-     */
-    class GameApp {
-    public:
-        GameApp();
-        ~GameApp() = default;
+    ~GameApp() override = default;
 
-        void init();
-        void setupResources();
-        void setupKeyBindings();
-        void setupSystems();
-        void spawnInitialEntities();
+    [[nodiscard]] ScreenState getScreenState() const;
+    void setScreenState(ScreenState state);
+    [[nodiscard]] NetworkClient &getNetworkClient();
+    [[nodiscard]] RType::UI::UiManager &getUiManager();
 
-        void processEvents();
-        void update(float dt);
-        void render();
-        int run();
+protected:
+    void registerComponents() override;
+    void setupResources() override;
+    void setupSystems() override;
+    void spawnInitialEntities() override;
+    void updateGame(float dt) override;
+    void renderGame() override;
+    void onWindowCreated() override;
+    void onShutdown() override;
+    void handleEvent(const sf::Event &event) override;
 
-        [[nodiscard]] ScreenState getScreenState() const;
-        void setScreenState(ScreenState state);
+private:
+    void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
+    void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
 
-        RType::Registry &getRegistry();
-        InputManager &getInputManager();
-        ResourceManager &getResourceManager();
-        NetworkClient &getNetworkClient();
-        sf::RenderWindow &getWindow();
-
-    private:
-        void handleEvent(const sf::Event &event);
-        void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
-        void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
-        RType::Registry _registry;
-        InputManager _inputManager;
-        ResourceManager _resourceManager;
-        NetworkClient _networkClient;
-        ConnectionDialog _connectionDialog;
-        NetworkSyncSystem _networkSyncSystem;
-        std::unique_ptr<sf::RenderWindow> _window;
-        ScreenState _screenState = ScreenState::Connection;
-        bool _running = false;
-        float _frameRate = 60.0f;
-        float _fixedDeltaTime = 1.0f / 60.0f;
-        RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader;
-        RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader;
-    };
+    NetworkClient _networkClient {};
+    ConnectionDialog _connectionDialog {};
+    NetworkSyncSystem _networkSyncSystem {};
+    RType::UI::UiManager _uiManager {};
+    RType::UI::ImGuiUiRenderer _uiRenderer {};
+    ScreenState _screenState = ScreenState::Connection;
+};
 
 } // namespace Game
 

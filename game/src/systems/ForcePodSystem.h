@@ -12,13 +12,14 @@
 
 namespace Game {
 
-    /**
-     * @brief System responsible for positioning Force Pod satellites relative to player ships.
-     */
-    class ForcePodSystem {
-    public:
-        static void addSystem(RType::Registry &registry);
-    };
+/**
+ * @brief System responsible for positioning Force Pod satellites relative to
+ * player ships.
+ */
+class ForcePodSystem {
+public:
+    static void addSystem(RType::Registry &registry);
+};
 
 } // namespace Game
 

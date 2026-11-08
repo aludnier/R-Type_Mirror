@@ -12,13 +12,14 @@
 
 namespace Game {
 
-    /**
-     * @brief System responsible for AABB bounding box collision checks between entities.
-     */
-    class CollisionSystem {
-    public:
-        static void addSystem(RType::Registry &registry);
-    };
+/**
+ * @brief System responsible for AABB bounding box collision checks between
+ * entities.
+ */
+class CollisionSystem {
+public:
+    static void addSystem(RType::Registry &registry);
+};
 
 } // namespace Game
 

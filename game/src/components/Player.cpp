@@ -9,9 +9,9 @@
 
 namespace Game {
 
-    Player::Player(int lives, bool hasForcePod)
-        : lives(lives), hasForcePod(hasForcePod)
-    {
-    }
+Player::Player(int lives, bool hasForcePod) :
+    lives(lives), hasForcePod(hasForcePod)
+{
+}
 
 } // namespace Game
