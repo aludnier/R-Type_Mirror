@@ -120,6 +120,16 @@ protected:
     void despawnEntity(Entity entity);
 
     /**
+     * @brief Sends @p components of the replicated @p entity to every client
+     *        in a COMPONENT_UPDATE, for example a game component that
+     *        changed. Does nothing if the entity is not replicated.
+     * @note COMPONENT_UPDATE is unreliable: send the state again later if
+     *       the clients must end up with it.
+     */
+    void sendComponents(
+        Entity entity, std::vector<Network::ComponentData> components);
+
+    /**
      * @brief Asks one client, or every connected client, to play a sound.
      * @throws std::length_error If @p assetName exceeds MAX_STRING_SIZE.
      */
