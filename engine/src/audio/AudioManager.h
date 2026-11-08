@@ -27,13 +27,8 @@ public:
     explicit AudioManager(ClientAssetManager &assets, std::size_t voices = 32);
     ~AudioManager() override;
 
-    RType::SoundHandle playSound(const std::string &name, float volume = 1.f,
-        float pitch = 1.f, bool loop = false) override;
     void stopSound(RType::SoundHandle handle) override;
     [[nodiscard]] bool isSoundPlaying(RType::SoundHandle handle) const override;
-
-    void playMusic(const std::string &name, bool loop = true,
-        float volume = 1.f) override;
     void stopMusic() override;
     void pauseMusic() override;
     void resumeMusic() override;
@@ -58,6 +53,11 @@ private:
         std::string assetName;
         bool pausedByAll = false;
     };
+
+    RType::SoundHandle playSoundImpl(
+        const std::string &name, float volume, float pitch, bool loop) override;
+    void playMusicImpl(
+        const std::string &name, bool loop, float volume) override;
 
     [[nodiscard]] static std::size_t channelIndex(RType::AudioChannel channel);
     [[nodiscard]] float effectiveVolume(
