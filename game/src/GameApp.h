@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <imgui-SFML.h>
 #include <memory>
+#include <optional>
 #include <string>
 
 #include "components/ParallaxBackground.h"
@@ -59,6 +60,8 @@ private:
     void updateEndOfGameUi();
     /** @brief Bakes every printable glyph once, on the first frame. */
     void warmUpFont();
+    /** @brief Shows the energy in front of the local ship while it charges. */
+    void updateChargeEffect();
     void setupUi();
     void handleUiClicks();
     void updateConnectionStatus();
@@ -77,6 +80,7 @@ private:
     std::string _lastPlayerName;
     bool _reconnect = false;
     bool _fontWarmedUp = false;
+    std::optional<RType::Entity> _chargeEffect;
 
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};

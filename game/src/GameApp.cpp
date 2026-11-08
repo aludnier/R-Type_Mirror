@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include "Physics2DBindings.h"
+#include "components/Animator.h"
 #include "components/Controllable.h"
 #include "components/Enemy.h"
 #include "components/ForcePod.h"
@@ -30,12 +31,17 @@
 #include "scripting/GameBindings.h"
 #include "scripting/ScriptEngine.h"
 #include "scripting/ScriptSystem.h"
+#include "systems/AnimationSystem.h"
 #include "systems/RenderSystem.h"
 
 namespace Game {
 namespace {
     /** @brief Seconds a "LEVEL n" or "BOSS" banner stays on screen. */
     constexpr float BANNER_TIME = 2.5f;
+    /** @brief Seconds of charge before the energy shows, and how far in
+     *         front of the ship it is. */
+    constexpr float CHARGE_EFFECT_DELAY = 0.2f;
+    constexpr float CHARGE_EFFECT_OFFSET = 50.f;
     /** @brief Volume of the music loop, from 0 to 1. */
     constexpr float MUSIC_VOLUME = 0.45f;
     /** @brief Width and height of the ImGui font texture, in pixels. */
@@ -221,6 +227,9 @@ void GameApp::updateGame(float dt)
     if (!_networkClient.isConnected()) {
         _networkSyncSystem.reset();
         _shipTilt.reset();
+        if (_chargeEffect)
+            getRegistry().killEntity(*_chargeEffect);
+        _chargeEffect.reset();
         _screenState = ScreenState::Connection;
         _uiManager.show("connection");
         _uiManager.hide("ingame_overlay");
@@ -261,6 +270,7 @@ void GameApp::updateGame(float dt)
     _networkSyncSystem.syncWithServer(
         getInputManager(), _networkClient, &getAudioManager());
     _shipTilt.update(registry, getInputManager(), dt);
+    updateChargeEffect();
     if (auto banner = _networkSyncSystem.takeBanner()) {
         _bannerText = std::move(*banner);
         _bannerTime = BANNER_TIME;
@@ -380,6 +390,60 @@ void GameApp::warmUpFont()
     ImFontBaked *baked = ImGui::GetFontBaked();
     for (ImWchar c = 0x20; c < 0x7F; ++c)
         baked->FindGlyph(c);
+}
+
+void GameApp::updateChargeEffect()
+{
+    auto &registry = getRegistry();
+    auto &players = registry.getComponents<Player>();
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    std::optional<RType::Vector2> charging;
+
+    for (auto [player, transform, network] :
+        RType::Zipper(players, transforms, networkEntities))
+        if (network.isLocalPlayer && player.chargeTime > CHARGE_EFFECT_DELAY)
+            charging = transform.position;
+    if (!charging) {
+        if (_chargeEffect)
+            registry.killEntity(*_chargeEffect);
+        _chargeEffect.reset();
+        return;
+    }
+    if (!_chargeEffect && getAssetManager().hasAsset("laser_bullet")) {
+        // The energy gathering in front of the ship, as in R-Type.
+        static const std::vector<RType::Animation::AnimationFrame> FRAMES = {
+            {134, 18, 32, 32},
+            {167, 20, 32, 29},
+            {200, 21, 32, 25},
+            {300, 21, 32, 25},
+            {333, 20, 32, 29},
+            {366, 18, 32, 32}};
+        const auto entity = registry.spawnEntity();
+        const auto &first = FRAMES.front();
+
+        registry.addComponent(entity, RType::Transform2D(*charging));
+        registry.addComponent(entity,
+            RType::Sprite(getAssetManager().getAsset("laser_bullet").id,
+                first.left,
+                first.top,
+                first.width,
+                first.height,
+                12));
+        auto &animator = registry.addComponent<RType::Animation::Animator>(
+            entity, RType::Animation::Animator {});
+        if (animator) {
+            RType::Animation::AnimationSystem::addClip(*animator,
+                "charge",
+                RType::Animation::AnimationSystem::createClip(FRAMES, 0.06f));
+            RType::Animation::AnimationSystem::play(*animator, "charge", true);
+        }
+        _chargeEffect = entity;
+    }
+    if (_chargeEffect && *_chargeEffect < transforms.size() &&
+        transforms[*_chargeEffect])
+        transforms[*_chargeEffect]->position = {
+            charging->x + CHARGE_EFFECT_OFFSET, charging->y};
 }
 
 void GameApp::playAgain()
