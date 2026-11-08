@@ -52,11 +52,19 @@ enum class EntityKind : std::uint8_t {
     Boss = 6,
     /** @brief Pickup dropped by an enemy: gives the double shot. */
     PowerUp = 7,
+    /** @brief Enemy that walks on the ground and shoots upwards. */
+    Walker = 8,
 };
+
+/** @brief Height of the top of the ground, in pixels: touching it costs a
+ *         life. */
+constexpr float GROUND_TOP = 960.f;
+/** @brief The ground scrolls to the left at this speed, in pixels/s. */
+constexpr float GROUND_SCROLL_SPEED = 120.f;
 
 constexpr bool isValidKind(std::uint8_t kind)
 {
-    return kind <= static_cast<std::uint8_t>(EntityKind::PowerUp);
+    return kind <= static_cast<std::uint8_t>(EntityKind::Walker);
 }
 } // namespace Game::Protocol
 

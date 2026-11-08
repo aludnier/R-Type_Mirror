@@ -54,6 +54,8 @@ namespace {
                 return EnemyStats {2, {70.f, 52.5f}, "bydo.lua"};
             case EntityKind::Gunner:
                 return EnemyStats {4, {38.5f, 52.5f}, "gunner.lua"};
+            case EntityKind::Walker:
+                return EnemyStats {3, {56.f, 42.f}, "walker.lua"};
             // boss.lua scales its health with the level.
             case EntityKind::Boss:
                 return EnemyStats {60, {160.f, 120.f}, "boss.lua"};

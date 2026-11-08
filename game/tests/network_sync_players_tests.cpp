@@ -172,3 +172,25 @@ TEST_CASE("A PowerUp is not taken for a player", "[network][players]")
     auto &players = registry.getComponents<Game::Player>();
     CHECK((*powerUp >= players.size() || !players[*powerUp]));
 }
+
+TEST_CASE("A walker is an enemy, not a player", "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+    RType::Network::ByteWriter kind;
+    kind.write(static_cast<std::uint8_t>(Game::Protocol::EntityKind::Walker));
+
+    sync.processServerMessages(
+        {RType::Network::EntitySpawnPacket {.networkId = 40,
+            .components = {{Game::Protocol::ENTITY_KIND, kind.release()}}}},
+        10);
+
+    const auto walker = sync.findEntity(40);
+    REQUIRE(walker);
+    CHECK(registry.getComponents<Game::Enemy>()[*walker].has_value());
+    auto &players = registry.getComponents<Game::Player>();
+    CHECK((*walker >= players.size() || !players[*walker]));
+}

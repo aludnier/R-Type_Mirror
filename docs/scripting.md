@@ -222,7 +222,7 @@ are scripts in [`server/scripts`](../server/scripts), listed in
 the build tree uses the same layout):
 
 ```json
-{ "directory": "../server/scripts", "scripts": ["waves.lua", "collision.lua", "cleanup.lua"] }
+{ "directory": "../server/scripts", "scripts": ["waves.lua", "ground.lua", "collision.lua", "cleanup.lua"] }
 ```
 
 - [`waves.lua`](../server/scripts/waves.lua), game script: the levels. A
@@ -238,6 +238,11 @@ the build tree uses the same layout):
 - [`boss.lua`](../server/scripts/boss.lua), entity script of the boss: comes
   in from the right, moves up and down and shoots a fan of 5 bullets. Its
   health is 60 per level.
+- [`walker.lua`](../server/scripts/walker.lua), entity script of the
+  walkers: walks left on the ground and shoots up and to the left every
+  2.2 s. `waves.lua` sends one every 6 s at level 1, more often after.
+- `ground.lua`, game script: a player that touches the ground
+  (`rtype.GROUND_TOP`) loses a life.
 - `collision.lua` resolves the hits: a player bullet damages an enemy, an
   enemy or its bullet makes a player lose a life (`rtype.hit_player`). A
   shot down enemy drops a `PowerUp` 15 % of the time; the player who touches
@@ -254,11 +259,12 @@ On top of the `world` API, the server gives the scripts:
 
 | Name | Description |
 |---|---|
-| `rtype.spawn(kind, x, y [, vx, vy])` | Spawns a replicated `"Enemy"` (Bydo scout), `"Gunner"`, `"Boss"`, `"PowerUp"`, `"EnemyBullet"`, `"PlayerLaser"` or `"ChargedBeam"` at the end of the tick (nothing is returned). An enemy gets its health, hitbox and entity script; a projectile its speed and damage, or the velocity `vx, vy` if given. |
+| `rtype.spawn(kind, x, y [, vx, vy])` | Spawns a replicated `"Enemy"` (Bydo scout), `"Gunner"`, `"Boss"`, `"Walker"`, `"PowerUp"`, `"EnemyBullet"`, `"PlayerLaser"` or `"ChargedBeam"` at the end of the tick (nothing is returned). An enemy gets its health, hitbox and entity script; a projectile its speed and damage, or the velocity `vx, vy` if given. |
 | `rtype.hit_player(e)` | The player `e` loses a life and respawns, unless it is invulnerable after its last hit; without lives left its ship is despawned. |
 | `rtype.power_up(e)` | The player `e` gets the double shot, until it loses a life. |
 | `rtype.level`, `rtype.speed_scale` | Current level (from 1) and the speed factor of the enemies, set by `waves.lua`. |
 | `rtype.SCREEN_WIDTH`, `rtype.SCREEN_HEIGHT` | Size of the play area, in pixels (1920 x 1080). |
+| `rtype.GROUND_TOP`, `rtype.GROUND_SCROLL_SPEED` | Height of the top of the ground (960) and its scrolling speed (120 pixels/s). |
 | `Enemy` component | State of an enemy: `base_y` (spawn height), `elapsed` and `shoot_timer` (seconds). |
 | `Boss` component | Marks the boss, so `waves.lua` can tell when it is shot down. |
 | `PowerUp` component | Marks a pickup; `collision.lua` gives it to the player who touches it. |

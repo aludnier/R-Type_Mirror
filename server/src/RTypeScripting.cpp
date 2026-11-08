@@ -20,8 +20,9 @@ namespace {
     using Game::Protocol::EntityKind;
 
     // Players are spawned when a client connects, not by scripts.
-    constexpr std::array<std::pair<std::string_view, EntityKind>, 7>
+    constexpr std::array<std::pair<std::string_view, EntityKind>, 8>
         SPAWNABLE_KINDS = {{
+            {"Walker", EntityKind::Walker},
             {"PowerUp", EntityKind::PowerUp},
             {"Enemy", EntityKind::Enemy},
             {"Gunner", EntityKind::Gunner},
@@ -65,6 +66,8 @@ void bindRTypeScripting(
 
     rtype["SCREEN_WIDTH"] = screenSize.x;
     rtype["SCREEN_HEIGHT"] = screenSize.y;
+    rtype["GROUND_TOP"] = Game::Protocol::GROUND_TOP;
+    rtype["GROUND_SCROLL_SPEED"] = Game::Protocol::GROUND_SCROLL_SPEED;
     rtype.set_function("spawn",
         [spawn = std::move(spawn)](const std::string &kind,
             float x,

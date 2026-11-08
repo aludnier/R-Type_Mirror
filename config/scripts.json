@@ -2,6 +2,7 @@
   "directory": "../server/scripts",
   "scripts": [
     "waves.lua",
+    "ground.lua",
     "collision.lua",
     "cleanup.lua"
   ]

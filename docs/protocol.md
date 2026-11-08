@@ -437,7 +437,11 @@ ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
 An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy (Bydo), `2` player laser, `3` charged beam
 (wave cannon), `4` enemy bullet, `5` gunner (an enemy that shoots), `6`
 boss, `7` power-up (a pickup that gives the double shot to the player who
-touches it).
+touches it), `8` walker (an enemy that walks on the ground).
+
+The ground: its top is at `y = 960`, and it scrolls to the left at 120
+pixels per second. A player that touches it loses a life. Walkers stay on
+it, and enemies that fly are spawned above it.
 A client ignores an unknown value.
 
 Enemies and projectiles also carry PHYSICS in their ENTITY_SPAWN, with their

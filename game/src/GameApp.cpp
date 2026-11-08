@@ -27,6 +27,7 @@
 #include "components/Transform2D.h"
 #include "ecs/Zipper.h"
 #include "library/NlohmanReader.h"
+#include "network/GameProtocol.h"
 #include "scripting/GameBindings.h"
 #include "scripting/ScriptEngine.h"
 #include "scripting/ScriptSystem.h"
@@ -120,19 +121,22 @@ void GameApp::spawnInitialEntities()
         const char *asset;
         float speed;
         int zIndex;
+        float top;
     };
 
     // Far layers scroll slower. Each layer is two 1920 px tiles side by
     // side, so it loops without a gap.
+    // The ground is in front of the stars, behind the ships.
     constexpr Layer LAYERS[] = {
-        {"bg_nebula", 15.f, -30},
-        {"bg_stars_far", 40.f, -20},
-        {"bg_stars_near", 110.f, -10},
+        {"bg_nebula", 15.f, -30, 0.f},
+        {"bg_stars_far", 40.f, -20, 0.f},
+        {"bg_stars_near", 110.f, -10, 0.f},
+        {"bg_ground", Protocol::GROUND_SCROLL_SPEED, -5, Protocol::GROUND_TOP},
     };
     constexpr float TILE_WIDTH = 1920.f;
     auto &registry = getRegistry();
 
-    for (const auto &[asset, speed, zIndex] : LAYERS) {
+    for (const auto &[asset, speed, zIndex, top] : LAYERS) {
         if (!getAssetManager().hasAsset(asset))
             continue;
         const auto assetId = getAssetManager().getAsset(asset).id;
@@ -143,7 +147,7 @@ void GameApp::spawnInitialEntities()
             sprite.originX = 0.f;
             sprite.originY = 0.f;
             registry.addComponent<RType::Transform2D>(
-                entity, RType::Transform2D({x, 0.f}));
+                entity, RType::Transform2D({x, top}));
             registry.addComponent(entity, RType::Sprite {sprite});
             registry.addComponent<ParallaxBackground>(
                 entity, ParallaxBackground(speed, -TILE_WIDTH, TILE_WIDTH));

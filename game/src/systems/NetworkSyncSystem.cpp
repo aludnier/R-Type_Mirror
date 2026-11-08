@@ -47,6 +47,21 @@ namespace AnimationFrames {
         {133, 3, 31, 24},
         {166, 4, 32, 23}};
 
+    // Walker: the walking cannon of the player sheet (12 frames)
+    const std::vector<RType::Animation::AnimationFrame> walker = {
+        {1, 2, 31, 25},
+        {34, 3, 32, 24},
+        {67, 4, 32, 23},
+        {100, 2, 31, 25},
+        {133, 3, 31, 24},
+        {166, 4, 32, 23},
+        {200, 4, 32, 23},
+        {234, 3, 31, 24},
+        {267, 2, 31, 25},
+        {299, 4, 32, 23},
+        {332, 3, 32, 24},
+        {366, 2, 31, 25}};
+
     // Force pod animation (12 frames)
     const std::vector<RType::Animation::AnimationFrame> forcePod = {
         {1, 2, 16, 12},
@@ -698,6 +713,19 @@ void NetworkSyncSystem::applyEntityKind(
                 network != _entityToNetwork.end())
                 _bosses.insert(network->second);
             _banner = "BOSS";
+            break;
+        }
+        case Protocol::EntityKind::Walker: {
+            _registry->get().addComponent<Enemy>(entity, Enemy());
+            if (entityId >= sprites.size() || !sprites[entity].has_value())
+                addAnimatedSprite(
+                    entity, "player_ship", AnimationFrames::walker, 0.08f, 5);
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {1.75f, 1.75f};
+            }
             break;
         }
         case Protocol::EntityKind::PowerUp: {

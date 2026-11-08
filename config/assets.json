@@ -40,6 +40,10 @@
             "path": "assets/backgrounds/stars_near.png",
             "type": "Texture"
         },
+        "bg_ground": {
+            "path": "assets/backgrounds/ground.png",
+            "type": "Texture"
+        },
         "sfx_laser": {
             "path": "assets/audio/laser.wav",
             "type": "Sound"

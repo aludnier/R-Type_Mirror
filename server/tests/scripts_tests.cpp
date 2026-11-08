@@ -8,6 +8,7 @@
 #include "Enemy.h"
 #include "GameProtocol.h"
 #include "RTypeScripting.h"
+#include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Transform2D.h"
@@ -38,6 +39,8 @@ const char *scriptOf(EntityKind kind)
             return "gunner.lua";
         case EntityKind::Boss:
             return "boss.lua";
+        case EntityKind::Walker:
+            return "walker.lua";
         default:
             return "bydo.lua";
     }
@@ -57,6 +60,7 @@ struct ScriptedGame {
         registry.registerComponent<RType::Hitbox>();
         registry.registerComponent<RType::Enemy>();
         registry.registerComponent<RType::Boss>();
+        registry.registerComponent<RType::Controllable>();
         RType::bindRTypeScripting(scripts,
             {SCREEN_WIDTH, SCREEN_HEIGHT},
             [this](EntityKind kind,
@@ -65,6 +69,10 @@ struct ScriptedGame {
                     velocity) {
                 pending.push_back({kind, position, velocity});
             });
+        // Bound by RTypeServer: here it only records the hits.
+        scripts.lua()["rtype"]["hit_player"] = [this](std::size_t entity) {
+            hits.push_back(entity);
+        };
     }
 
     void tick()
@@ -75,7 +83,8 @@ struct ScriptedGame {
             spawned.push_back(request);
             if (request.kind != EntityKind::Enemy &&
                 request.kind != EntityKind::Gunner &&
-                request.kind != EntityKind::Boss) {
+                request.kind != EntityKind::Boss &&
+                request.kind != EntityKind::Walker) {
                 continue;
             }
             RType::Entity entity = registry.spawnEntity();
@@ -105,6 +114,7 @@ struct ScriptedGame {
     std::vector<SpawnRequest> pending;
     std::vector<SpawnRequest> spawned;
     std::vector<RType::Entity> enemies;
+    std::vector<std::size_t> hits;
 };
 } // namespace
 
@@ -227,6 +237,52 @@ TEST_CASE(
     game.tick();
     CHECK(game.scripts.loadString(
         "assert(rtype.level == 2 and rtype.speed_scale > 1)"));
+    CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE("Walkers walk on the ground and shoot upwards", "[server][scripting]")
+{
+    ScriptedGame game;
+    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
+    REQUIRE(game.scripts.loadString(R"(rtype.spawn("Walker", 1800, 500))"));
+    game.tick();
+    REQUIRE_FALSE(game.enemies.empty());
+    const RType::Entity walker = game.enemies.front();
+
+    game.tick();
+    CHECK(game.position(walker).y == Approx(Game::Protocol::GROUND_TOP - 21.f));
+    CHECK(game.position(walker).x < 1800.f);
+    for (int i = 0; i < 9; ++i) {
+        game.tick();
+    }
+    bool shot = false;
+    for (const auto &request : game.spawned) {
+        if (request.kind == EntityKind::EnemyBullet) {
+            shot = true;
+            REQUIRE(request.velocity.has_value());
+            CHECK(request.velocity->x < 0.f);
+            CHECK(request.velocity->y < 0.f);
+        }
+    }
+    CHECK(shot);
+    CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE("A player that touches the ground is hit", "[server][scripting]")
+{
+    ScriptedGame game;
+    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
+    const RType::Entity flying = game.registry.spawnEntity();
+    const RType::Entity low = game.registry.spawnEntity();
+    for (const auto &[entity, y] : {std::pair {flying, 500.f},
+             std::pair {low, Game::Protocol::GROUND_TOP - 10.f}}) {
+        game.registry.addComponent(entity, RType::Controllable {});
+        game.registry.addComponent(entity, RType::Transform2D {{100.f, y}});
+    }
+
+    game.tick();
+
+    CHECK(game.hits == std::vector<std::size_t> {low});
     CHECK(game.scripts.lastError().empty());
 }
 
