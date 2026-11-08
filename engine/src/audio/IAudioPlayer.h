@@ -29,13 +29,21 @@ class IAudioPlayer {
 public:
     virtual ~IAudioPlayer() = default;
 
-    virtual SoundHandle playSound(const std::string &name, float volume = 1.f,
-        float pitch = 1.f, bool loop = false) = 0;
+    SoundHandle playSound(const std::string &name, float volume = 1.f,
+        float pitch = 1.f, bool loop = false)
+    {
+        return playSoundImpl(name, volume, pitch, loop);
+    }
+
     virtual void stopSound(SoundHandle handle) = 0;
     [[nodiscard]] virtual bool isSoundPlaying(SoundHandle handle) const = 0;
 
-    virtual void playMusic(
-        const std::string &name, bool loop = true, float volume = 1.f) = 0;
+    void playMusic(
+        const std::string &name, bool loop = true, float volume = 1.f)
+    {
+        playMusicImpl(name, loop, volume);
+    }
+
     virtual void stopMusic() = 0;
     virtual void pauseMusic() = 0;
     virtual void resumeMusic() = 0;
@@ -47,6 +55,12 @@ public:
     virtual void pauseAll() = 0;
     virtual void resumeAll() = 0;
     virtual void stopAll() = 0;
+
+private:
+    virtual SoundHandle playSoundImpl(
+        const std::string &name, float volume, float pitch, bool loop) = 0;
+    virtual void playMusicImpl(
+        const std::string &name, bool loop, float volume) = 0;
 };
 
 } // namespace RType

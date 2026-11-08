@@ -28,7 +28,7 @@ AudioManager::~AudioManager()
     stopAll();
 }
 
-RType::SoundHandle AudioManager::playSound(
+RType::SoundHandle AudioManager::playSoundImpl(
     const std::string &name, float volume, float pitch, bool loop)
 {
     const GameSoundAsset *asset = nullptr;
@@ -94,7 +94,7 @@ bool AudioManager::isSoundPlaying(RType::SoundHandle handle) const
         sf::SoundSource::Status::Playing;
 }
 
-void AudioManager::playMusic(
+void AudioManager::playMusicImpl(
     const std::string &name, bool loop, float volume)
 {
     const GameMusicAsset *asset = nullptr;
