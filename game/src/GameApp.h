@@ -57,6 +57,8 @@ private:
     void playAgain();
     /** @brief Shows the game over screen and the LEVEL / BOSS banner. */
     void updateEndOfGameUi();
+    /** @brief Bakes every printable glyph once, on the first frame. */
+    void warmUpFont();
     void setupUi();
     void handleUiClicks();
     void updateConnectionStatus();
@@ -74,6 +76,7 @@ private:
     std::uint16_t _lastPort = 0;
     std::string _lastPlayerName;
     bool _reconnect = false;
+    bool _fontWarmedUp = false;
 
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};

@@ -36,6 +36,8 @@ namespace Game {
 namespace {
     /** @brief Seconds a "LEVEL n" or "BOSS" banner stays on screen. */
     constexpr float BANNER_TIME = 2.5f;
+    /** @brief Width and height of the ImGui font texture, in pixels. */
+    constexpr int FONT_TEXTURE_SIZE = 1024;
 } // namespace
 
 void GameApp::registerComponents()
@@ -191,6 +193,7 @@ void GameApp::updateGame(float dt)
 {
     auto &window = getWindow();
     ImGui::SFML::Update(window, sf::seconds(dt));
+    warmUpFont();
     _uiRenderer.render(_uiManager, getAssetManager(), window);
     handleUiClicks();
     auto &registry = getRegistry();
@@ -355,6 +358,18 @@ void GameApp::updateInGameOverlay()
         "Ping: " + std::to_string(_networkClient.getPingMs()) + " ms");
 }
 
+void GameApp::warmUpFont()
+{
+    if (_fontWarmedUp)
+        return;
+    _fontWarmedUp = true;
+    // Every printable character, at the size the UI uses, on the first
+    // frame: no glyph is added to the font texture later.
+    ImFontBaked *baked = ImGui::GetFontBaked();
+    for (ImWchar c = 0x20; c < 0x7F; ++c)
+        baked->FindGlyph(c);
+}
+
 void GameApp::playAgain()
 {
     // The server gives a new ship with full lives to a new connection.
@@ -425,10 +440,16 @@ void GameApp::renderHud()
 
 void GameApp::onWindowCreated()
 {
-    if (!ImGui::SFML::Init(getWindow()))
+    // ImGui bakes the glyphs when they are first drawn. ImGui-SFML garbles
+    // the glyphs added once the font texture has to grow, so start with a
+    // texture big enough for every glyph (see warmUpFont()).
+    if (!ImGui::SFML::Init(getWindow(), false)) {
         std::cerr << "Failed to initialize ImGui-SFML" << std::endl;
-    else if (ImGui::GetIO().Fonts->Fonts.empty())
-        ImGui::GetIO().Fonts->AddFontDefault()->Scale = 2;
+        return;
+    }
+    ImGui::GetIO().Fonts->TexMinWidth = FONT_TEXTURE_SIZE;
+    ImGui::GetIO().Fonts->TexMinHeight = FONT_TEXTURE_SIZE;
+    ImGui::GetIO().Fonts->AddFontDefault();
 }
 
 void GameApp::onShutdown()
