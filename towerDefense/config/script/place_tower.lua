@@ -10,13 +10,15 @@ local SPAWNER_NAME = "EnemieSpawner"
 local STARTING_TOWER_PLACEMENTS = 3
 
 local BUILD_SLOTS = {
-    {-257.500, -50.500},
-    {-142.500, -50.500},
-    {-27.500, -116.500},
-    {-27.500, -7.500},
-    {-7, 110.500},
-    {130, 36},
-    {130, -83},
+    {-542.000, -91.000},
+    {-505.000, 106.500},
+    {-298.000, -124.500},
+    {-73.000, -4.500},
+    {82.000, -4.500},
+    {-10.5, 165.500},
+    {265.000, 26.000},
+    {472.000, 26.000},
+    {472.000, -135.000},
 }
 
 local place_tower = {}
@@ -218,7 +220,7 @@ function place_tower.on_update(e, dt)
         spawner_data.wave_index or data.observed_wave_index
     if wave_index > data.observed_wave_index then
         data.actions_remaining =
-            data.actions_remaining + wave_index - data.observed_wave_index
+            data.actions_remaining + (wave_index - data.observed_wave_index) * 2
         data.observed_wave_index = wave_index
     end
 

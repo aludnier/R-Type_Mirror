@@ -4,9 +4,9 @@ local PROJECTILE_SCRIPT = "towerDefense/config/script/projectile.lua"
 local PROJECTILE_SPEED = 300
 
 local LEVELS = {
-    {range = 100, damage = 20, interval = 1.5},
-    {range = 140, damage = 25, interval = 1},
-    {range = 170, damage = 30, interval = 0.75},
+    {range = 200, damage = 20, interval = 1.5},
+    {range = 300, damage = 25, interval = 1},
+    {range = 325, damage = 30, interval = 0.75},
 }
 
 local tower = {}

@@ -1,4 +1,4 @@
-local SPAWN_POSITION = {-318, 6.50}
+local SPAWN_POSITION = {-691.500, 27.000}
 local ENEMY_SCRIPT = "towerDefense/config/script/enemies.lua"
 
 local waves = {
