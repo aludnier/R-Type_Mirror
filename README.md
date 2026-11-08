@@ -29,6 +29,7 @@ never links the client library, so it never depends on the graphics library.
 | `engine/scripts/` | example Lua scripts (see `docs/scripting.md`)           |
 | `server/scripts/` | R-Type server game scripts (see `docs/scripting.md`)    |
 | `docs/`           | documentation, published as a website (see below)      |
+| `mkdocs/`         | configuration of the documentation website             |
 
 ## Requirements
 

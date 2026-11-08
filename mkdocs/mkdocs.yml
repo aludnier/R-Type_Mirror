@@ -4,7 +4,9 @@ site_url: https://aludnier.github.io/R-Type_Mirror/
 repo_url: https://github.com/aludnier/R-Type_Mirror
 repo_name: aludnier/R-Type_Mirror
 edit_uri: blob/main/docs/
-docs_dir: docs
+# Paths are relative to this file.
+docs_dir: ../docs
+site_dir: ../site
 
 nav:
   - Home: index.md
@@ -48,7 +50,7 @@ plugins:
   - include-markdown
 
 hooks:
-  - mkdocs_hooks.py
+  - hooks.py
 
 markdown_extensions:
   - admonition
@@ -59,7 +61,7 @@ markdown_extensions:
       # Empty: render with the local `plantuml` command (installed by the
       # docs workflow). Set PLANTUML_SERVER to use a PlantUML server instead.
       server: !ENV [PLANTUML_SERVER, ""]
-      base_dir: docs/architecture
+      base_dir: !relative $config_dir/../docs/architecture
       format: svg_inline
   - pymdownx.highlight
   - pymdownx.inlinehilite

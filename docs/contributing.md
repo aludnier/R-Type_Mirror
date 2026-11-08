@@ -87,15 +87,16 @@ request and publishes it on GitHub Pages on every push to `main`.
 
 The documentation is written in Markdown in `docs/`, in English, and built
 into a website with [MkDocs](https://www.mkdocs.org/) and the Material theme.
-The site menu is set in `mkdocs.yml`: add a new page there.
+The site configuration is in `mkdocs/`: the menu is set in
+`mkdocs/mkdocs.yml`, add a new page there.
 
 Build it locally:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -r docs/requirements.txt
-.venv/bin/mkdocs serve          # http://127.0.0.1:8000, reloads on change
-.venv/bin/mkdocs build --strict # what the CI runs
+.venv/bin/pip install -r mkdocs/requirements.txt
+.venv/bin/mkdocs serve -f mkdocs/mkdocs.yml          # http://127.0.0.1:8000
+.venv/bin/mkdocs build --strict -f mkdocs/mkdocs.yml # what the CI runs
 ```
 
 The architecture diagrams need the `plantuml` command (and Graphviz). Without

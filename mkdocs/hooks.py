@@ -1,4 +1,4 @@
-"""MkDocs hooks of the documentation site (see mkdocs.yml)."""
+"""MkDocs hooks of the documentation site (see mkdocs/mkdocs.yml)."""
 
 import os
 import re
