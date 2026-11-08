@@ -19,11 +19,7 @@ struct SoundHandle {
     std::uint32_t generation = 0;
 };
 
-enum class AudioChannel {
-    Master,
-    Music,
-    Sound
-};
+enum class AudioChannel { Master, Music, Sound };
 
 class IAudioPlayer {
 public:

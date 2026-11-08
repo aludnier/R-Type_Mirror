@@ -6,9 +6,9 @@
 #include <limits>
 #include <string>
 
-#include "audio/AudioManager.h"
 #include "GameAssetTypes.h"
 #include "TempConfigFile.hpp"
+#include "audio/AudioManager.h"
 
 namespace {
 
@@ -50,8 +50,7 @@ void writeSilentWave(const std::filesystem::path &path)
 class AudioFixture {
 public:
     AudioFixture() :
-        _soundPath(makeSoundPath()),
-        _config(makeConfig(_soundPath))
+        _soundPath(makeSoundPath()), _config(makeConfig(_soundPath))
     {
         writeSilentWave(_soundPath);
     }
@@ -85,9 +84,10 @@ private:
         const auto path = soundPath.string();
         return "{\"assets\":{"
                "\"sound\":{\"path\":\"" +
-            path + "\",\"type\":\"Sound\"},"
-                    "\"music\":{\"path\":\"" +
-            path + "\",\"type\":\"Music\"}}}";
+            path +
+            "\",\"type\":\"Sound\"},"
+            "\"music\":{\"path\":\"" +
+            path + R"(","type":"Music"}}})";
     }
 
     std::filesystem::path _soundPath;
