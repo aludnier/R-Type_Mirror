@@ -281,24 +281,6 @@ TEST_CASE("Walkers walk on the ground and shoot upwards", "[server][scripting]")
     CHECK(game.scripts.lastError().empty());
 }
 
-TEST_CASE("A player that touches the ground is hit", "[server][scripting]")
-{
-    ScriptedGame game;
-    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
-    const RType::Entity flying = game.registry.spawnEntity();
-    const RType::Entity low = game.registry.spawnEntity();
-    for (const auto &[entity, y] : {std::pair {flying, 500.f},
-             std::pair {low, Game::Protocol::GROUND_TOP - 10.f}}) {
-        game.registry.addComponent(entity, RType::Controllable {});
-        game.registry.addComponent(entity, RType::Transform2D {{100.f, y}});
-    }
-
-    game.tick();
-
-    CHECK(game.hits == std::vector<std::size_t> {low});
-    CHECK(game.scripts.lastError().empty());
-}
-
 TEST_CASE("Without players the game waits at level 1", "[server][scripting]")
 {
     ScriptedGame game;

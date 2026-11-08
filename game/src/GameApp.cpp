@@ -248,6 +248,11 @@ void GameApp::updateGame(float dt)
             controllables[i]->actionMask = 0;
     }
     registry.runSystems();
+    // Like the server: the predicted ship stays in the play area.
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    for (auto [transform, network] : RType::Zipper(transforms, networkEntities))
+        if (network.isLocalPlayer)
+            transform.position = Protocol::clampToPlayArea(transform.position);
     if (_scripts)
         _scripts->setDeltaTime(dt);
     _networkSyncSystem.syncWithServer(

@@ -25,7 +25,6 @@ set(SERVER_SCRIPTS
         scripts/gunner.lua
         scripts/boss.lua
         scripts/walker.lua
-        scripts/ground.lua
         scripts/waves.lua
         scripts/collision.lua
         scripts/cleanup.lua

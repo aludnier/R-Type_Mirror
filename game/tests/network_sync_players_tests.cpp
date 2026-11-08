@@ -194,3 +194,14 @@ TEST_CASE("A walker is an enemy, not a player", "[network][players]")
     auto &players = registry.getComponents<Game::Player>();
     CHECK((*walker >= players.size() || !players[*walker]));
 }
+
+TEST_CASE(
+    "Players are kept in the play area, above the ground", "[network][players]")
+{
+    using Game::Protocol::clampToPlayArea;
+
+    CHECK(clampToPlayArea({500.f, 400.f}) == RType::Vector2 {500.f, 400.f});
+    CHECK(clampToPlayArea({-50.f, -50.f}) == RType::Vector2 {28.f, 12.f});
+    CHECK(clampToPlayArea({5000.f, 5000.f}) ==
+        RType::Vector2 {1920.f - 28.f, Game::Protocol::GROUND_TOP - 12.f});
+}

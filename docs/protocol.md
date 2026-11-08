@@ -440,8 +440,9 @@ boss, `7` power-up (a pickup that gives the double shot to the player who
 touches it), `8` walker (an enemy that walks on the ground).
 
 The ground: its top is at `y = 960`, and it scrolls to the left at 120
-pixels per second. A player that touches it loses a life. Walkers stay on
-it, and enemies that fly are spawned above it.
+pixels per second. Walkers stay on it, and enemies that fly are spawned
+above it. The server keeps each player's ship (56 x 24 pixels) inside the
+play area and above the ground.
 A client ignores an unknown value.
 
 Enemies and projectiles also carry PHYSICS in their ENTITY_SPAWN, with their

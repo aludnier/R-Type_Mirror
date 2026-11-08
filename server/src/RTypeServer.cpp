@@ -191,7 +191,12 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
                 for (std::size_t i = 0; i < controllables.size(); ++i) {
                     if (controllables[i] && !colliders[i] && transforms[i]) {
                         colliders[i] = Physics2D::BoxCollider2D {
-                            {52.5f, 52.5f}, {}, true, 1, 0xFFFFFFFFu};
+                            {Game::Protocol::PLAYER_WIDTH,
+                                Game::Protocol::PLAYER_HEIGHT},
+                            {},
+                            true,
+                            1,
+                            0xFFFFFFFFu};
                     }
                 }
             });
@@ -258,14 +263,23 @@ void RTypeServer::step()
 void RTypeServer::updatePlayers()
 {
     const auto &controllables = registry().getComponents<Controllable>();
+    auto &transforms = registry().getComponents<Transform2D>();
     float dt = tickDelta();
 
     _lives.forgetIf(
         [&](std::size_t entity) { return !has(controllables, entity); });
     _lives.update(dt);
     for (std::size_t i = 0; i < controllables.size(); ++i) {
-        if (controllables[i] && _lives.track(i)) {
+        if (!controllables[i]) {
+            continue;
+        }
+        if (_lives.track(i)) {
             sendLives(i, _lives.lives(i));
+        }
+        // Players stay on screen and above the ground.
+        if (has(transforms, i)) {
+            transforms[i]->position =
+                Game::Protocol::clampToPlayArea(transforms[i]->position);
         }
     }
     _livesResend -= dt;

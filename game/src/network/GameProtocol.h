@@ -8,9 +8,11 @@
 #ifndef GAME_GAMEPROTOCOL_H
 #define GAME_GAMEPROTOCOL_H
 
+#include <algorithm>
 #include <cstdint>
 
 #include "components/Action.h"
+#include "math/Vector2.h"
 #include "network/Protocol.h"
 #include "systems/ControllableSystem.h"
 
@@ -61,6 +63,24 @@ enum class EntityKind : std::uint8_t {
 constexpr float GROUND_TOP = 960.f;
 /** @brief The ground scrolls to the left at this speed, in pixels/s. */
 constexpr float GROUND_SCROLL_SPEED = 120.f;
+
+/** @brief Size of a player's ship and of its hitbox, in pixels. */
+constexpr float PLAYER_WIDTH = 56.f;
+constexpr float PLAYER_HEIGHT = 24.f;
+
+/**
+ * @return @p position moved inside the play area (1920 x 1080) and above
+ *         the ground, for the center of a player's ship.
+ */
+constexpr RType::Vector2 clampToPlayArea(RType::Vector2 position)
+{
+    const float halfWidth = PLAYER_WIDTH / 2.f;
+    const float halfHeight = PLAYER_HEIGHT / 2.f;
+
+    position.x = std::clamp(position.x, halfWidth, 1920.f - halfWidth);
+    position.y = std::clamp(position.y, halfHeight, GROUND_TOP - halfHeight);
+    return position;
+}
 
 constexpr bool isValidKind(std::uint8_t kind)
 {

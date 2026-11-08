@@ -222,7 +222,7 @@ are scripts in [`server/scripts`](../server/scripts), listed in
 the build tree uses the same layout):
 
 ```json
-{ "directory": "../server/scripts", "scripts": ["waves.lua", "ground.lua", "collision.lua", "cleanup.lua"] }
+{ "directory": "../server/scripts", "scripts": ["waves.lua", "collision.lua", "cleanup.lua"] }
 ```
 
 - [`waves.lua`](../server/scripts/waves.lua), game script: the levels. A
@@ -242,8 +242,6 @@ the build tree uses the same layout):
 - [`walker.lua`](../server/scripts/walker.lua), entity script of the
   walkers: walks left on the ground and shoots up and to the left every
   2.2 s. `waves.lua` sends one every 6 s at level 1, more often after.
-- `ground.lua`, game script: a player that touches the ground
-  (`rtype.GROUND_TOP`) loses a life.
 - `collision.lua` resolves the hits: a player bullet damages an enemy, an
   enemy or its bullet makes a player lose a life (`rtype.hit_player`). A
   shot down enemy drops a `PowerUp` 15 % of the time; the player who touches
