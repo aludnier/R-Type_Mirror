@@ -14,5 +14,6 @@ configure_file(config/assets.json ${CMAKE_BINARY_DIR}/config/assets.json COPYONL
 configure_file(config/scripts.json ${CMAKE_BINARY_DIR}/config/scripts.json COPYONLY)
 
 add_subdirectory(engine)
+add_subdirectory(towerDefense)
 add_subdirectory(game)
 add_subdirectory(server)
