@@ -79,9 +79,25 @@ private:
             ("rtype_audio_test_" + std::to_string(counter++) + ".wav");
     }
 
+    static std::string escapeJsonPath(const std::string &path)
+    {
+        std::string result;
+        result.reserve(path.size());
+        for (char c : path) {
+            if (c == '\\') {
+                result += "\\\\";
+            } else if (c == '"') {
+                result += "\\\"";
+            } else {
+                result += c;
+            }
+        }
+        return result;
+    }
+
     static std::string makeConfig(const std::filesystem::path &soundPath)
     {
-        const auto path = soundPath.string();
+        const auto path = escapeJsonPath(soundPath.string());
         return "{\"assets\":{"
                "\"sound\":{\"path\":\"" +
             path +
