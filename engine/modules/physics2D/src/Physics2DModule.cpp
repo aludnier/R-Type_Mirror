@@ -12,6 +12,7 @@
 #include "components/PhysicsSettings2D.h"
 #include "components/Rigidbody2D.h"
 #include "ecs/SparseArray.h"
+#include "reflection/Reflection.h"
 #include "systems/CollisionDetectionSystem.h"
 #include "systems/CollisionResponseSystem.h"
 #include "systems/MovementSystem.h"
@@ -42,6 +43,36 @@ RType::ModuleStatus registerPhysics2DModule(RType::Registry &registry)
     registerSystems(registry);
     return RType::ModuleStatus::Success;
 }
+
+// CollisionEvents2D is rebuilt every frame: nothing to edit or save.
+RType::ModuleStatus reflectPhysics2DModule(RType::Reflection &reflection)
+{
+    using namespace RType::Physics2D;
+    reflection.reflect<Rigidbody2D>("Rigidbody2D")
+        .field("velocity", &Rigidbody2D::velocity)
+        .field("mass", &Rigidbody2D::mass)
+        .field("drag", &Rigidbody2D::drag)
+        .field("gravityScale", &Rigidbody2D::gravityScale)
+        .field("isKinematic", &Rigidbody2D::isKinematic)
+        .field("isStatic", &Rigidbody2D::isStatic);
+    reflection.reflect<BoxCollider2D>("BoxCollider2D")
+        .field("size", &BoxCollider2D::size)
+        .field("offset", &BoxCollider2D::offset)
+        .field("isTrigger", &BoxCollider2D::isTrigger)
+        .field("layer", &BoxCollider2D::layer)
+        .field("mask", &BoxCollider2D::mask);
+    reflection.reflect<CircleCollider2D>("CircleCollider2D")
+        .field("radius", &CircleCollider2D::radius)
+        .field("offset", &CircleCollider2D::offset)
+        .field("isTrigger", &CircleCollider2D::isTrigger)
+        .field("layer", &CircleCollider2D::layer)
+        .field("mask", &CircleCollider2D::mask);
+    reflection.reflect<PhysicsSettings2D>("PhysicsSettings2D")
+        .field("gravity", &PhysicsSettings2D::gravity)
+        .field("dt", &PhysicsSettings2D::dt)
+        .field("bounciness", &PhysicsSettings2D::bounciness);
+    return RType::ModuleStatus::Success;
+}
 } // namespace
 
 extern "C" MODULE_EXPORT const RType::ModuleDescriptor *MODULE_CALL
@@ -52,6 +83,7 @@ RTypeLibEntryPoint()
         .apiVersion = {RType::MODULE_API_MAJOR, RType::MODULE_API_MINOR},
         .dependencies = {},
         .registerModule = registerPhysics2DModule,
+        .registerReflection = reflectPhysics2DModule,
     };
     return &descriptor;
 }
