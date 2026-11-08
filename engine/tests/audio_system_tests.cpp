@@ -2,7 +2,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -32,16 +31,6 @@ public:
         float volume;
     };
 
-    RType::SoundHandle playSound(
-        const std::string &name, float volume, float pitch, bool loop) override
-    {
-        const RType::SoundHandle handle {
-            static_cast<std::uint32_t>(sounds.size()), 1};
-        sounds.push_back({handle, name, volume, pitch, loop});
-        soundPlaying.push_back(true);
-        return handle;
-    }
-
     void stopSound(RType::SoundHandle handle) override
     {
         ++stopSoundCalls;
@@ -52,12 +41,6 @@ public:
     [[nodiscard]] bool isSoundPlaying(RType::SoundHandle handle) const override
     {
         return handle.index < soundPlaying.size() && soundPlaying[handle.index];
-    }
-
-    void playMusic(const std::string &name, bool loop, float volume) override
-    {
-        music.push_back({name, loop, volume});
-        musicPlaying = true;
     }
 
     void stopMusic() override
@@ -119,6 +102,24 @@ public:
     std::size_t stopSoundCalls = 0;
     std::size_t stopMusicCalls = 0;
     bool musicPlaying = false;
+
+private:
+    RType::SoundHandle playSoundImpl(
+        const std::string &name, float volume, float pitch, bool loop) override
+    {
+        const RType::SoundHandle handle {
+            static_cast<std::uint32_t>(sounds.size()), 1};
+        sounds.push_back({handle, name, volume, pitch, loop});
+        soundPlaying.push_back(true);
+        return handle;
+    }
+
+    void playMusicImpl(
+        const std::string &name, bool loop, float volume) override
+    {
+        music.push_back({name, loop, volume});
+        musicPlaying = true;
+    }
 };
 
 } // namespace
