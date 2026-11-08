@@ -23,6 +23,8 @@ void PlayMode::play(EditorContext &context)
     _snapshot =
         Scene::toJson(context.registry, context.reflection, *context.assets);
     _scripts.emplace(context.registry);
+    for (const ScriptBinding &bind : context.scriptBindings)
+        bind(*_scripts);
     if (context.input != nullptr)
         for (const auto &[name, action] : context.input->actions())
             _scripts->defineAction(name, action);

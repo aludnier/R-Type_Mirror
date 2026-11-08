@@ -15,10 +15,13 @@
 #include "editor/EditorShell.h"
 #include "editor/ImGuiLayer.h"
 #include "library/AssetManager.h"
+#include "library/PluginManager.h"
 #include "platform/Application.h"
 #include "reflection/Reflection.h"
 #include "render/Framebuffer.h"
 #include "render/SceneRenderer.h"
+
+#include "Physics2DBindings.h"
 
 namespace {
 /** @brief Runs @p load unless @p file is empty, warns if it fails. */
@@ -35,17 +38,30 @@ void loadOptional(const std::filesystem::path &file, Load load)
     }
 }
 
+/** @brief The game config of the build, used when none is given. */
+std::filesystem::path defaultGameConfig()
+{
+    const std::filesystem::path file = ENGINE_MODULE_DIR "/../config/game.json";
+    std::error_code error;
+    return std::filesystem::exists(file, error) ? file
+                                                : std::filesystem::path {};
+}
+
 class Editor : public RType::Application {
 public:
     /**
      * @param assetConfig Asset config file to load, may be empty.
      * @param inputConfig Actions and keys of the game, may be empty.
+     * @param gameConfig  Game config whose "plugins" are loaded, may be empty.
      */
     Editor(const std::filesystem::path &assetConfig,
-        const std::filesystem::path &inputConfig) :
+        const std::filesystem::path &inputConfig,
+        const std::filesystem::path &gameConfig) :
         Application({.title = "Editor"}), _imgui(window())
     {
         RType::reflectCoreComponents(_reflection);
+        loadOptional(
+            gameConfig, [this](const auto &file) { loadModules(file); });
         loadOptional(assetConfig,
             [this](const auto &file) { _assets.loadConfigFile(file); });
         loadOptional(inputConfig,
@@ -67,6 +83,21 @@ protected:
     }
 
 private:
+    /**
+     * @brief Loads the modules of the game, so their components show in the
+     *        inspector and their systems run in Play mode.
+     */
+    void loadModules(const std::filesystem::path &gameConfig)
+    {
+        _plugins.loadConfig(gameConfig, _registry);
+        _plugins.reflectModules(_reflection);
+        if (_plugins.isLoaded(RType::Physics2D::MODULE_NAME))
+            _context.scriptBindings.emplace_back(
+                RType::Physics2D::bindScripting);
+    }
+
+    // First: the registry and the reflection hold code of the modules.
+    RType::PluginManager _plugins;
     RType::Editor::ImGuiLayer _imgui;
     RType::Registry _registry;
     RType::Reflection _reflection;
@@ -85,19 +116,25 @@ private:
 
 int main(int argc, char **argv)
 {
-    if (argc > 3 ||
+    if (argc > 4 ||
         (argc == 2 &&
             (std::string_view(argv[1]) == "-h" ||
                 std::string_view(argv[1]) == "--help"))) {
-        std::cout << "USAGE: " << argv[0] << " [assets.json [input.json]]\n"
+        std::cout << "USAGE: " << argv[0]
+                  << " [assets.json [input.json [game.json]]]\n"
                   << "    assets.json  Asset config, needed to show and save "
                      "sprites\n"
                   << "    input.json   Actions and keys, for scripts in Play "
-                     "mode\n";
+                     "mode\n"
+                  << "    game.json    Game config: its \"plugins\" are "
+                     "loaded (default: the\n"
+                  << "                 build's config/game.json)\n";
         return argc == 2 ? 0 : 84;
     }
     try {
-        Editor editor(argc >= 2 ? argv[1] : "", argc == 3 ? argv[2] : "");
+        Editor editor(argc >= 2 ? argv[1] : "",
+            argc >= 3 ? argv[2] : "",
+            argc >= 4 ? std::filesystem::path(argv[3]) : defaultGameConfig());
 
         editor.run();
     } catch (const std::exception &error) {
