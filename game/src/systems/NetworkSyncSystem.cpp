@@ -35,10 +35,6 @@ namespace Game {
 // Animation frame data extracted from sprite sheets
 namespace AnimationFrames {
 
-    // Gunner: the robot of the player sheet, facing left (3 frames)
-    const std::vector<RType::Animation::AnimationFrame> gunner = {
-        {238, 30, 22, 30}, {271, 30, 22, 30}, {304, 30, 22, 30}};
-
     // Boss: the walking cannon of the player sheet (6 frames)
     const std::vector<RType::Animation::AnimationFrame> boss = {{1, 2, 31, 25},
         {34, 3, 32, 24},
@@ -47,20 +43,15 @@ namespace AnimationFrames {
         {133, 3, 31, 24},
         {166, 4, 32, 23}};
 
-    // Walker: the walking cannon of the player sheet (12 frames)
+    // Walker: the walking cannon of the player sheet, one walk cycle (the
+    // next 6 frames play it backwards)
     const std::vector<RType::Animation::AnimationFrame> walker = {
         {1, 2, 31, 25},
         {34, 3, 32, 24},
         {67, 4, 32, 23},
         {100, 2, 31, 25},
         {133, 3, 31, 24},
-        {166, 4, 32, 23},
-        {200, 4, 32, 23},
-        {234, 3, 31, 24},
-        {267, 2, 31, 25},
-        {299, 4, 32, 23},
-        {332, 3, 32, 24},
-        {366, 2, 31, 25}};
+        {166, 4, 32, 23}};
 
     // Force pod animation (12 frames)
     const std::vector<RType::Animation::AnimationFrame> forcePod = {
@@ -78,6 +69,8 @@ namespace AnimationFrames {
         {188, 2, 16, 12}};
 
     // Bydo scout animation (16 frames)
+    // Bydo scout: its first 8 frames, nose to the left. The next 8 face
+    // right, so the scout seemed to turn around.
     const std::vector<RType::Animation::AnimationFrame> bydoScout = {
         {5, 6, 21, 24},
         {38, 12, 21, 14},
@@ -86,15 +79,7 @@ namespace AnimationFrames {
         {137, 6, 21, 24},
         {170, 12, 21, 14},
         {203, 13, 21, 7},
-        {236, 10, 21, 14},
-        {276, 10, 21, 14},
-        {309, 13, 21, 7},
-        {342, 12, 21, 14},
-        {375, 6, 21, 24},
-        {408, 10, 21, 14},
-        {441, 16, 21, 7},
-        {474, 12, 21, 14},
-        {507, 6, 21, 24}};
+        {236, 10, 21, 14}};
 
     // Laser bullet animation (small blue shot of the laser bullet sheet,
     // y = 103: 4 frames)
@@ -682,14 +667,24 @@ void NetworkSyncSystem::applyEntityKind(
         }
         case Protocol::EntityKind::Gunner: {
             _registry->get().addComponent<Enemy>(entity, Enemy());
-            if (entityId >= sprites.size() || !sprites[entity].has_value())
-                addAnimatedSprite(
-                    entity, "player_ship", AnimationFrames::gunner, 0.2f, 5);
+            // A flying enemy: a blue Bydo, bigger than a scout.
+            if (entityId >= sprites.size() || !sprites[entity].has_value()) {
+                addAnimatedSprite(entity,
+                    "enemy_bydo_scout",
+                    AnimationFrames::bydoScout,
+                    0.1f,
+                    5);
+                if (sprites[entity]) {
+                    sprites[entity]->r = 110;
+                    sprites[entity]->g = 170;
+                    sprites[entity]->b = 255;
+                }
+            }
             auto &transforms =
                 _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&
                 transforms[entity].has_value()) {
-                transforms[entity]->scale = {1.75f, 1.75f};
+                transforms[entity]->scale = {2.2f, 2.2f};
             }
             break;
         }
