@@ -35,7 +35,7 @@ target_compile_definitions(r-type_client PRIVATE
         ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}"
         GAME_ASSET_MODULE_PATH="$<TARGET_FILE:sfml_assets_module>")
 target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::physics2d_scripting Eng::environment2d Eng::scripting SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
-target_link_libraries(r-type_client PRIVATE Eng::sfml_assets r-type_game_scripting animation2d_module)
+target_link_libraries(r-type_client PRIVATE Eng::sfml_assets r-type_game_scripting Eng::animation2d)
 
 # Lua bindings of the game components (Game::bindGameComponents), for the
 # hosts that script the game. No graphics dependency.
@@ -78,7 +78,7 @@ if (BUILD_TESTS)
     target_include_directories(game_network_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(game_network_tests PRIVATE
-            Eng::core Eng::physics2d animation2d_module Catch2::Catch2WithMain)
+            Eng::core Eng::physics2d Eng::animation2d Catch2::Catch2WithMain)
     add_test(NAME game_network_tests COMMAND game_network_tests)
 endif ()
 
