@@ -2,7 +2,7 @@
 -- the screen every SPAWN_INTERVAL seconds, at a random height. The server
 -- attaches bydo.lua to every enemy it spawns.
 
-local SPAWN_INTERVAL = 5
+local SPAWN_INTERVAL = 1.5
 -- Keeps the sine wave of bydo.lua (amplitude 60) inside the screen.
 local MARGIN = 100
 
