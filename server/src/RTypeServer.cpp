@@ -9,14 +9,15 @@
 
 #include <cmath>
 #include <cstdint>
-#include <unordered_set>
 
 #include "Enemy.h"
 #include "Physics2DBindings.h"
 #include "RTypeScripting.h"
+#include "components/BoxCollider2D.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Rigidbody2D.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
 #include "network/ByteWriter.h"
@@ -31,8 +32,6 @@ namespace {
     // Appendix B).
     constexpr float SCREEN_WIDTH = 1920.f;
     constexpr float SCREEN_HEIGHT = 1080.f;
-    /** @brief Margin past the screen edges before an entity is removed. */
-    constexpr float OUT_OF_BOUNDS_MARGIN = 100.f;
 
     constexpr float CHARGE_TIME = 1.5f;
     constexpr float LASER_COOLDOWN = 0.15f;
@@ -97,13 +96,6 @@ namespace {
             writer.release()};
     }
 
-    bool overlap(const Vector2 &posA, const Vector2 &sizeA, const Vector2 &posB,
-        const Vector2 &sizeB)
-    {
-        return std::abs(posA.x - posB.x) * 2.f < sizeA.x + sizeB.x &&
-            std::abs(posA.y - posB.y) * 2.f < sizeA.y + sizeB.y;
-    }
-
     template<class C>
     bool has(const SparseArray<C> &storage, std::size_t entity)
     {
@@ -153,6 +145,18 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
         [this](EntityKind kind, Vector2 position) {
             _pendingSpawns.push_back({kind, position});
         });
+    // Projectile is in an anonymous namespace, so bind it here.
+    _scripts.lua().new_usertype<Projectile>("Projectile",
+        sol::constructors<Projectile>(),
+        "velocity",
+        &Projectile::velocity,
+        "damage",
+        &Projectile::damage,
+        "is_player_bullet",
+        &Projectile::fromPlayer,
+        "is_charged_beam",
+        &Projectile::piercing);
+    _scripts.bindComponent<Projectile>("Projectile");
     _scripts.loadConfigFile(scriptsConfig);
 }
 
@@ -160,9 +164,6 @@ void RTypeServer::step()
 {
     updateWeapons();
     runScripts();
-    moveProjectiles();
-    resolveHits();
-    cleanupOutOfBounds();
     flushSpawns();
 }
 
@@ -211,93 +212,6 @@ void RTypeServer::runScripts()
     _scripts.update(registry().getComponents<ScriptComponent>());
 }
 
-void RTypeServer::moveProjectiles()
-{
-    auto &transforms = registry().getComponents<Transform2D>();
-    const auto &projectiles = registry().getComponents<Projectile>();
-    float dt = tickDelta();
-
-    for (std::size_t i = 0; i < projectiles.size(); ++i) {
-        if (projectiles[i] && has(transforms, i)) {
-            transforms[i]->position += projectiles[i]->velocity * dt;
-        }
-    }
-}
-
-void RTypeServer::resolveHits()
-{
-    const auto &transforms = registry().getComponents<Transform2D>();
-    const auto &hitboxes = registry().getComponents<Hitbox>();
-    const auto &projectiles = registry().getComponents<Projectile>();
-    const auto &enemies = registry().getComponents<Enemy>();
-    const auto &controllables = registry().getComponents<Controllable>();
-    auto &healths = registry().getComponents<Health>();
-    // Killed entities keep their components until the end of the tick.
-    std::unordered_set<std::size_t> destroyed;
-
-    for (std::size_t p = 0; p < projectiles.size(); ++p) {
-        if (!projectiles[p] || !has(transforms, p) || !has(hitboxes, p)) {
-            continue;
-        }
-        const Projectile &projectile = *projectiles[p];
-
-        for (std::size_t t = 0; t < transforms.size(); ++t) {
-            if (destroyed.contains(p)) {
-                break;
-            }
-            if (t == p || destroyed.contains(t) || !transforms[t]) {
-                continue;
-            }
-            bool isTarget =
-                projectile.fromPlayer ? has(enemies, t) : has(controllables, t);
-            // Players have no Hitbox component: the size of the ship.
-            Vector2 targetSize =
-                has(hitboxes, t) ? hitboxes[t]->size : Vector2 {40.f, 20.f};
-
-            if (!isTarget ||
-                !overlap(transforms[p]->position,
-                    hitboxes[p]->size,
-                    transforms[t]->position,
-                    targetSize)) {
-                continue;
-            }
-            if (!projectile.piercing) {
-                destroyed.insert(p);
-                destroy(p);
-            }
-            // Players do not lose lives yet: the bullet just vanishes.
-            if (projectile.fromPlayer && has(healths, t)) {
-                healths[t]->takeDamage(projectile.damage);
-                if (healths[t]->isDead()) {
-                    destroyed.insert(t);
-                    destroy(t);
-                }
-            }
-        }
-    }
-}
-
-void RTypeServer::cleanupOutOfBounds()
-{
-    const auto &transforms = registry().getComponents<Transform2D>();
-    const auto &projectiles = registry().getComponents<Projectile>();
-    const auto &enemies = registry().getComponents<Enemy>();
-
-    for (std::size_t i = 0; i < transforms.size(); ++i) {
-        if (!transforms[i] || (!has(projectiles, i) && !has(enemies, i))) {
-            continue;
-        }
-        const Vector2 &pos = transforms[i]->position;
-
-        if (pos.x < -OUT_OF_BOUNDS_MARGIN ||
-            pos.x > SCREEN_WIDTH + OUT_OF_BOUNDS_MARGIN ||
-            pos.y < -OUT_OF_BOUNDS_MARGIN ||
-            pos.y > SCREEN_HEIGHT + OUT_OF_BOUNDS_MARGIN) {
-            destroy(i);
-        }
-    }
-}
-
 void RTypeServer::flushSpawns()
 {
     // Spawned after the loops: adding components while iterating over a
@@ -320,6 +234,8 @@ void RTypeServer::spawn(const SpawnRequest &request)
         reg.addComponent(entity, Enemy {request.position.y, 0.f, 0.f});
         reg.addComponent(entity, Health {ENEMY_HEALTH});
         reg.addComponent(entity, Hitbox {size});
+        reg.addComponent(entity,
+            RType::Physics2D::BoxCollider2D {size, {}, true, 1, 0xFFFFFFFFu});
         reg.addComponent(entity, ScriptComponent {{ENEMY_SCRIPT}});
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
@@ -333,6 +249,18 @@ void RTypeServer::spawn(const SpawnRequest &request)
             request.kind != EntityKind::EnemyBullet,
             piercing});
     reg.addComponent(entity, Hitbox {hitbox});
+    {
+        RType::Physics2D::Rigidbody2D body;
+        body.velocity = velocity;
+        body.mass = 1.f;
+        body.drag = 0.f;
+        body.gravityScale = 0.f;
+        body.isKinematic = false;
+        body.isStatic = false;
+        reg.addComponent<Physics2D::Rigidbody2D>(entity, std::move(body));
+    }
+    reg.addComponent(entity,
+        RType::Physics2D::BoxCollider2D {hitbox, {}, true, 1, 0xFFFFFFFFu});
     // Straight line: the clients move it themselves from its PHYSICS.
     replicateEntity(entity,
         {encodeKind(request.kind), encodePhysics(velocity, hitbox)},

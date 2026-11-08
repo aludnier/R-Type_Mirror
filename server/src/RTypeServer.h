@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "GameProtocol.h"
+#include "components/Rigidbody2D.h"
 #include "math/Vector2.h"
 #include "scripting/ScriptEngine.h"
 #include "server/GameServer.h"
@@ -57,9 +58,6 @@ private:
     void updateWeapons();
     /** @brief Runs the game scripts, then the script of each entity. */
     void runScripts();
-    void moveProjectiles();
-    void resolveHits();
-    void cleanupOutOfBounds();
 
     /** @brief Spawns and replicates the requests queued this tick. */
     void flushSpawns();

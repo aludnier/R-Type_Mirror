@@ -14,6 +14,7 @@
 #include "components/ParallaxBackground.h"
 #include "game/GameApp.h"
 #include "network/NetworkClient.h"
+#include "scripting/ScriptEngine.h"
 #include "systems/NetworkSyncSystem.h"
 #include "ui/ConnectionDialog.h"
 #include "ui/ImGuiUiRenderer.h"
@@ -47,6 +48,8 @@ protected:
     void handleEvent(const sf::Event &event) override;
 
 private:
+    void renderHud();
+
     void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
     void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
 
@@ -56,6 +59,7 @@ private:
     RType::UI::UiManager _uiManager {};
     RType::UI::ImGuiUiRenderer _uiRenderer {};
     ScreenState _screenState = ScreenState::Connection;
+    std::unique_ptr<RType::ScriptEngine> _scripts;
 };
 
 } // namespace Game

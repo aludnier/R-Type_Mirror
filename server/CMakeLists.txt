@@ -21,6 +21,8 @@ target_compile_definitions(r-type_server PRIVATE ENGINE_MODULE_DIR="${ENGINE_MOD
 set(SERVER_SCRIPTS
         scripts/bydo.lua
         scripts/waves.lua
+        scripts/collision.lua
+        scripts/cleanup.lua
 )
 foreach(script IN LISTS SERVER_SCRIPTS)
     configure_file(${script} ${CMAKE_CURRENT_BINARY_DIR}/${script} COPYONLY)

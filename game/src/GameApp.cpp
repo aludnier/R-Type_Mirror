@@ -8,9 +8,11 @@
 #include "GameApp.h"
 
 #include <SFML/Window/Keyboard.hpp>
+#include <cmath>
 #include <imgui.h>
 #include <iostream>
 
+#include "Physics2DBindings.h"
 #include "components/Controllable.h"
 #include "components/Enemy.h"
 #include "components/ForcePod.h"
@@ -20,15 +22,12 @@
 #include "components/NetworkEntity.h"
 #include "components/Player.h"
 #include "components/Projectile.h"
-#include "components/Rigidbody2D.h"
 #include "components/Transform2D.h"
 #include "ecs/Zipper.h"
-#include "systems/BoundaryCleanupSystem.h"
-#include "systems/CollisionSystem.h"
-#include "systems/ForcePodSystem.h"
-#include "systems/GameRenderSystem.h"
-#include "systems/ParallaxSystem.h"
-#include "systems/PlayerWeaponSystem.h"
+#include "scripting/GameBindings.h"
+#include "scripting/ScriptEngine.h"
+#include "scripting/ScriptSystem.h"
+#include "systems/RenderSystem.h"
 
 namespace Game {
 
@@ -58,10 +57,31 @@ void GameApp::setupSystems()
         getRegistry(),
         getClientAssetManager().loaderRegistry());
     auto &registry = getRegistry();
-    PlayerWeaponSystem::addSystem(registry, getInputManager(), _fixedDeltaTime);
-    ForcePodSystem::addSystem(registry);
-    CollisionSystem::addSystem(registry);
-    BoundaryCleanupSystem::addSystem(registry, 1920.0f, 1080.0f);
+
+    // Initialize network sync system with registry and resource references
+    _networkSyncSystem.init(registry, getAssetManager());
+
+    // Set up Lua scripting
+    _scripts = std::make_unique<RType::ScriptEngine>(registry);
+    // Physics2D components must be bound before game scripts use them
+    RType::Physics2D::bindScripting(*_scripts);
+    Game::bindGameComponents(*_scripts);
+    _scripts->defineAction("MoveUp", 0);
+    _scripts->defineAction("MoveDown", 1);
+    _scripts->defineAction("MoveLeft", 2);
+    _scripts->defineAction("MoveRight", 3);
+    _scripts->defineAction("Shoot", 4);
+    RType::addScriptSystem(registry, *_scripts);
+
+    // Load game scripts
+    auto scriptsPath =
+        _configuration.path().parent_path() / "game_scripts.json";
+    try {
+        _scripts->loadConfigFile(scriptsPath);
+    } catch (...) {
+        std::cerr << "Failed to load game scripts from " << scriptsPath
+                  << std::endl;
+    }
 }
 
 void GameApp::spawnInitialEntities()
@@ -126,18 +146,11 @@ void GameApp::updateGame(float dt)
             _screenState = ScreenState::Game;
             _connectionDialog.setVisible(false);
         }
-        auto &transforms = registry.getComponents<RType::Transform2D>();
-        auto &backgrounds = registry.getComponents<ParallaxBackground>();
-        for (auto [transform, background] :
-            RType::Zipper(transforms, backgrounds)) {
-            transform.position.x -= background.scrollSpeed * dt;
-            if (transform.position.x <= -1920.0f)
-                transform.position.x += 1920.0f;
-        }
+        registry.runSystems();
         return;
     }
     if (!_networkClient.isConnected()) {
-        _networkSyncSystem.reset(registry);
+        _networkSyncSystem.reset();
         _screenState = ScreenState::Connection;
         _connectionDialog.setVisible(true);
         return;
@@ -155,18 +168,61 @@ void GameApp::updateGame(float dt)
             controllables[i]->actionMask = 0;
     }
     registry.runSystems();
-    _networkSyncSystem.syncWithServer(registry,
-        getInputManager(),
-        getAssetManager(),
-        _networkClient,
-        &getAudioManager());
+    if (_scripts)
+        _scripts->setDeltaTime(dt);
+    _networkSyncSystem.syncWithServer(
+        getInputManager(), _networkClient, &getAudioManager());
 }
 
 void GameApp::renderGame()
 {
-    GameRenderSystem::renderFrame(
-        getRegistry(), getAssetManager(), getWindow());
+    getWindow().clear(sf::Color(10, 10, 25));
+    RType::RenderSystem renderSystem;
+    renderSystem.render(getRegistry(), getAssetManager(), getWindow());
+    // Render HUD elements
+    renderHud();
     ImGui::SFML::Render(getWindow());
+}
+
+void GameApp::renderHud()
+{
+    auto &registry = getRegistry();
+    auto &players = registry.getComponents<Player>();
+    for (auto [player] : RType::Zipper(players)) {
+        // Charge Meter Background
+        sf::RectangleShape chargeBg(sf::Vector2f(200.0f, 14.0f));
+        chargeBg.setPosition(sf::Vector2f(20.0f, 1040.0f));
+        chargeBg.setFillColor(sf::Color(40, 40, 60));
+        chargeBg.setOutlineThickness(1.5f);
+        chargeBg.setOutlineColor(sf::Color(150, 150, 200));
+        getWindow().draw(chargeBg);
+
+        // Charge Meter Fill
+        if (player.chargeTime > 0.0f) {
+            float chargeRatio = std::min(player.chargeTime / 1.5f, 1.0f);
+            sf::RectangleShape chargeFill(
+                sf::Vector2f(196.0f * chargeRatio, 10.0f));
+            chargeFill.setPosition(sf::Vector2f(22.0f, 1042.0f));
+            chargeFill.setFillColor(chargeRatio >= 1.0f
+                    ? sf::Color(100, 240, 255)
+                    : sf::Color(60, 160, 240));
+            getWindow().draw(chargeFill);
+        }
+
+        // Lives representation
+        for (int l = 0; l < player.lives; ++l) {
+            sf::ConvexShape miniShip;
+            miniShip.setPointCount(3);
+            miniShip.setPoint(0, sf::Vector2f(12.0f, 0.0f));
+            miniShip.setPoint(1, sf::Vector2f(-6.0f, -6.0f));
+            miniShip.setPoint(2, sf::Vector2f(-6.0f, 6.0f));
+            miniShip.setFillColor(sf::Color(50, 150, 255));
+            miniShip.setPosition(
+                sf::Vector2f(30.0f + static_cast<float>(l * 24), 30.0f));
+            getWindow().draw(miniShip);
+        }
+        break; // HUD for main player
+    }
 }
 
 void GameApp::onWindowCreated()

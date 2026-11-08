@@ -1,0 +1,8 @@
+{
+  "directory": "../game/scripts",
+  "scripts": [
+    "player_weapon.lua",
+    "collision.lua",
+    "cleanup.lua"
+  ]
+}

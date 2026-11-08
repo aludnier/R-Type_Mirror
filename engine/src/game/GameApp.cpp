@@ -58,11 +58,11 @@ void GameApp::setupKeyBindings()
     _inputManager.defineAction("MoveRight", moveRight);
     _inputManager.defineAction("Shoot", shoot);
     _inputManager.bind(moveUp, static_cast<int>(sf::Keyboard::Key::Up));
-    _inputManager.bind(moveUp, static_cast<int>(sf::Keyboard::Key::W));
+    _inputManager.bind(moveUp, static_cast<int>(sf::Keyboard::Key::Z));
     _inputManager.bind(moveDown, static_cast<int>(sf::Keyboard::Key::Down));
     _inputManager.bind(moveDown, static_cast<int>(sf::Keyboard::Key::S));
     _inputManager.bind(moveLeft, static_cast<int>(sf::Keyboard::Key::Left));
-    _inputManager.bind(moveLeft, static_cast<int>(sf::Keyboard::Key::A));
+    _inputManager.bind(moveLeft, static_cast<int>(sf::Keyboard::Key::Q));
     _inputManager.bind(moveRight, static_cast<int>(sf::Keyboard::Key::Right));
     _inputManager.bind(moveRight, static_cast<int>(sf::Keyboard::Key::D));
     _inputManager.bind(shoot, static_cast<int>(sf::Keyboard::Key::Space));

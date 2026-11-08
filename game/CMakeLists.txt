@@ -21,20 +21,6 @@ set(SRC
         src/network/NetworkClient.h
         src/ui/ConnectionDialog.cpp
         src/ui/ConnectionDialog.h
-        src/systems/EnemyAISystem.cpp
-        src/systems/EnemyAISystem.h
-        src/systems/ForcePodSystem.cpp
-        src/systems/ForcePodSystem.h
-        src/systems/PlayerWeaponSystem.cpp
-        src/systems/PlayerWeaponSystem.h
-        src/systems/CollisionSystem.cpp
-        src/systems/CollisionSystem.h
-        src/systems/BoundaryCleanupSystem.cpp
-        src/systems/BoundaryCleanupSystem.h
-        src/systems/GameRenderSystem.cpp
-        src/systems/GameRenderSystem.h
-        src/systems/AudioSystem.cpp
-        src/systems/AudioSystem.h
         src/systems/NetworkSyncSystem.cpp
         src/systems/NetworkSyncSystem.h
 )
@@ -48,8 +34,8 @@ add_dependencies(r-type_client physics2d_module environment2d_module
 target_compile_definitions(r-type_client PRIVATE
         ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}"
         GAME_ASSET_MODULE_PATH="$<TARGET_FILE:sfml_assets_module>")
-target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::environment2d SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
-target_link_libraries(r-type_client PRIVATE Eng::sfml_assets)
+target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::physics2d_scripting Eng::environment2d Eng::scripting SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
+target_link_libraries(r-type_client PRIVATE Eng::sfml_assets r-type_game_scripting)
 
 # Lua bindings of the game components (Game::bindGameComponents), for the
 # hosts that script the game. No graphics dependency.

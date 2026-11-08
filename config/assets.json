@@ -20,6 +20,10 @@
             "path": "assets/sprites/wave_cannon.png",
             "type": "Texture"
         },
+        "enemy_bullet": {
+            "path": "assets/sprites/enemy_bullet.png",
+            "type": "Texture"
+        },
         "bg_space_stars": {
             "path": "assets/backgrounds/space_stars.png",
             "type": "Texture"

@@ -24,15 +24,20 @@
 
 namespace Game {
 
-void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
-    const InputManager &input, AssetManager &resources, NetworkClient &client,
-    RType::IAudioPlayer *audio)
+void NetworkSyncSystem::init(RType::Registry &registry, AssetManager &resources)
+{
+    _registry = registry;
+    _resources = resources;
+}
+
+void NetworkSyncSystem::syncWithServer(const InputManager &input,
+    NetworkClient &client, RType::IAudioPlayer *audio)
 {
     client.update(0.0f);
 
     if (!client.isConnected()) {
         if (_wasConnected) {
-            reset(registry);
+            reset();
             _wasConnected = false;
         }
         return;
@@ -40,52 +45,45 @@ void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
 
     _wasConnected = true;
 
-    processServerMessages(client.pollServerMessages(),
-        registry,
-        resources,
-        client.getLinkedEntity(),
-        audio);
+    processServerMessages(
+        client.pollServerMessages(), client.getLinkedEntity(), audio);
     sendLocalPlayerInput(input, client);
 }
 
 struct NetworkSyncSystem::ServerMessageVisitor {
     NetworkSyncSystem &system;
-    RType::Registry &registry;
-    AssetManager &resources;
     RType::Network::NetworkId localLinkedEntity;
     RType::IAudioPlayer *audio;
 
     void operator()(const RType::Network::AcceptConnectPacket &packet) const
     {
-        system.handleAcceptConnect(packet, registry, resources);
+        system.handleAcceptConnect(packet);
     }
 
     void operator()(const RType::Network::PlayerConnectedPacket &packet) const
     {
-        system.handlePlayerConnected(
-            packet, registry, resources, localLinkedEntity);
+        system.handlePlayerConnected(packet, localLinkedEntity);
     }
 
     void operator()(
         const RType::Network::PlayerDisconnectedPacket &packet) const
     {
-        system.handlePlayerDisconnected(packet, registry);
+        system.handlePlayerDisconnected(packet);
     }
 
     void operator()(const RType::Network::EntitySpawnPacket &packet) const
     {
-        system.handleEntitySpawn(
-            packet, registry, resources, localLinkedEntity);
+        system.handleEntitySpawn(packet, localLinkedEntity);
     }
 
     void operator()(const RType::Network::EntityDespawnPacket &packet) const
     {
-        system.handleEntityDespawn(packet, registry);
+        system.handleEntityDespawn(packet);
     }
 
     void operator()(const RType::Network::ComponentUpdatePacket &packet) const
     {
-        system.handleComponentUpdate(packet, registry, localLinkedEntity);
+        system.handleComponentUpdate(packet, localLinkedEntity);
     }
 
     void operator()(const RType::Network::PlaySoundMsgPacket &packet) const
@@ -102,15 +100,13 @@ struct NetworkSyncSystem::ServerMessageVisitor {
 
 void NetworkSyncSystem::processServerMessages(
     const std::vector<NetworkClient::ServerMessage> &messages,
-    RType::Registry &registry, AssetManager &resources,
     RType::Network::NetworkId localLinkedEntity, RType::IAudioPlayer *audio)
 {
     if (messages.empty()) {
         return;
     }
 
-    ServerMessageVisitor visitor {
-        *this, registry, resources, localLinkedEntity, audio};
+    ServerMessageVisitor visitor {*this, localLinkedEntity, audio};
 
     for (const auto &msg : messages) {
         std::visit(visitor, msg);
@@ -123,11 +119,12 @@ void NetworkSyncSystem::sendLocalPlayerInput(
     client.sendControls(input.actionMask());
 }
 
-void NetworkSyncSystem::reset(RType::Registry &registry)
+void NetworkSyncSystem::reset()
 {
     for (auto entityId : _networkToEntity | std::views::values) {
         try {
-            registry.killEntity(RType::Registry::entityFromIndex(entityId));
+            _registry->get().killEntity(
+                RType::Registry::entityFromIndex(entityId));
         } catch (...) {
         }
     }
@@ -147,8 +144,7 @@ std::optional<RType::Entity> NetworkSyncSystem::findEntity(
 }
 
 void NetworkSyncSystem::handleAcceptConnect(
-    const RType::Network::AcceptConnectPacket &packet,
-    RType::Registry &registry, const AssetManager &resources)
+    const RType::Network::AcceptConnectPacket &packet)
 {
     if (packet.linkedEntity == RType::Network::NO_ENTITY) {
         return;
@@ -156,26 +152,26 @@ void NetworkSyncSystem::handleAcceptConnect(
 
     auto it = _networkToEntity.find(packet.linkedEntity);
     if (it == _networkToEntity.end()) {
-        auto entity = registry.spawnEntity();
+        auto entity = _registry->get().spawnEntity();
         auto entityId = static_cast<std::size_t>(entity);
         _networkToEntity.insert_or_assign(packet.linkedEntity, entityId);
         _entityToNetwork.insert_or_assign(entityId, packet.linkedEntity);
 
-        registry.addComponent<NetworkEntity>(
+        _registry->get().addComponent<NetworkEntity>(
             entity, NetworkEntity(packet.linkedEntity, true));
-        registry.addComponent<RType::Transform2D>(
+        _registry->get().addComponent<RType::Transform2D>(
             entity, RType::Transform2D({150.0f, 540.0f}));
-        registry.addComponent<RType::Controllable>(
+        _registry->get().addComponent<RType::Controllable>(
             entity, RType::Controllable(0));
-        registry.addComponent<Player>(entity, Player(3, true));
-        registry.addComponent<RType::Physics2D::Rigidbody2D>(
+        _registry->get().addComponent<Player>(entity, Player(3, true));
+        _registry->get().addComponent<RType::Physics2D::Rigidbody2D>(
             entity, RType::Physics2D::Rigidbody2D {});
-        registry.addComponent<Hitbox>(
+        _registry->get().addComponent<Hitbox>(
             entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
 
         try {
-            auto &asset = resources.getAsset("player_ship");
-            registry.addComponent<RType::Sprite>(
+            auto &asset = _resources->get().getAsset("player_ship");
+            _registry->get().addComponent<RType::Sprite>(
                 entity, RType::Sprite(asset.id, 10));
         } catch (...) {
         }
@@ -184,7 +180,6 @@ void NetworkSyncSystem::handleAcceptConnect(
 
 void NetworkSyncSystem::handlePlayerConnected(
     const RType::Network::PlayerConnectedPacket &packet,
-    RType::Registry &registry, const AssetManager &resources,
     RType::Network::NetworkId localLinkedEntity)
 {
     _clientToNetwork[packet.clientId] = packet.linkedEntity;
@@ -196,24 +191,24 @@ void NetworkSyncSystem::handlePlayerConnected(
 
     auto it = _networkToEntity.find(packet.linkedEntity);
     if (it == _networkToEntity.end()) {
-        auto entity = registry.spawnEntity();
+        auto entity = _registry->get().spawnEntity();
         auto entityId = static_cast<std::size_t>(entity);
         _networkToEntity.insert_or_assign(packet.linkedEntity, entityId);
         _entityToNetwork.insert_or_assign(entityId, packet.linkedEntity);
 
-        registry.addComponent<NetworkEntity>(
+        _registry->get().addComponent<NetworkEntity>(
             entity, NetworkEntity(packet.linkedEntity, false));
-        registry.addComponent<RType::Transform2D>(
+        _registry->get().addComponent<RType::Transform2D>(
             entity, RType::Transform2D({150.0f, 540.0f}));
-        registry.addComponent<Player>(entity, Player(3, false));
-        registry.addComponent<RType::Physics2D::Rigidbody2D>(
+        _registry->get().addComponent<Player>(entity, Player(3, false));
+        _registry->get().addComponent<RType::Physics2D::Rigidbody2D>(
             entity, RType::Physics2D::Rigidbody2D {});
-        registry.addComponent<Hitbox>(
+        _registry->get().addComponent<Hitbox>(
             entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
 
         try {
-            auto &asset = resources.getAsset("player_ship");
-            registry.addComponent<RType::Sprite>(
+            auto &asset = _resources->get().getAsset("player_ship");
+            _registry->get().addComponent<RType::Sprite>(
                 entity, RType::Sprite(asset.id, 10));
         } catch (...) {
         }
@@ -221,8 +216,7 @@ void NetworkSyncSystem::handlePlayerConnected(
 }
 
 void NetworkSyncSystem::handlePlayerDisconnected(
-    const RType::Network::PlayerDisconnectedPacket &packet,
-    RType::Registry &registry)
+    const RType::Network::PlayerDisconnectedPacket &packet)
 {
     auto clientIt = _clientToNetwork.find(packet.clientId);
     if (clientIt == _clientToNetwork.end()) {
@@ -242,52 +236,53 @@ void NetworkSyncSystem::handlePlayerDisconnected(
         _entityToNetwork.erase(entityId);
         _networkToEntity.erase(it);
         try {
-            registry.killEntity(RType::Registry::entityFromIndex(entityId));
+            _registry->get().killEntity(
+                RType::Registry::entityFromIndex(entityId));
         } catch (...) {
         }
     }
 }
 
 void NetworkSyncSystem::handleEntitySpawn(
-    const RType::Network::EntitySpawnPacket &packet, RType::Registry &registry,
-    const AssetManager &resources, RType::Network::NetworkId localLinkedEntity)
+    const RType::Network::EntitySpawnPacket &packet,
+    RType::Network::NetworkId localLinkedEntity)
 {
     auto it = _networkToEntity.find(packet.networkId);
     RType::Entity entity = it != _networkToEntity.end()
         ? RType::Registry::entityFromIndex(it->second)
-        : registry.spawnEntity();
+        : _registry->get().spawnEntity();
     auto entityId = static_cast<std::size_t>(entity);
 
     const bool isLocal = packet.networkId == localLinkedEntity;
     if (it == _networkToEntity.end()) {
         _networkToEntity.insert_or_assign(packet.networkId, entityId);
         _entityToNetwork.insert_or_assign(entityId, packet.networkId);
-        registry.addComponent<NetworkEntity>(
+        _registry->get().addComponent<NetworkEntity>(
             entity, NetworkEntity(packet.networkId, isLocal));
     }
 
-    auto &controllables = registry.getComponents<RType::Controllable>();
-    auto &players = registry.getComponents<Player>();
+    auto &controllables = _registry->get().getComponents<RType::Controllable>();
+    auto &players = _registry->get().getComponents<Player>();
 
     if (isLocal) {
         if (entityId >= controllables.size() ||
             !controllables[entity].has_value()) {
-            registry.addComponent<RType::Controllable>(
+            _registry->get().addComponent<RType::Controllable>(
                 entity, RType::Controllable(0));
         }
         if (entityId >= players.size() || !players[entity].has_value()) {
-            registry.addComponent<Player>(entity, Player(3, true));
+            _registry->get().addComponent<Player>(entity, Player(3, true));
         }
     }
 
     for (const auto &comp : packet.components) {
-        applyComponentData(entity, comp, registry, isLocal);
+        applyComponentData(entity, comp, isLocal);
     }
 
     // Enemies and projectiles carry ENTITY_KIND and are drawn from their
     // game component. The other entities are the players.
-    auto &enemies = registry.getComponents<Enemy>();
-    auto &projectiles = registry.getComponents<Projectile>();
+    auto &enemies = _registry->get().getComponents<Enemy>();
+    auto &projectiles = _registry->get().getComponents<Projectile>();
     const bool hasKind =
         (entityId < enemies.size() && enemies[entity].has_value()) ||
         (entityId < projectiles.size() && projectiles[entity].has_value());
@@ -297,14 +292,14 @@ void NetworkSyncSystem::handleEntitySpawn(
     }
     if (!isLocal &&
         (entityId >= players.size() || !players[entity].has_value())) {
-        registry.addComponent<Player>(entity, Player(3, false));
+        _registry->get().addComponent<Player>(entity, Player(3, false));
     }
 
-    auto &sprites = registry.getComponents<RType::Sprite>();
+    auto &sprites = _registry->get().getComponents<RType::Sprite>();
     if (entityId >= sprites.size() || !sprites[entity].has_value()) {
         try {
-            auto &asset = resources.getAsset("player_ship");
-            registry.addComponent<RType::Sprite>(
+            auto &asset = _resources->get().getAsset("player_ship");
+            _registry->get().addComponent<RType::Sprite>(
                 entity, RType::Sprite(asset.id, 10));
         } catch (...) {
         }
@@ -312,8 +307,7 @@ void NetworkSyncSystem::handleEntitySpawn(
 }
 
 void NetworkSyncSystem::handleEntityDespawn(
-    const RType::Network::EntityDespawnPacket &packet,
-    RType::Registry &registry)
+    const RType::Network::EntityDespawnPacket &packet)
 {
     auto it = _networkToEntity.find(packet.networkId);
     if (it != _networkToEntity.end()) {
@@ -321,7 +315,8 @@ void NetworkSyncSystem::handleEntityDespawn(
         _entityToNetwork.erase(entityId);
         _networkToEntity.erase(it);
         try {
-            registry.killEntity(RType::Registry::entityFromIndex(entityId));
+            _registry->get().killEntity(
+                RType::Registry::entityFromIndex(entityId));
         } catch (...) {
         }
     }
@@ -329,38 +324,37 @@ void NetworkSyncSystem::handleEntityDespawn(
 
 void NetworkSyncSystem::handleComponentUpdate(
     const RType::Network::ComponentUpdatePacket &packet,
-    RType::Registry &registry, RType::Network::NetworkId localLinkedEntity)
+    RType::Network::NetworkId localLinkedEntity)
 {
     for (const auto &[networkId, components] : packet.entities) {
         auto it = _networkToEntity.find(networkId);
         RType::Entity entity = it != _networkToEntity.end()
             ? RType::Registry::entityFromIndex(it->second)
-            : registry.spawnEntity();
+            : _registry->get().spawnEntity();
         auto entityId = static_cast<std::size_t>(entity);
 
         const bool isLocal = networkId == localLinkedEntity;
         if (it == _networkToEntity.end()) {
             _networkToEntity.insert_or_assign(networkId, entityId);
             _entityToNetwork.insert_or_assign(entityId, networkId);
-            registry.addComponent<NetworkEntity>(
+            _registry->get().addComponent<NetworkEntity>(
                 entity, NetworkEntity(networkId, isLocal, packet.tick));
         }
 
         for (const auto &comp : components) {
-            applyComponentData(entity, comp, registry, isLocal);
+            applyComponentData(entity, comp, isLocal);
         }
     }
 }
 
 void NetworkSyncSystem::applyComponentData(RType::Entity entity,
-    const RType::Network::ComponentData &compData, RType::Registry &registry,
-    bool isLocalPlayer)
+    const RType::Network::ComponentData &compData, bool isLocalPlayer)
 {
     RType::Network::ByteReader reader(compData.data);
     auto entityId = static_cast<std::size_t>(entity);
 
     if (compData.typeId == Protocol::ENTITY_KIND) {
-        applyEntityKind(entity, reader, registry);
+        applyEntityKind(entity, reader);
         return;
     }
 
@@ -372,7 +366,8 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
                 return;
             }
 
-            auto &transforms = registry.getComponents<RType::Transform2D>();
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&
                 transforms[entity].has_value()) {
                 auto &transform = transforms[entity].value();
@@ -391,7 +386,7 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
                     transform.position.y = posY;
                 }
             } else {
-                registry.addComponent<RType::Transform2D>(
+                _registry->get().addComponent<RType::Transform2D>(
                     entity, RType::Transform2D({posX, posY}));
             }
             break;
@@ -406,7 +401,7 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
             }
 
             auto &velocities =
-                registry.getComponents<RType::Physics2D::Rigidbody2D>();
+                _registry->get().getComponents<RType::Physics2D::Rigidbody2D>();
             if (entityId < velocities.size() &&
                 velocities[entity].has_value()) {
                 auto &vel = velocities[entity].value();
@@ -415,19 +410,20 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
             } else {
                 RType::Physics2D::Rigidbody2D body;
                 body.velocity = {vx, vy};
-                registry.emplaceComponent<RType::Physics2D::Rigidbody2D>(
-                    entity, body);
+                _registry->get()
+                    .emplaceComponent<RType::Physics2D::Rigidbody2D>(
+                        entity, body);
             }
 
             if (hw > 0.0f && hh > 0.0f) {
-                auto &hitboxes = registry.getComponents<Hitbox>();
+                auto &hitboxes = _registry->get().getComponents<Hitbox>();
                 if (entityId < hitboxes.size() &&
                     hitboxes[entity].has_value()) {
                     auto &hitbox = hitboxes[entity].value();
                     hitbox.size.x = hw;
                     hitbox.size.y = hh;
                 } else {
-                    registry.addComponent<Hitbox>(
+                    _registry->get().addComponent<Hitbox>(
                         entity, Hitbox(RType::Vector2 {hw, hh}));
                 }
             }
@@ -439,29 +435,64 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
     }
 }
 
-void NetworkSyncSystem::applyEntityKind(RType::Entity entity,
-    RType::Network::ByteReader &reader, RType::Registry &registry)
+void NetworkSyncSystem::applyEntityKind(
+    RType::Entity entity, RType::Network::ByteReader &reader)
 {
     auto kind = reader.read<std::uint8_t>();
 
     if (!reader.ok() || !Protocol::isValidKind(kind)) {
         return;
     }
+    auto &sprites = _registry->get().getComponents<RType::Sprite>();
+    auto entityId = static_cast<std::size_t>(entity);
     switch (static_cast<Protocol::EntityKind>(kind)) {
         case Protocol::EntityKind::Enemy:
-            registry.addComponent<Enemy>(entity, Enemy());
+            _registry->get().addComponent<Enemy>(entity, Enemy());
+            if (entityId >= sprites.size() || !sprites[entity].has_value()) {
+                try {
+                    auto &asset =
+                        _resources->get().getAsset("enemy_bydo_scout");
+                    _registry->get().addComponent<RType::Sprite>(
+                        entity, RType::Sprite(asset.id, 5));
+                } catch (...) {
+                }
+            }
             break;
         case Protocol::EntityKind::PlayerLaser:
-            registry.addComponent<Projectile>(
+            _registry->get().addComponent<Projectile>(
                 entity, Projectile(true, 1, false, 700.0f));
+            if (entityId >= sprites.size() || !sprites[entity].has_value()) {
+                try {
+                    auto &asset = _resources->get().getAsset("laser_bullet");
+                    _registry->get().addComponent<RType::Sprite>(
+                        entity, RType::Sprite(asset.id, 15));
+                } catch (...) {
+                }
+            }
             break;
         case Protocol::EntityKind::ChargedBeam:
-            registry.addComponent<Projectile>(
+            _registry->get().addComponent<Projectile>(
                 entity, Projectile(true, 5, true, 900.0f));
+            if (entityId >= sprites.size() || !sprites[entity].has_value()) {
+                try {
+                    auto &asset = _resources->get().getAsset("wave_cannon");
+                    _registry->get().addComponent<RType::Sprite>(
+                        entity, RType::Sprite(asset.id, 15));
+                } catch (...) {
+                }
+            }
             break;
         case Protocol::EntityKind::EnemyBullet:
-            registry.addComponent<Projectile>(
+            _registry->get().addComponent<Projectile>(
                 entity, Projectile(false, 1, false, 450.0f));
+            if (entityId >= sprites.size() || !sprites[entity].has_value()) {
+                try {
+                    auto &asset = _resources->get().getAsset("enemy_bullet");
+                    _registry->get().addComponent<RType::Sprite>(
+                        entity, RType::Sprite(asset.id, 15));
+                } catch (...) {
+                }
+            }
             break;
         case Protocol::EntityKind::Player:
             break;

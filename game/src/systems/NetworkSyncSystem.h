@@ -8,6 +8,7 @@
 #ifndef GAME_NETWORKSYNCSYSTEM_H
 #define GAME_NETWORKSYNCSYSTEM_H
 
+#include <optional>
 #include <unordered_map>
 #include "audio/IAudioPlayer.h"
 #include "ecs/Registry.h"
@@ -29,22 +30,27 @@ public:
     ~NetworkSyncSystem() = default;
 
     /**
+     * @brief Initializes the system with references to shared resources.
+     * @param registry The client ECS registry.
+     * @param resources The resource manager holding game assets.
+     */
+    void init(RType::Registry &registry, AssetManager &resources);
+
+    /**
      * @brief Updates network client, sends local predicted inputs, and
      * replicates server state.
-     * @param registry The client ECS registry.
      * @param input The input manager capturing player inputs.
-     * @param resources The resource manager holding game assets.
      * @param client The network client managing the connection.
+     * @param audio Optional audio player for sound effects.
      */
-    void syncWithServer(RType::Registry &registry, const InputManager &input,
-        AssetManager &resources, NetworkClient &client,
+    void syncWithServer(const InputManager &input, NetworkClient &client,
         RType::IAudioPlayer *audio = nullptr);
 
     /**
      * @brief Clears all replicated entities and resets network mappings on
      * disconnect.
      */
-    void reset(RType::Registry &registry);
+    void reset();
 
     /**
      * @brief Finds the local ECS entity associated with a given NetworkId.
@@ -54,51 +60,51 @@ public:
 
     void processServerMessages(
         const std::vector<NetworkClient::ServerMessage> &messages,
-        RType::Registry &registry, AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity,
         RType::IAudioPlayer *audio = nullptr);
 
 private:
     struct ServerMessageVisitor;
 
-    void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet,
-        RType::Registry &registry, const AssetManager &resources);
+    void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet);
 
     void handlePlayerConnected(
         const RType::Network::PlayerConnectedPacket &packet,
-        RType::Registry &registry, const AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
     void handlePlayerDisconnected(
-        const RType::Network::PlayerDisconnectedPacket &packet,
-        RType::Registry &registry);
+        const RType::Network::PlayerDisconnectedPacket &packet);
 
     void handleEntitySpawn(const RType::Network::EntitySpawnPacket &packet,
-        RType::Registry &registry, const AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
-    void handleEntityDespawn(const RType::Network::EntityDespawnPacket &packet,
-        RType::Registry &registry);
+    void handleEntityDespawn(const RType::Network::EntityDespawnPacket &packet);
 
     void handleComponentUpdate(
         const RType::Network::ComponentUpdatePacket &packet,
-        RType::Registry &registry, RType::Network::NetworkId localLinkedEntity);
+        RType::Network::NetworkId localLinkedEntity);
 
-    static void applyComponentData(RType::Entity entity,
-        const RType::Network::ComponentData &compData,
-        RType::Registry &registry, bool isLocalPlayer);
+    void applyComponentData(RType::Entity entity,
+        const RType::Network::ComponentData &compData, bool isLocalPlayer);
 
     /** @brief Adds the game component matching an ENTITY_KIND component. */
-    static void applyEntityKind(RType::Entity entity,
-        RType::Network::ByteReader &reader, RType::Registry &registry);
+    void applyEntityKind(
+        RType::Entity entity, RType::Network::ByteReader &reader);
 
     static void sendLocalPlayerInput(
         const InputManager &input, NetworkClient &client);
 
-    std::unordered_map<RType::Network::NetworkId, std::size_t> _networkToEntity;
-    std::unordered_map<std::size_t, RType::Network::NetworkId> _entityToNetwork;
+    std::optional<std::reference_wrapper<RType::Registry>> _registry =
+        std::nullopt;
+    std::optional<std::reference_wrapper<AssetManager>> _resources =
+        std::nullopt;
+
+    std::unordered_map<RType::Network::NetworkId, std::size_t>
+        _networkToEntity {};
+    std::unordered_map<std::size_t, RType::Network::NetworkId>
+        _entityToNetwork {};
     std::unordered_map<RType::Network::ClientId, RType::Network::NetworkId>
-        _clientToNetwork;
+        _clientToNetwork {};
     bool _wasConnected = false;
 };
 
