@@ -104,13 +104,13 @@ namespace AnimationFrames {
         {267, 105, 16, 8},
         {284, 103, 16, 12}};
 
-    // Wave cannon energy beam animation (y = 120 of the laser bullet sheet:
-    // 4 frames, about the size of the beam's hitbox at scale 1.75)
+    // Wave cannon: the long beam of the laser bullet sheet (y = 170), so a
+    // fully charged shot looks different from the small blue laser
     const std::vector<RType::Animation::AnimationFrame> waveCannon = {
-        {200, 121, 32, 10},
-        {233, 120, 32, 12},
-        {267, 120, 32, 12},
-        {300, 121, 32, 10}};
+        {106, 171, 78, 14},
+        {185, 170, 80, 16},
+        {267, 170, 80, 16},
+        {348, 171, 78, 14}};
 
     // Enemy bullet: the blue orb of the enemy bullet sheet. The rest of
     // its first row is an explosion, not a bullet.
@@ -871,7 +871,7 @@ void NetworkSyncSystem::applyEntityKind(
                 _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&
                 transforms[entity].has_value()) {
-                transforms[entity]->scale = {1.75f, 1.75f};
+                transforms[entity]->scale = {1.3f, 1.3f};
             }
             break;
         }
