@@ -388,30 +388,9 @@ void NetworkSyncSystem::handlePlayerConnected(
 {
     _clientToNetwork[packet.clientId] = packet.linkedEntity;
 
-    if (packet.linkedEntity == RType::Network::NO_ENTITY ||
-        packet.linkedEntity == localLinkedEntity) {
-        return;
-    }
-
-    auto it = _networkToEntity.find(packet.linkedEntity);
-    if (it == _networkToEntity.end()) {
-        auto entity = _registry->get().spawnEntity();
-        auto entityId = static_cast<std::size_t>(entity);
-        _networkToEntity.insert_or_assign(packet.linkedEntity, entityId);
-        _entityToNetwork.insert_or_assign(entityId, packet.linkedEntity);
-
-        _registry->get().addComponent<NetworkEntity>(
-            entity, NetworkEntity(packet.linkedEntity, false));
-        _registry->get().addComponent<RType::Transform2D>(
-            entity, RType::Transform2D({150.0f, 540.0f}, {1.75f, 1.75f}));
-        _registry->get().addComponent<Player>(entity, Player(3, false));
-        _registry->get().addComponent<RType::Physics2D::Rigidbody2D>(
-            entity, RType::Physics2D::Rigidbody2D {});
-        _registry->get().addComponent<Hitbox>(
-            entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
-
-        addShipSprite(entity);
-    }
+    // The ship comes with its ENTITY_SPAWN. A player whose ship was
+    // destroyed is still announced: creating one here left a ship that
+    // never moved at the spawn point.
 }
 
 void NetworkSyncSystem::handlePlayerDisconnected(

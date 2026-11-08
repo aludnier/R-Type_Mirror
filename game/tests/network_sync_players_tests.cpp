@@ -58,7 +58,8 @@ TEST_CASE(
     std::vector<Game::NetworkClient::ServerMessage> messages {
         RType::Network::AcceptConnectPacket {.clientId = 2, .linkedEntity = 10},
         RType::Network::PlayerConnectedPacket {
-            .clientId = 1, .linkedEntity = 11, .playerName = "other"}};
+            .clientId = 1, .linkedEntity = 11, .playerName = "other"},
+        RType::Network::EntitySpawnPacket {.networkId = 11}};
 
     sync.processServerMessages(messages, 10);
 
@@ -151,6 +152,22 @@ TEST_CASE(
 
     sync.processServerMessages({RType::Network::EntityDespawnPacket {20}}, 10);
     CHECK(sync.takeBanner() == "LEVEL 2");
+}
+
+TEST_CASE(
+    "A player announced without a ship gets no entity", "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+
+    sync.processServerMessages({RType::Network::PlayerConnectedPacket {
+                                   .clientId = 2, .linkedEntity = 12}},
+        10);
+
+    CHECK_FALSE(sync.findEntity(12).has_value());
 }
 
 TEST_CASE("A PowerUp is not taken for a player", "[network][players]")
