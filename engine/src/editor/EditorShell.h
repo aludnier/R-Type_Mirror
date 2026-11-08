@@ -12,6 +12,7 @@
 #include "editor/FileMenu.h"
 #include "editor/PlayMode.h"
 #include "editor/panels/HierarchyPanel.h"
+#include "editor/panels/InputPanel.h"
 #include "editor/panels/InspectorPanel.h"
 #include "editor/panels/ViewportPanel.h"
 
@@ -21,7 +22,7 @@ namespace RType::Editor {
  *        the panels.
  *
  * Without an imgui.ini, the panels start with Hierarchy on the left,
- * Inspector on the right and Viewport in the middle.
+ * Inspector and Input as tabs on the right and Viewport in the middle.
  */
 class EditorShell {
 public:
@@ -40,6 +41,7 @@ private:
     HierarchyPanel _hierarchy;
     ViewportPanel _viewport;
     InspectorPanel _inspector;
+    InputPanel _input;
 };
 } // namespace RType::Editor
 

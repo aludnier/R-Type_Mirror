@@ -7,11 +7,15 @@
 
 #include "InputManager.h"
 #include <algorithm>
+#include <charconv>
+#include <fstream>
 #include <map>
 #include <ranges>
 #include <stdexcept>
 
 namespace {
+constexpr std::string_view KEY_CODE_PREFIX = "KEY_CODE_";
+
 struct InputEntry {
     std::string id;
 };
@@ -67,29 +71,94 @@ void InputManager::loadConfigFile(const std::filesystem::path &configFile)
 
 std::string InputManager::keyCodeId(KeyCode key)
 {
-    return "KEY_CODE_" + std::to_string(key);
+    return std::string(KEY_CODE_PREFIX) + std::to_string(key);
+}
+
+std::optional<InputManager::KeyCode> InputManager::keyCodeOf(
+    std::string_view input)
+{
+    if (!input.starts_with(KEY_CODE_PREFIX))
+        return std::nullopt;
+    const std::string_view digits = input.substr(KEY_CODE_PREFIX.size());
+    KeyCode key = 0;
+    const auto [end, error] =
+        std::from_chars(digits.data(), digits.data() + digits.size(), key);
+    if (error != std::errc {} || end != digits.data() + digits.size())
+        return std::nullopt;
+    return key;
 }
 
 void InputManager::loadActions(const std::filesystem::path &configFile)
 {
     const auto [bindings] =
         RType::nlohamReader(configFile).convertJson<InputConfig>();
-    RType::ActionMask used = 0;
-    std::size_t next = 0;
 
+    for (const auto &name : bindings | std::views::keys)
+        addAction(name);
+    loadConfigFile(configFile);
+}
+
+void InputManager::saveActions(const std::filesystem::path &configFile) const
+{
+    nlohmann::json bindings = nlohmann::json::object();
+
+    for (const auto &[name, action] : _actionNames) {
+        nlohmann::json inputs = nlohmann::json::array();
+        for (const InputId &input : _bindings.at(action)) {
+            if (const auto key = keyCodeOf(input))
+                inputs.push_back(*key);
+            else
+                inputs.push_back(input);
+        }
+        bindings[name] = std::move(inputs);
+    }
+    std::ofstream output(configFile, std::ios::trunc);
+    output << nlohmann::json {{"bindings", bindings}}.dump(4) << '\n';
+    if (!output)
+        throw std::runtime_error("cannot write " + configFile.string());
+}
+
+RType::ActionId InputManager::addAction(const std::string &name)
+{
+    if (const auto it = _actionNames.find(name); it != _actionNames.end())
+        return it->second;
+    RType::ActionMask used = 0;
     for (const RType::ActionId action : _actionNames | std::views::values)
         used |= RType::ActionMask {1} << action;
-    for (const auto &name : bindings | std::views::keys) {
-        if (_actionNames.contains(name))
-            continue;
-        while (next < RType::MAX_ACTIONS && ((used >> next) & 1U) != 0)
-            ++next;
-        if (next == RType::MAX_ACTIONS)
-            throw std::out_of_range("too many actions in the config file");
-        defineAction(name, static_cast<RType::ActionId>(next));
-        used |= RType::ActionMask {1} << next;
+    for (std::size_t bit = 0; bit < RType::MAX_ACTIONS; ++bit) {
+        if (((used >> bit) & 1U) == 0) {
+            defineAction(name, static_cast<RType::ActionId>(bit));
+            return static_cast<RType::ActionId>(bit);
+        }
     }
-    loadConfigFile(configFile);
+    throw std::out_of_range(
+        "too many actions: at most " + std::to_string(RType::MAX_ACTIONS));
+}
+
+void InputManager::removeAction(std::string_view name)
+{
+    const auto it = _actionNames.find(name);
+
+    if (it == _actionNames.end())
+        return;
+    clearBindings(it->second);
+    _actionNames.erase(it);
+}
+
+void InputManager::renameAction(std::string_view from, const std::string &to)
+{
+    const auto it = _actionNames.find(from);
+
+    if (it == _actionNames.end())
+        throw std::invalid_argument(
+            "unknown action '" + std::string(from) + "'");
+    if (from == to)
+        return;
+    if (_actionNames.contains(to))
+        throw std::invalid_argument("action '" + to + "' already exists");
+    const RType::ActionId action = it->second;
+    _actionNames.erase(it);
+    _actionNames.emplace(to, action);
 }
 
 const std::map<std::string, RType::ActionId, std::less<>> &
@@ -109,6 +178,12 @@ void InputManager::bind(RType::ActionId action, const std::string &input)
     if (std::ranges::find(inputs, input) == inputs.end()) {
         inputs.push_back(input);
     }
+}
+
+const std::vector<std::string> &InputManager::bindings(
+    RType::ActionId action) const
+{
+    return _bindings.at(action);
 }
 
 void InputManager::unbind(RType::ActionId action, KeyCode key)
@@ -146,6 +221,11 @@ bool InputManager::isActionDown(RType::ActionId action) const
     const auto &inputs = _bindings.at(action);
     return std::ranges::any_of(inputs,
         [this](const InputId &input) { return _pressed.contains(input); });
+}
+
+const std::unordered_set<std::string> &InputManager::pressedInputs() const
+{
+    return _pressed;
 }
 
 RType::ActionMask InputManager::actionMask() const

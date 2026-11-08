@@ -12,11 +12,12 @@ never links the client library, so it never depends on the graphics library.
 | Target                               | Kind             | Contents                                                          | Used by           |
 |--------------------------------------|------------------|-------------------------------------------------------------------|-------------------|
 | `engine_core`                        | static library   | ECS, math, shared components and systems, network (Asio), modules | server and client |
-| `engine_client`                      | static library   | engine loop, input, later rendering and audio                     | client            |
+| `engine_client`                      | static library   | engine loop, input, audio, later rendering                        | client            |
 | `engine_server`                      | static library   | server runtime: game loop, client sessions                        | server            |
 | `engine_scripting`                   | static library   | Lua scripting (sol2), see `docs/scripting.md`                     | server and client |
 | `r-type_server`                      | executable       | server entry point                                                |                   |
 | `r-type_client`                      | executable       | client entry point (work in progress)                             |                   |
+| `editor`                             | executable       | scene editor of the engine (ImGui)                                |                   |
 | `physics2d_module`, `example_module` | shared libraries | dynamically loaded modules                                        | server and client |
 
 | Folder            | Contents                                                |
@@ -27,7 +28,8 @@ never links the client library, so it never depends on the graphics library.
 | `engine/modules/` | dynamic modules (see `docs/writing_dynamic_modules.md`) |
 | `engine/scripts/` | example Lua scripts (see `docs/scripting.md`)           |
 | `server/scripts/` | R-Type server game scripts (see `docs/scripting.md`)    |
-| `docs/`           | network protocol (`protocol.md`), architecture diagrams |
+| `docs/`           | documentation, published as a website (see below)      |
+| `mkdocs/`         | configuration of the documentation website             |
 
 ## Requirements
 
@@ -73,6 +75,7 @@ needs, name its target:
 ```bash
 ./build/release/server/r-type_server [-p port]     # default port: 4242
 ./build/release/game/r-type_client
+./build/release/engine/apps/editor/editor config/assets.json   # --help lists the arguments
 ```
 
 On Windows, Visual Studio puts the executables in a `Release` (or `Debug`)
@@ -91,10 +94,28 @@ On Windows, add the configuration: `ctest --test-dir build/release -C Release`.
 
 ## Documentation
 
+The documentation is in [`docs/`](docs/) and is published as a website on
+GitHub Pages: <https://aludnier.github.io/R-Type_Mirror/>.
+
+- [Architecture](docs/architecture/README.md): the engine libraries and
+  [diagrams](docs/architecture/diagrams.md)
 - [Network protocol](docs/protocol.md): binary protocol between the server
   and the clients
-- [Architecture diagrams](docs/architecture/README.md)
+- [Editor](docs/editor.md): panels, Play mode and key bindings
 - [Writing dynamic modules](docs/writing_dynamic_modules.md)
+- [Scripting games in Lua](docs/scripting.md)
+- [UI documents](docs/ui.md)
+- [Technical and comparative study](docs/comparative_study.md): why we chose
+  C++, vcpkg, an ECS, UDP and Asio, JSON, and how we handle security
+- [Accessibility](docs/accessibility.md)
+- [Contributing](docs/contributing.md): branches, commits, code style, tests
+
+The site is built with MkDocs by `.github/workflows/docs.yml` and published on
+every push to `main`. To build it locally, see
+[Contributing](docs/contributing.md#documentation).
+
+GitHub Pages must be enabled once by the repository owner: in the repository
+settings, under **Pages**, set **Source** to **GitHub Actions**.
 
 ## Authors
 

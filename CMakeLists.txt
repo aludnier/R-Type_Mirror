@@ -24,5 +24,6 @@ file(COPY ${_UI_DOCS} DESTINATION ${CMAKE_BINARY_DIR}/config/ui)
 file(COPY assets DESTINATION ${CMAKE_BINARY_DIR})
 
 add_subdirectory(engine)
+add_subdirectory(towerDefense)
 add_subdirectory(game)
 add_subdirectory(server)

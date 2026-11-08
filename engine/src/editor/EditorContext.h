@@ -35,8 +35,13 @@ struct EditorContext {
     const Reflection &reflection;
     /** @brief Lists the assets of AssetId fields. May be null. */
     const AssetManager *assets = nullptr;
-    /** @brief The actions of the game, for Play mode. May be null. */
-    const InputManager *input = nullptr;
+    /**
+     * @brief The actions of the game and their keys, edited by the Input
+     *        panel and given to the scripts in Play mode. May be null.
+     */
+    InputManager *input = nullptr;
+    /** @brief The input config file the Input panel saves to, if any. */
+    std::optional<std::filesystem::path> inputPath;
     /** @brief Draws the scene in the viewport. Null in tests. */
     SceneRenderer *sceneRenderer = nullptr;
     /** @brief The image shown in the viewport. Null in tests. */

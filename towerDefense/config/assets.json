@@ -1,0 +1,192 @@
+{
+    "assets": {
+        "enemy_bat": {
+            "path": "towerDefense/assets/Enemies/spr_bat.png",
+            "type": "Texture"
+        },
+        "enemy_big_slime": {
+            "path": "towerDefense/assets/Enemies/spr_big_slime.png",
+            "type": "Texture"
+        },
+        "enemy_demon": {
+            "path": "towerDefense/assets/Enemies/spr_demon.png",
+            "type": "Texture"
+        },
+        "enemy_ghost": {
+            "path": "towerDefense/assets/Enemies/spr_ghost.png",
+            "type": "Texture"
+        },
+        "enemy_goblin": {
+            "path": "towerDefense/assets/Enemies/spr_goblin.png",
+            "type": "Texture"
+        },
+        "enemy_king_slime": {
+            "path": "towerDefense/assets/Enemies/spr_king_slime.png",
+            "type": "Texture"
+        },
+        "enemy_normal_slime": {
+            "path": "towerDefense/assets/Enemies/spr_normal_slime.png",
+            "type": "Texture"
+        },
+        "enemy_skeleton": {
+            "path": "towerDefense/assets/Enemies/spr_skeleton.png",
+            "type": "Texture"
+        },
+        "enemy_zombie": {
+            "path": "towerDefense/assets/Enemies/spr_zombie.png",
+            "type": "Texture"
+        },
+        "map_01": {
+            "path": "towerDefense/assets/Environment/map.png",
+            "type": "Texture"
+        },
+        "environment_mushroom_01": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_mushroom_01.png",
+            "type": "Texture"
+        },
+        "environment_mushroom_02": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_mushroom_02.png",
+            "type": "Texture"
+        },
+        "environment_rock_01": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_rock_01.png",
+            "type": "Texture"
+        },
+        "environment_rock_02": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_rock_02.png",
+            "type": "Texture"
+        },
+        "environment_rock_03": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_rock_03.png",
+            "type": "Texture"
+        },
+        "environment_tree_01_autumn": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_tree_01_autumn.png",
+            "type": "Texture"
+        },
+        "environment_tree_01_cherry_blossom": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_tree_01_cherry_blossom.png",
+            "type": "Texture"
+        },
+        "environment_tree_01_normal": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_tree_01_normal.png",
+            "type": "Texture"
+        },
+        "environment_tree_02_autumn": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_tree_02_autumn.png",
+            "type": "Texture"
+        },
+        "environment_tree_02_normal": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_tree_02_normal.png",
+            "type": "Texture"
+        },
+        "environment_tree_02_spruce": {
+            "path": "towerDefense/assets/Environment/Decoration/spr_tree_02_spruce.png",
+            "type": "Texture"
+        },
+        "environment_grass_01": {
+            "path": "towerDefense/assets/Environment/Grass/spr_grass_01.png",
+            "type": "Texture"
+        },
+        "environment_grass_02": {
+            "path": "towerDefense/assets/Environment/Grass/spr_grass_02.png",
+            "type": "Texture"
+        },
+        "environment_grass_03": {
+            "path": "towerDefense/assets/Environment/Grass/spr_grass_03.png",
+            "type": "Texture"
+        },
+        "tile_set_ground": {
+            "path": "towerDefense/assets/Environment/Tile Set/spr_tile_set_ground.png",
+            "type": "Texture"
+        },
+        "tile_set_stone": {
+            "path": "towerDefense/assets/Environment/Tile Set/spr_tile_set_stone.png",
+            "type": "Texture"
+        },
+        "castle_blue": {
+            "path": "towerDefense/assets/Towers/Castle/spr_castle_blue.png",
+            "type": "Texture"
+        },
+        "castle_green": {
+            "path": "towerDefense/assets/Towers/Castle/spr_castle_green.png",
+            "type": "Texture"
+        },
+        "castle_red": {
+            "path": "towerDefense/assets/Towers/Castle/spr_castle_red.png",
+            "type": "Texture"
+        },
+        "projectile_archer": {
+            "path": "towerDefense/assets/Towers/Combat Towers Projectiles/spr_tower_archer_projectile.png",
+            "type": "Texture"
+        },
+        "projectile_cannon": {
+            "path": "towerDefense/assets/Towers/Combat Towers Projectiles/spr_tower_cannon_projectile.png",
+            "type": "Texture"
+        },
+        "projectile_crossbow": {
+            "path": "towerDefense/assets/Towers/Combat Towers Projectiles/spr_tower_crossbow_projectile.png",
+            "type": "Texture"
+        },
+        "projectile_ice_wizard": {
+            "path": "towerDefense/assets/Towers/Combat Towers Projectiles/spr_tower_ice_wizard_projectile.png",
+            "type": "Texture"
+        },
+        "projectile_lightning_tower": {
+            "path": "towerDefense/assets/Towers/Combat Towers Projectiles/spr_tower_lightning_tower_projectile.png",
+            "type": "Texture"
+        },
+        "projectile_poison_wizard": {
+            "path": "towerDefense/assets/Towers/Combat Towers Projectiles/spr_tower_poison_wizard_projectile.png",
+            "type": "Texture"
+        },
+        "tower_archer": {
+            "path": "towerDefense/assets/Towers/Combat Towers/spr_tower_archer.png",
+            "type": "Texture"
+        },
+        "tower_cannon": {
+            "path": "towerDefense/assets/Towers/Combat Towers/spr_tower_cannon.png",
+            "type": "Texture"
+        },
+        "tower_crossbow": {
+            "path": "towerDefense/assets/Towers/Combat Towers/spr_tower_crossbow.png",
+            "type": "Texture"
+        },
+        "tower_ice_wizard": {
+            "path": "towerDefense/assets/Towers/Combat Towers/spr_tower_ice_wizard.png",
+            "type": "Texture"
+        },
+        "tower_lightning_tower": {
+            "path": "towerDefense/assets/Towers/Combat Towers/spr_tower_lightning_tower.png",
+            "type": "Texture"
+        },
+        "tower_poison_wizard": {
+            "path": "towerDefense/assets/Towers/Combat Towers/spr_tower_poison_wizard.png",
+            "type": "Texture"
+        },
+        "normal_tower_01_blue": {
+            "path": "towerDefense/assets/Towers/Non-Combat Towers/spr_normal_tower_01_blue.png",
+            "type": "Texture"
+        },
+        "normal_tower_01_green": {
+            "path": "towerDefense/assets/Towers/Non-Combat Towers/spr_normal_tower_01_green.png",
+            "type": "Texture"
+        },
+        "normal_tower_01_red": {
+            "path": "towerDefense/assets/Towers/Non-Combat Towers/spr_normal_tower_01_red.png",
+            "type": "Texture"
+        },
+        "normal_tower_02_blue": {
+            "path": "towerDefense/assets/Towers/Non-Combat Towers/spr_normal_tower_02_blue.png",
+            "type": "Texture"
+        },
+        "normal_tower_02_green": {
+            "path": "towerDefense/assets/Towers/Non-Combat Towers/spr_normal_tower_02_green.png",
+            "type": "Texture"
+        },
+        "normal_tower_02_red": {
+            "path": "towerDefense/assets/Towers/Non-Combat Towers/spr_normal_tower_02_red.png",
+            "type": "Texture"
+        }
+    }
+}
