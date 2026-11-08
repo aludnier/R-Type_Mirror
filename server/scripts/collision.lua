@@ -1,6 +1,13 @@
 -- Server script: processes CollisionEvents2D and resolves hits between
 -- projectiles and their targets (enemies or players).
 
+local ok, _ = pcall(function()
+    world.each({"CollisionEvents2D"}, function() end)
+end)
+if not ok then
+    return
+end
+
 world.add_system("server_collision_resolution", function(dt)
     world.each({"CollisionEvents2D"}, function(e, events)
         for _, event in ipairs(events.events) do

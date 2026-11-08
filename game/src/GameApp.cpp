@@ -7,7 +7,6 @@
 
 #include "GameApp.h"
 
-#include <SFML/Window/Keyboard.hpp>
 #include <cmath>
 #include <imgui.h>
 #include <iostream>
@@ -50,6 +49,17 @@ void GameApp::setupResources()
         _configuration.path().parent_path() / "assets.json");
 }
 
+void GameApp::setupKeyBindings()
+{
+    getInputManager().defineAction("MoveUp", 0);
+    getInputManager().defineAction("MoveDown", 1);
+    getInputManager().defineAction("MoveLeft", 2);
+    getInputManager().defineAction("MoveRight", 3);
+    getInputManager().defineAction("Shoot", 4);
+    getInputManager().loadConfigFile(
+        _configuration.path().parent_path() / "inputs.json");
+}
+
 void GameApp::setupSystems()
 {
     RType::Game::GameApp::setupSystems();
@@ -66,11 +76,8 @@ void GameApp::setupSystems()
     // Physics2D components must be bound before game scripts use them
     RType::Physics2D::bindScripting(*_scripts);
     Game::bindGameComponents(*_scripts);
-    _scripts->defineAction("MoveUp", 0);
-    _scripts->defineAction("MoveDown", 1);
-    _scripts->defineAction("MoveLeft", 2);
-    _scripts->defineAction("MoveRight", 3);
-    _scripts->defineAction("Shoot", 4);
+    for (const auto &[name, action] : getInputManager().actions())
+        _scripts->defineAction(name, action);
     RType::addScriptSystem(registry, *_scripts);
 
     // Load game scripts

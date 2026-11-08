@@ -37,6 +37,7 @@ public:
 
 protected:
     void registerComponents() override;
+    void setupKeyBindings() override;
     void setupResources() override;
     void setupSystems() override;
     void spawnInitialEntities() override;

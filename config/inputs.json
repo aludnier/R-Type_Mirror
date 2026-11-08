@@ -1,0 +1,23 @@
+{
+  "bindings": {
+    "MoveUp": [
+      265,
+      90
+    ],
+    "MoveDown": [
+      264,
+      83
+    ],
+    "MoveLeft": [
+      263,
+      81
+    ],
+    "MoveRight": [
+      262,
+      68
+    ],
+    "Shoot": [
+      32
+    ]
+  }
+}

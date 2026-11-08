@@ -1,5 +1,12 @@
 -- Server script: removes out-of-bounds projectiles and enemies.
 
+local ok, _ = pcall(function()
+    world.each({"Projectile"}, function() end)
+end)
+if not ok then
+    return
+end
+
 local SCREEN_WIDTH = 1920
 local SCREEN_HEIGHT = 1080
 local MARGIN = 100
