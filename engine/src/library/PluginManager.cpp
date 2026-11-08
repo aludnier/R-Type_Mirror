@@ -223,6 +223,15 @@ bool RType::PluginManager::isLoaded(const std::string &name) const
         [&name](const auto &module) { return module.name == name; });
 }
 
+void RType::PluginManager::reflectModules(Reflection &reflection) const
+{
+    for (const auto &module : _loadedModules)
+        if (module.registerReflection &&
+            module.registerReflection(reflection) != ModuleStatus::Success)
+            throw std::runtime_error("Module '" + module.name +
+                "' failed to describe its components");
+}
+
 void RType::PluginManager::loadConfig(
     const std::filesystem::path &configFile, Registry &registry)
 {

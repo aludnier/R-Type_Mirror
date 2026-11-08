@@ -25,8 +25,10 @@
 #endif
 
 namespace RType {
+class Reflection;
+
 inline constexpr std::uint32_t MODULE_API_MAJOR = 1;
-inline constexpr std::uint32_t MODULE_API_MINOR = 0;
+inline constexpr std::uint32_t MODULE_API_MINOR = 1;
 
 enum class ModuleStatus {
     Success,
@@ -45,6 +47,11 @@ struct ModuleDependency {
 
 using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
 using RegisterAssetTypesFn = std::function<ModuleStatus(AssetLoaderRegistry &)>;
+/**
+ * @brief Describes the module's components to the editor, so the inspector
+ *        can show them and scenes can save them. Optional (API 1.1).
+ */
+using RegisterReflectionFn = std::function<ModuleStatus(Reflection &)>;
 
 struct ModuleDescriptor {
     std::string name {};
@@ -52,6 +59,7 @@ struct ModuleDescriptor {
     std::vector<ModuleDependency> dependencies {};
     RegisterModuleFn registerModule {};
     RegisterAssetTypesFn registerAssetTypes {};
+    RegisterReflectionFn registerReflection {};
 };
 } // namespace RType
 

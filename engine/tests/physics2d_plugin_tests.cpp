@@ -9,6 +9,7 @@
 #include "ecs/Registry.h"
 #include "ecs/SparseArray.h"
 #include "library/PluginManager.h"
+#include "reflection/Reflection.h"
 
 TEST_CASE("PluginManager loads and runs the production Physics2D module",
     "[plugins][physics2d]")
@@ -90,4 +91,46 @@ TEST_CASE("PluginManager loads and runs the production Physics2D module",
                 ->position.x != 0.5f);
     REQUIRE(registry.getComponents<RType::Transform2D>()[circleEntity]
                 ->position.x != -0.25f);
+}
+
+TEST_CASE("The Physics2D module describes its components to the editor",
+    "[plugins][physics2d][reflection]")
+{
+    RType::PluginManager manager;
+    RType::Registry registry;
+    RType::Reflection reflection;
+
+    manager.loadModule(PHYSICS2D_MODULE_PATH, registry);
+    manager.reflectModules(reflection);
+
+    for (const char *name : {"Rigidbody2D",
+             "BoxCollider2D",
+             "CircleCollider2D",
+             "PhysicsSettings2D"})
+        CHECK(reflection.find(name) != nullptr);
+    CHECK(reflection.find("CollisionEvents2D") == nullptr);
+
+    const RType::ComponentInfo *body = reflection.find("Rigidbody2D");
+    REQUIRE(body != nullptr);
+    const auto entity = registry.spawnEntity();
+    body->add(registry, entity);
+    REQUIRE(body->has(registry, entity));
+    for (const RType::FieldInfo &field : body->fields)
+        if (field.name == "mass")
+            field.as<float>(body->get(registry, entity)) = 3.f;
+    CHECK(
+        registry.getComponents<RType::Physics2D::Rigidbody2D>()[entity]->mass ==
+        3.f);
+}
+
+TEST_CASE("reflectModules adds nothing when no module is loaded",
+    "[plugins][reflection]")
+{
+    RType::PluginManager manager;
+    RType::Registry registry;
+    RType::Reflection reflection;
+
+    manager.reflectModules(reflection);
+
+    CHECK(reflection.components().empty());
 }

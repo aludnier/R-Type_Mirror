@@ -209,3 +209,22 @@ TEST_CASE("Scripts read the actions during Play", "[editor]")
     fixture.play.update(fixture.context, 1.f / 60.f, 0);
     CHECK(transforms[entity]->position.x == 5.f);
 }
+
+TEST_CASE("Play runs the script bindings of the modules", "[editor]")
+{
+    PlayFixture fixture;
+    fixture.scripted();
+    int calls = 0;
+    fixture.context.scriptBindings.emplace_back(
+        [&calls](RType::ScriptEngine &scripts) {
+            ++calls;
+            scripts.lua()["bound_by_module"] = true;
+        });
+
+    fixture.play.play(fixture.context);
+    fixture.play.update(fixture.context, 1.f / 60.f);
+    fixture.play.stop(fixture.context);
+    fixture.play.play(fixture.context);
+
+    CHECK(calls == 2);
+}

@@ -9,7 +9,9 @@
 #define EDITORCONTEXT_H_
 
 #include <filesystem>
+#include <functional>
 #include <optional>
+#include <vector>
 
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
@@ -18,7 +20,14 @@
 #include "render/Framebuffer.h"
 #include "render/SceneRenderer.h"
 
+namespace RType {
+class ScriptEngine;
+} // namespace RType
+
 namespace RType::Editor {
+/** @brief Makes more components usable from the scripts of Play mode. */
+using ScriptBinding = std::function<void(ScriptEngine &)>;
+
 /** @brief State shared by every editor panel. */
 struct EditorContext {
     Registry &registry;
@@ -32,6 +41,11 @@ struct EditorContext {
     SceneRenderer *sceneRenderer = nullptr;
     /** @brief The image shown in the viewport. Null in tests. */
     Framebuffer *framebuffer = nullptr;
+    /**
+     * @brief Run on the script engine each time Play starts, for example the
+     *        Lua bindings of the loaded modules (Physics2D::bindScripting).
+     */
+    std::vector<ScriptBinding> scriptBindings;
     /** @brief True while the scene plays: the panels must not edit it. */
     bool readOnly = false;
     /** @brief The file the scene was opened from or saved to, if any. */
