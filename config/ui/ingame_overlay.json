@@ -1,0 +1,204 @@
+{
+  "name": "ingame_overlay",
+  "elements": [
+    {
+      "type": "panel",
+      "id": "dialog",
+      "rect": [
+        0.27,
+        0.16,
+        0.46,
+        0.68
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "title",
+          "rect": [
+            0.05,
+            0.02,
+            0.9,
+            0.06
+          ],
+          "text": "Multiplayer Session Info"
+        },
+        {
+          "type": "text",
+          "id": "clientId",
+          "rect": [
+            0.05,
+            0.09,
+            0.9,
+            0.05
+          ],
+          "text": "Client ID: 0"
+        },
+        {
+          "type": "text",
+          "id": "linkedEntity",
+          "rect": [
+            0.05,
+            0.14,
+            0.9,
+            0.05
+          ],
+          "text": "Linked Entity: 0"
+        },
+        {
+          "type": "text",
+          "id": "serverTick",
+          "rect": [
+            0.05,
+            0.19,
+            0.9,
+            0.05
+          ],
+          "text": "Server Tick: 0"
+        },
+        {
+          "type": "text",
+          "id": "ping",
+          "rect": [
+            0.05,
+            0.24,
+            0.9,
+            0.05
+          ],
+          "text": "Ping: 0 ms"
+        },
+        {
+          "type": "text",
+          "id": "window",
+          "rect": [
+            0.05,
+            0.31,
+            0.9,
+            0.05
+          ],
+          "text": "Window: 1280x720, full screen off"
+        },
+        {
+          "type": "button",
+          "id": "window_size",
+          "rect": [
+            0.05,
+            0.37,
+            0.43,
+            0.07
+          ],
+          "text": "Window size (F10)"
+        },
+        {
+          "type": "button",
+          "id": "fullscreen",
+          "rect": [
+            0.52,
+            0.37,
+            0.43,
+            0.07
+          ],
+          "text": "Full screen (F11)"
+        },
+        {
+          "type": "text",
+          "id": "music",
+          "rect": [
+            0.05,
+            0.47,
+            0.45,
+            0.06
+          ],
+          "text": "Music: 60%"
+        },
+        {
+          "type": "button",
+          "id": "music_down",
+          "rect": [
+            0.55,
+            0.46,
+            0.19,
+            0.07
+          ],
+          "text": "-"
+        },
+        {
+          "type": "button",
+          "id": "music_up",
+          "rect": [
+            0.76,
+            0.46,
+            0.19,
+            0.07
+          ],
+          "text": "+"
+        },
+        {
+          "type": "text",
+          "id": "sounds",
+          "rect": [
+            0.05,
+            0.56,
+            0.45,
+            0.06
+          ],
+          "text": "Sounds: 100%"
+        },
+        {
+          "type": "button",
+          "id": "sounds_down",
+          "rect": [
+            0.55,
+            0.55,
+            0.19,
+            0.07
+          ],
+          "text": "-"
+        },
+        {
+          "type": "button",
+          "id": "sounds_up",
+          "rect": [
+            0.76,
+            0.55,
+            0.19,
+            0.07
+          ],
+          "text": "+"
+        },
+        {
+          "type": "button",
+          "id": "resume",
+          "rect": [
+            0.05,
+            0.66,
+            0.9,
+            0.08
+          ],
+          "text": "Resume Game"
+        },
+        {
+          "type": "button",
+          "id": "disconnect",
+          "rect": [
+            0.05,
+            0.76,
+            0.9,
+            0.08
+          ],
+          "text": "Disconnect & Return to Lobby"
+        },
+        {
+          "type": "text",
+          "id": "hint",
+          "rect": [
+            0.05,
+            0.88,
+            0.9,
+            0.08
+          ],
+          "text": "Escape: resume - M: mute"
+        }
+      ]
+    }
+  ]
+}

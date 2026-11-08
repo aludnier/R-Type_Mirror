@@ -9,9 +9,9 @@
 
 namespace Game {
 
-    ForcePod::ForcePod(size_t ownerId, float offsetX, float offsetY, int level)
-        : ownerId(ownerId), offsetX(offsetX), offsetY(offsetY), level(level)
-    {
-    }
+ForcePod::ForcePod(size_t ownerId, float offsetX, float offsetY, int level) :
+    ownerId(ownerId), offsetX(offsetX), offsetY(offsetY), level(level)
+{
+}
 
 } // namespace Game

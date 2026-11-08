@@ -1,0 +1,6 @@
+{
+  "directory": "../game/scripts",
+  "scripts": [
+    "player_weapon.lua"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "name": "status",
+  "elements": [
+    {
+      "type": "text",
+      "id": "connection",
+      "rect": [0.05, 0.1, 0.9, 0.15],
+      "text": "Waiting for a pilot..."
+    },
+    {
+      "type": "button",
+      "id": "continue",
+      "rect": [0.35, 0.65, 0.3, 0.2],
+      "text": "Continue"
+    }
+  ]
+}

@@ -1,0 +1,133 @@
+{
+  "name": "connection",
+  "elements": [
+    {
+      "type": "panel",
+      "id": "dialog",
+      "rect": [
+        0.25,
+        0.28,
+        0.5,
+        0.44
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "title",
+          "rect": [
+            0.05,
+            0.02,
+            0.9,
+            0.1
+          ],
+          "text": "=== R-TYPE MULTIPLAYER ==="
+        },
+        {
+          "type": "text",
+          "id": "subtitle",
+          "rect": [
+            0.05,
+            0.12,
+            0.9,
+            0.08
+          ],
+          "text": "Enter server details below to enter the battle:"
+        },
+        {
+          "type": "text",
+          "id": "hostLabel",
+          "rect": [
+            0.05,
+            0.24,
+            0.4,
+            0.06
+          ],
+          "text": "Server Host / IP:"
+        },
+        {
+          "type": "input_text",
+          "id": "host",
+          "rect": [
+            0.05,
+            0.30,
+            0.9,
+            0.08
+          ],
+          "hint": "127.0.0.1",
+          "max_length": 64,
+          "value": "127.0.0.1"
+        },
+        {
+          "type": "text",
+          "id": "portLabel",
+          "rect": [
+            0.05,
+            0.42,
+            0.4,
+            0.06
+          ],
+          "text": "Server Port:"
+        },
+        {
+          "type": "input_text",
+          "id": "port",
+          "rect": [
+            0.05,
+            0.48,
+            0.9,
+            0.08
+          ],
+          "hint": "4242",
+          "max_length": 6,
+          "value": "4242"
+        },
+        {
+          "type": "text",
+          "id": "nameLabel",
+          "rect": [
+            0.05,
+            0.60,
+            0.4,
+            0.06
+          ],
+          "text": "Pilot Name:"
+        },
+        {
+          "type": "input_text",
+          "id": "playerName",
+          "rect": [
+            0.05,
+            0.66,
+            0.9,
+            0.08
+          ],
+          "hint": "Player1",
+          "max_length": 32,
+          "value": "Player1"
+        },
+        {
+          "type": "text",
+          "id": "status",
+          "rect": [
+            0.05,
+            0.78,
+            0.9,
+            0.08
+          ],
+          "text": ""
+        },
+        {
+          "type": "button",
+          "id": "connect",
+          "rect": [
+            0.05,
+            0.86,
+            0.9,
+            0.12
+          ],
+          "text": "CONNECT TO SERVER"
+        }
+      ]
+    }
+  ]
+}

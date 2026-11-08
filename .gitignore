@@ -69,3 +69,10 @@ Testing/
 .cache/
 
 .vscode/
+
+imgui.ini
+
+# Documentation site
+site/
+.venv/
+__pycache__/

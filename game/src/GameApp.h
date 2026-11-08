@@ -2,83 +2,117 @@
 ** EPITECH PROJECT, 2026
 ** R-Type
 ** File description:
-** GameApp header
+** R-Type game application
 */
 
 #ifndef GAME_GAMEAPP_H
 #define GAME_GAMEAPP_H
 
-#include "ecs/Registry.h"
-#include "library/InputManager.h"
-#include "library/RessourceManager.h"
-#include "network/NetworkClient.h"
-#include "ui/ConnectionDialog.h"
-#include "systems/NetworkSyncSystem.h"
-#include "components/ParallaxBackground.h"
-#include <SFML/Graphics.hpp>
+#include <cstdint>
+#include <imgui-SFML.h>
 #include <memory>
+#include <optional>
+#include <string>
 
-#include "DLLoader.hpp"
-#include "Module.h"
+#include "components/ParallaxBackground.h"
+#include "game/GameApp.h"
+#include "network/NetworkClient.h"
+#include "scripting/ScriptEngine.h"
+#include "systems/NetworkSyncSystem.h"
+#include "systems/RenderSystem.h"
+#include "systems/ShipTiltSystem.h"
+#include "ui/ImGuiUiRenderer.h"
+#include "ui/UiManager.h"
 
 namespace Game {
 
-    /**
-     * @brief Screen state indicating whether the client is in the connection lobby or active gameplay.
-     */
-    enum class ScreenState {
-        Connection,
-        Game
-    };
+enum class ScreenState { Connection, Game };
+using ParallaxBackground = RType::Environment::ParallaxBackground;
 
-    using ParallaxBackground = RType::Environment::ParallaxBackground;
+class GameApp : public RType::Game::GameApp {
+public:
+    explicit GameApp(const RType::Configuration &configuration);
 
-    /**
-     * @brief Main Game Application class managing game lifecycle, systems, resources, and main loop.
-     */
-    class GameApp {
-    public:
-        GameApp();
-        ~GameApp() = default;
+    ~GameApp() override = default;
 
-        void init();
-        void setupResources();
-        void setupKeyBindings();
-        void setupSystems();
-        void spawnInitialEntities();
+    [[nodiscard]] ScreenState getScreenState() const;
+    void setScreenState(ScreenState state);
+    [[nodiscard]] NetworkClient &getNetworkClient();
+    [[nodiscard]] RType::UI::UiManager &getUiManager();
 
-        void processEvents();
-        void update(float dt);
-        void render();
-        int run();
+protected:
+    void registerComponents() override;
+    void setupKeyBindings() override;
+    void setupResources() override;
+    void setupSystems() override;
+    void spawnInitialEntities() override;
+    void updateGame(float dt) override;
+    void renderGame() override;
+    void onWindowCreated() override;
+    void onShutdown() override;
+    void handleEvent(const sf::Event &event) override;
 
-        [[nodiscard]] ScreenState getScreenState() const;
-        void setScreenState(ScreenState state);
+private:
+    void renderHud();
+    /** @brief Health bars of the hit enemies, and of the boss at the top. */
+    void renderHealthBars();
+    /** @brief Marks the local player's ship, to tell it from the others. */
+    void renderLocalMarker();
+    static void drawBar(sf::RenderWindow &window, sf::Vector2f position,
+        sf::Vector2f size, float ratio);
+    /** @brief Leaves and joins the same server again, with a new ship. */
+    void playAgain();
+    /** @brief Shows the game over screen and the LEVEL / BOSS banner. */
+    void updateEndOfGameUi();
+    /** @brief Bakes every printable glyph once, on the first frame. */
+    void warmUpFont();
+    /** @brief Shows the energy in front of the local ship while it charges. */
+    void updateChargeEffect();
+    /** @brief Creates the window again with the size or mode chosen. */
+    void createWindow();
+    void initImGui();
+    /** @brief Recreates the window between two frames if asked. */
+    void applyWindowChange();
+    /** @brief Letterboxed view of the 1920x1080 world, for any window. */
+    void updateView();
+    void changeVolume(RType::AudioChannel channel, float step);
+    /** @brief Shows the window size and volumes in the Escape menu. */
+    void updateSettingsText();
+    void setupUi();
+    void handleUiClicks();
+    void updateConnectionStatus();
+    void updateInGameOverlay();
 
-        RType::Registry &getRegistry();
-        InputManager &getInputManager();
-        ResourceManager &getResourceManager();
-        NetworkClient &getNetworkClient();
-        sf::RenderWindow &getWindow();
+    void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
+    void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
 
-    private:
-        void handleEvent(const sf::Event &event);
-        void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
-        void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
-        RType::Registry _registry;
-        InputManager _inputManager;
-        ResourceManager _resourceManager;
-        NetworkClient _networkClient;
-        ConnectionDialog _connectionDialog;
-        NetworkSyncSystem _networkSyncSystem;
-        std::unique_ptr<sf::RenderWindow> _window;
-        ScreenState _screenState = ScreenState::Connection;
-        bool _running = false;
-        float _frameRate = 60.0f;
-        float _fixedDeltaTime = 1.0f / 60.0f;
-        RType::DLLoader<RType::ModuleDescriptor> _physics2DModuleLoader;
-        RType::DLLoader<RType::ModuleDescriptor> _environmentModuleLoader;
-    };
+    bool _inGameOverlayVisible = false;
+    /** @brief "LEVEL n" or "BOSS", shown for _bannerTime more seconds. */
+    std::string _bannerText;
+    float _bannerTime = 0.f;
+    /** @brief Server of the last Connect, for Play again. */
+    std::string _lastHost;
+    std::uint16_t _lastPort = 0;
+    std::string _lastPlayerName;
+    bool _reconnect = false;
+    bool _fontWarmedUp = false;
+    std::optional<RType::Entity> _chargeEffect;
+    std::size_t _windowSize = 0;
+    bool _fullscreen = false;
+    bool _windowChanged = false;
+    bool _muted = false;
+    std::optional<sf::Cursor> _arrowCursor;
+
+    NetworkClient _networkClient {};
+    NetworkSyncSystem _networkSyncSystem {};
+    ShipTiltSystem _shipTilt {};
+    /** @brief Kept between frames: it caches the textures it loaded. */
+    RType::RenderSystem _renderSystem {};
+    RType::UI::UiManager _uiManager {};
+    RType::UI::ImGuiUiRenderer _uiRenderer {};
+    ScreenState _screenState = ScreenState::Connection;
+    std::unique_ptr<RType::ScriptEngine> _scripts;
+};
 
 } // namespace Game
 

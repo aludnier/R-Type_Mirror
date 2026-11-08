@@ -1,0 +1,8 @@
+{
+  "directory": "../server/scripts",
+  "scripts": [
+    "waves.lua",
+    "collision.lua",
+    "cleanup.lua"
+  ]
+}

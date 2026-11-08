@@ -2,318 +2,820 @@
 ** EPITECH PROJECT, 2026
 ** R-Type
 ** File description:
-** GameApp implementation
+** R-Type game application
 */
 
 #include "GameApp.h"
-#include "ecs/SparseArray.h"
-#include <iostream>
-#include <chrono>
-#include <thread>
-#include <SFML/Window/Keyboard.hpp>
+
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdio>
 #include <imgui.h>
-#include <imgui-SFML.h>
+#include <iostream>
 
-// Engine headers
-#include "components/Action.h"
+#include "Physics2DBindings.h"
+#include "components/Animator.h"
 #include "components/Controllable.h"
-#include "components/Sprite.h"
-#include "components/Transform2D.h"
-#include "systems/ControllableSystem.h"
-
-// Game component headers
-#include "components/Player.h"
 #include "components/Enemy.h"
-#include "components/Rigidbody2D.h"
-#include "components/PhysicsSettings2D.h"
-#include "components/Projectile.h"
+#include "components/ForcePod.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
-#include "components/ForcePod.h"
+#include "components/Name.h"
 #include "components/NetworkEntity.h"
-
-// Game system headers
-#include "systems/MovementSystem.h"
-#include "systems/ForcePodSystem.h"
-#include "systems/PlayerWeaponSystem.h"
-#include "systems/CollisionSystem.h"
-#include "systems/BoundaryCleanupSystem.h"
-#include "systems/ParallaxSystem.h"
-#include "systems/GameRenderSystem.h"
-#include "systems/AudioSystem.h"
-#include "systems/NetworkSyncSystem.h"
+#include "components/Player.h"
+#include "components/Projectile.h"
+#include "components/Sprite.h"
+#include "components/Transform2D.h"
+#include "ecs/IndexedZipper.h"
+#include "ecs/Zipper.h"
+#include "library/NlohmanReader.h"
+#include "network/GameProtocol.h"
+#include "scripting/GameBindings.h"
+#include "scripting/ScriptEngine.h"
+#include "scripting/ScriptSystem.h"
+#include "systems/AnimationSystem.h"
+#include "systems/RenderSystem.h"
 
 namespace Game {
+namespace {
+    /** @brief Seconds a "LEVEL n" or "BOSS" banner stays on screen. */
+    constexpr float BANNER_TIME = 2.5f;
+    /** @brief Seconds of charge before the energy shows, and how far in
+     *         front of the ship it is. */
+    constexpr float CHARGE_EFFECT_DELAY = 0.2f;
+    constexpr float CHARGE_EFFECT_OFFSET = 50.f;
+    /** @brief Half width of the marker above the local ship, and its gap. */
+    constexpr float MARKER_SIZE = 7.f;
+    constexpr float MARKER_GAP = 26.f;
+    /** @brief Size of the health bar above a hit enemy, and its gap. */
+    constexpr float HEALTH_BAR_WIDTH = 48.f;
+    constexpr float HEALTH_BAR_HEIGHT = 5.f;
+    constexpr float HEALTH_BAR_GAP = 10.f;
+    /** @brief The boss's health bar, at the top of the screen. */
+    constexpr float BOSS_BAR_TOP = 52.f;
+    constexpr float BOSS_BAR_HEIGHT = 14.f;
+    /** @brief Size of the game world: the view shows all of it. */
+    constexpr float WORLD_WIDTH = 1920.f;
+    constexpr float WORLD_HEIGHT = 1080.f;
+    /** @brief Window sizes of F10 and the Escape menu, the first by default. */
+    constexpr std::array<std::pair<unsigned, unsigned>, 3> WINDOW_SIZES = {{
+        {1280, 720},
+        {1600, 900},
+        {1920, 1080},
+    }};
+    /** @brief Volume change of a - or + button. */
+    constexpr float VOLUME_STEP = 0.1f;
+    /** @brief Volume of the music loop, from 0 to 1. */
+    constexpr float MUSIC_VOLUME = 0.45f;
+    /** @brief Width and height of the ImGui font texture, in pixels. */
+    constexpr int FONT_TEXTURE_SIZE = 1024;
+} // namespace
 
-    GameApp::GameApp()
-        : _running(false), _frameRate(60.0f), _fixedDeltaTime(1.0f / 60.0f)
-    {
-#ifdef WIN32
-        _physics2DModuleLoader.loadFile("../modules/physics2D/Physics2D_Module.dll");
-        _environmentModuleLoader.loadFile("../modules/environment2D/Environment2D_Module.dll");
-#else
-        _physics2DModuleLoader.loadFile("../modules/physics2D/Physics2D_Module.so");
-        _environmentModuleLoader.loadFile("../modules/environment2D/Environment2D_Module.so");
-#endif
-    }
+void GameApp::registerComponents()
+{
+    auto &registry = getRegistry();
+    registry.registerComponent<NetworkEntity>();
+    registry.registerComponent<Player>();
+    registry.registerComponent<Enemy>();
+    registry.registerComponent<Projectile>();
+    registry.registerComponent<Health>();
+    registry.registerComponent<Hitbox>();
+    registry.registerComponent<ParallaxBackground>();
+    registry.registerComponent<ForcePod>();
+}
 
-    void GameApp::init()
-    {
-        _registry.registerComponent<RType::Transform2D>();
-        _registry.registerComponent<RType::Sprite>();
-        _registry.registerComponent<RType::Controllable>();
-        _registry.registerComponent<NetworkEntity>();
-        _registry.registerComponent<Player>();
-        _registry.registerComponent<Enemy>();
-        _registry.registerComponent<Projectile>();
-        _registry.registerComponent<Health>();
-        _registry.registerComponent<Hitbox>();
-        _registry.registerComponent<ParallaxBackground>();
-        _registry.registerComponent<ForcePod>();
+void GameApp::setupResources()
+{
+    getClientAssetManager().metadata().loadConfigFile(
+        _configuration.path().parent_path() / "assets.json");
+}
 
-        setupResources();
-        setupKeyBindings();
-        setupSystems();
-        spawnInitialEntities();
-    }
+void GameApp::setupKeyBindings()
+{
+    getInputManager().defineAction("MoveUp", 0);
+    getInputManager().defineAction("MoveDown", 1);
+    getInputManager().defineAction("MoveLeft", 2);
+    getInputManager().defineAction("MoveRight", 3);
+    getInputManager().defineAction("Shoot", 4);
+    getInputManager().loadConfigFile(
+        _configuration.path().parent_path() / "inputs.json");
+}
 
-    void GameApp::setupResources()
-    {
-        _resourceManager.addAsset("player_ship", "assets/sprites/r_type_player.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("force_pod", "assets/sprites/force_pod.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("enemy_bydo_scout", "assets/sprites/bydo_scout.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("laser_bullet", "assets/sprites/laser_bullet.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("wave_cannon", "assets/sprites/wave_cannon.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("bg_space_stars", "assets/backgrounds/space_stars.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("bg_nebula", "assets/backgrounds/nebula.png", ResourceManager::AssetType::Texture);
-        _resourceManager.addAsset("sfx_laser", "assets/audio/laser.wav", ResourceManager::AssetType::Sound);
-        _resourceManager.addAsset("sfx_explosion", "assets/audio/explosion.wav", ResourceManager::AssetType::Sound);
-        _resourceManager.addAsset("bgm_stage1", "assets/audio/stage1.ogg", ResourceManager::AssetType::Music);
-    }
+void GameApp::setupSystems()
+{
+    RType::Game::GameApp::setupSystems();
+    _pluginManager.loadModule(GAME_ASSET_MODULE_PATH,
+        getRegistry(),
+        getClientAssetManager().loaderRegistry());
+    auto &registry = getRegistry();
 
-    void GameApp::setupKeyBindings()
-    {
-        _inputManager.bind(Action::MoveUp, static_cast<int>(sf::Keyboard::Key::Up));
-        _inputManager.bind(Action::MoveUp, static_cast<int>(sf::Keyboard::Key::W));
-        _inputManager.bind(Action::MoveDown, static_cast<int>(sf::Keyboard::Key::Down));
-        _inputManager.bind(Action::MoveDown, static_cast<int>(sf::Keyboard::Key::S));
-        _inputManager.bind(Action::MoveLeft, static_cast<int>(sf::Keyboard::Key::Left));
-        _inputManager.bind(Action::MoveLeft, static_cast<int>(sf::Keyboard::Key::A));
-        _inputManager.bind(Action::MoveRight, static_cast<int>(sf::Keyboard::Key::Right));
-        _inputManager.bind(Action::MoveRight, static_cast<int>(sf::Keyboard::Key::D));
-        _inputManager.bind(Action::Shoot, static_cast<int>(sf::Keyboard::Key::Space));
-    }
+    // Initialize network sync system with registry and resource references
+    _networkSyncSystem.init(registry, getAssetManager());
 
-    void GameApp::setupSystems()
-    {
-        constexpr float playerSpeed = 300.0f;
+    // Set up Lua scripting
+    _scripts = std::make_unique<RType::ScriptEngine>(registry);
+    // Physics2D components must be bound before game scripts use them
+    RType::Physics2D::bindScripting(*_scripts);
+    Game::bindGameComponents(*_scripts);
+    for (const auto &[name, action] : getInputManager().actions())
+        _scripts->defineAction(name, action);
+    RType::addScriptSystem(registry, *_scripts);
 
-        // Engine Controllable system (local client prediction)
-        RType::addControllableSystem(_registry, playerSpeed, _fixedDeltaTime);
-
-        // Modules systems
-        _physics2DModuleLoader.getInstance().registerModule(_registry);
-        _environmentModuleLoader.getInstance().registerModule(_registry);
-
-        // Game systems
-        PlayerWeaponSystem::addSystem(_registry, _inputManager, _fixedDeltaTime);
-        ForcePodSystem::addSystem(_registry);
-        CollisionSystem::addSystem(_registry);
-        BoundaryCleanupSystem::addSystem(_registry, 1920.0f, 1080.0f);
-    }
-
-    void GameApp::spawnInitialEntities()
-    {
-        // Parallax backgrounds
-        auto bgStars = _registry.spawnEntity();
-        _registry.addComponent<RType::Transform2D>(bgStars, RType::Transform2D({0.0f, 0.0f}));
-        _registry.addComponent<ParallaxBackground>(bgStars, ParallaxBackground(30.0f));
-
-        auto bgNebula = _registry.spawnEntity();
-        _registry.addComponent<RType::Transform2D>(bgNebula, RType::Transform2D({0.0f, 0.0f}));
-        _registry.addComponent<ParallaxBackground>(bgNebula, ParallaxBackground(80.0f));
-    }
-
-    void GameApp::processEvents()
-    {
-        if (!_window) {
-            return;
-        }
-
-        while (const auto event = _window->pollEvent()) {
-            ImGui::SFML::ProcessEvent(*_window, *event);
-            handleEvent(*event);
-        }
-    }
-
-    void GameApp::handleEvent(const sf::Event &event)
-    {
-        if (event.is<sf::Event::Closed>()) {
-            _running = false;
-            _window->close();
-        } else if (const auto *keyPressed = event.getIf<sf::Event::KeyPressed>()) {
-            handleKeyPressed(*keyPressed);
-        } else if (const auto *keyReleased = event.getIf<sf::Event::KeyReleased>()) {
-            handleKeyReleased(*keyReleased);
-        }
-    }
-
-    void GameApp::handleKeyPressed(const sf::Event::KeyPressed &keyPressed)
-    {
-        if (keyPressed.code == sf::Keyboard::Key::Escape) {
-            if (_screenState == ScreenState::Game) {
-                _connectionDialog.toggleVisible();
-            }
-        } else if (!ImGui::GetIO().WantCaptureKeyboard) {
-            _inputManager.setKeyState(static_cast<int>(keyPressed.code), true);
-        }
-    }
-
-    void GameApp::handleKeyReleased(const sf::Event::KeyReleased &keyReleased)
-    {
-        if (!ImGui::GetIO().WantCaptureKeyboard) {
-            _inputManager.setKeyState(static_cast<int>(keyReleased.code), false);
-        }
-    }
-
-    void GameApp::update(float dt)
-    {
-        if (_window && _window->isOpen()) {
-            ImGui::SFML::Update(*_window, sf::seconds(dt));
-            auto winSize = _window->getSize();
-            if (_screenState == ScreenState::Connection) {
-                _connectionDialog.renderScreen(_networkClient, static_cast<float>(winSize.x), static_cast<float>(winSize.y));
-            } else {
-                _connectionDialog.renderInGameOverlay(_networkClient, static_cast<float>(winSize.x), static_cast<float>(winSize.y));
+    // Load game scripts individually so one failure doesn't block the rest
+    auto scriptsPath =
+        _configuration.path().parent_path() / "game_scripts.json";
+    try {
+        RType::nlohamReader reader(scriptsPath);
+        std::filesystem::path directory =
+            reader.get<std::string>("directory", ".");
+        if (directory.is_relative())
+            directory = scriptsPath.parent_path() / directory;
+        _scripts->setScriptDirectory(directory);
+        for (const auto &script :
+            reader.get<std::vector<std::string>>("scripts", {})) {
+            if (!_scripts->loadFile(directory / script)) {
+                std::cerr << "[GameApp] script warning: "
+                          << _scripts->lastError() << std::endl;
             }
         }
-
-        if (_screenState == ScreenState::Connection) {
-            _networkClient.update(dt);
-            if (_networkClient.isConnected()) {
-                _screenState = ScreenState::Game;
-                _connectionDialog.setVisible(false);
-            }
-
-            // Animate background starfield while on connection screen
-            auto &transforms = _registry.getComponents<RType::Transform2D>();
-            auto &parallax = _registry.getComponents<ParallaxBackground>();
-            for (auto [transform, bg] : RType::Zipper(transforms, parallax)) {
-                transform.position.x -= bg.scrollSpeed * dt;
-                if (transform.position.x <= -1920.0f) {
-                    transform.position.x += 1920.0f;
-                }
-            }
-            return;
-        }
-
-        // Active In-Game Screen
-        if (!_networkClient.isConnected()) {
-            // Disconnected -> reset ECS network replica and return to connection lobby
-            _networkSyncSystem.reset(_registry);
-            _screenState = ScreenState::Connection;
-            _connectionDialog.setVisible(true);
-            return;
-        }
-
-        // Update action mask ONLY on the local controllable player entity
-        auto &controllables = _registry.getComponents<RType::Controllable>();
-        auto &netEntities = _registry.getComponents<NetworkEntity>();
-        std::uint8_t currentMask = _inputManager.actionMask();
-
-        for (std::size_t i = 0; i < controllables.size(); ++i) {
-            if (controllables[i].has_value()) {
-                if (i < netEntities.size() && netEntities[i].has_value() && netEntities[i]->isLocalPlayer) {
-                    controllables[i]->actionMask = currentMask;
-                } else {
-                    controllables[i]->actionMask = 0;
-                }
-            }
-        }
-
-        _registry.runSystems();
-        _networkSyncSystem.syncWithServer(_registry, _inputManager, _resourceManager, _networkClient);
+    } catch (...) {
+        std::cerr << "Failed to load game scripts from " << scriptsPath
+                  << std::endl;
     }
 
-    void GameApp::render()
-    {
-        if (_window && _window->isOpen()) {
-            GameRenderSystem::renderFrame(_registry, _resourceManager, *_window);
-            ImGui::SFML::Render(*_window);
-            _window->display();
+    // Set up UI documents
+    setupUi();
+}
+
+void GameApp::spawnInitialEntities()
+{
+    struct Layer {
+        const char *asset;
+        float speed;
+        int zIndex;
+        float top;
+    };
+
+    // Far layers scroll slower. Each layer is two 1920 px tiles side by
+    // side, so it loops without a gap.
+    // The ground is in front of the stars, behind the ships.
+    constexpr Layer LAYERS[] = {
+        {"bg_nebula", 15.f, -30, 0.f},
+        {"bg_stars_far", 40.f, -20, 0.f},
+        {"bg_stars_near", 110.f, -10, 0.f},
+        {"bg_ground", Protocol::GROUND_SCROLL_SPEED, -5, Protocol::GROUND_TOP},
+    };
+    constexpr float TILE_WIDTH = 1920.f;
+    auto &registry = getRegistry();
+
+    for (const auto &[asset, speed, zIndex, top] : LAYERS) {
+        if (!getAssetManager().hasAsset(asset))
+            continue;
+        const auto assetId = getAssetManager().getAsset(asset).id;
+        for (const float x : {0.f, TILE_WIDTH}) {
+            const auto entity = registry.spawnEntity();
+            RType::Sprite sprite(assetId, zIndex);
+
+            sprite.originX = 0.f;
+            sprite.originY = 0.f;
+            registry.addComponent<RType::Transform2D>(
+                entity, RType::Transform2D({x, top}));
+            registry.addComponent(entity, RType::Sprite {sprite});
+            registry.addComponent<ParallaxBackground>(
+                entity, ParallaxBackground(speed, -TILE_WIDTH, TILE_WIDTH));
         }
     }
+}
 
-    int GameApp::run()
-    {
-        std::cout << "=== R-Type 2D Shooter Client ===" << std::endl;
-        init();
+void GameApp::handleEvent(const sf::Event &event)
+{
+    if (getWindow().isOpen())
+        ImGui::SFML::ProcessEvent(getWindow(), event);
+    if (event.is<sf::Event::Closed>()) {
+        RType::Game::GameApp::handleEvent(event);
+    } else if (event.is<sf::Event::Resized>()) {
+        updateView();
+    } else if (const auto *keyPressed = event.getIf<sf::Event::KeyPressed>()) {
+        handleKeyPressed(*keyPressed);
+    } else if (const auto *keyReleased =
+                   event.getIf<sf::Event::KeyReleased>()) {
+        handleKeyReleased(*keyReleased);
+    }
+}
 
-        _window = std::make_unique<sf::RenderWindow>(
-            sf::VideoMode({1920, 1080}),
-            "R-Type Client",
-            sf::Style::Titlebar | sf::Style::Close
-        );
-        _window->setFramerateLimit(static_cast<unsigned int>(_frameRate));
+void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
+{
+    if (key.code == sf::Keyboard::Key::F11) {
+        _fullscreen = !_fullscreen;
+        _windowChanged = true;
+        updateSettingsText();
+    } else if (key.code == sf::Keyboard::Key::F10) {
+        _windowSize = (_windowSize + 1) % WINDOW_SIZES.size();
+        _fullscreen = false;
+        _windowChanged = true;
+        updateSettingsText();
+    } else if (key.code == sf::Keyboard::Key::M) {
+        _muted = !_muted;
+        getAudioManager().setVolume(
+            RType::AudioChannel::Master, _muted ? 0.f : 1.f);
+        updateSettingsText();
+    }
+    if (key.code == sf::Keyboard::Key::Enter && _networkSyncSystem.isGameOver())
+        playAgain();
+    else if (key.code == sf::Keyboard::Key::Escape &&
+        _screenState == ScreenState::Game && !_networkSyncSystem.isGameOver())
+        _inGameOverlayVisible = !_inGameOverlayVisible;
+    else if (_screenState == ScreenState::Game ||
+        !ImGui::GetIO().WantCaptureKeyboard)
+        getInputManager().setKeyState(static_cast<int>(key.code), true);
+}
 
-        if (!ImGui::SFML::Init(*_window)) {
-            std::cerr << "Failed to initialize ImGui-SFML" << std::endl;
-        } else {
-            ImGuiIO &io = ImGui::GetIO();
-            if (io.Fonts->Fonts.empty()) {
-                auto *font = io.Fonts->AddFontDefault();
-                font->Scale = 2;
-            }
+void GameApp::handleKeyReleased(const sf::Event::KeyReleased &key)
+{
+    if (_screenState == ScreenState::Game ||
+        !ImGui::GetIO().WantCaptureKeyboard)
+        getInputManager().setKeyState(static_cast<int>(key.code), false);
+}
+
+void GameApp::updateGame(float dt)
+{
+    applyWindowChange();
+    auto &window = getWindow();
+    ImGui::SFML::Update(window, sf::seconds(dt));
+    warmUpFont();
+    _uiRenderer.render(_uiManager, getAssetManager(), window);
+    handleUiClicks();
+    auto &registry = getRegistry();
+    if (_screenState == ScreenState::Connection) {
+        // After Play again: join the same server as a new player.
+        if (_reconnect) {
+            _reconnect = false;
+            _networkClient.connect(_lastHost, _lastPort, _lastPlayerName);
+        }
+        _networkClient.update(dt);
+        updateConnectionStatus();
+        if (_networkClient.isConnected()) {
+            _screenState = ScreenState::Game;
+            if (!getAudioManager().isMusicPlaying())
+                getAudioManager().playMusic("bgm_stage1", true, MUSIC_VOLUME);
+            _uiManager.hide("connection");
+            _uiManager.hide("ingame_overlay");
+            _inGameOverlayVisible = false;
+        }
+        registry.runSystems();
+        return;
+    }
+    if (!_networkClient.isConnected()) {
+        _networkSyncSystem.reset();
+        _shipTilt.reset();
+        if (_chargeEffect)
+            getRegistry().killEntity(*_chargeEffect);
+        _chargeEffect.reset();
+        _screenState = ScreenState::Connection;
+        _uiManager.show("connection");
+        _uiManager.hide("ingame_overlay");
+        _uiManager.hide("game_over");
+        _uiManager.hide("banner");
+        _uiManager.hide("score");
+        _uiManager.hide("boss_bar");
+        _inGameOverlayVisible = false;
+        return;
+    }
+    // Show/hide in-game overlay based on Escape key state. The game over
+    // screen replaces it.
+    if (_networkSyncSystem.isGameOver())
+        _inGameOverlayVisible = false;
+    if (_inGameOverlayVisible)
+        _uiManager.show("ingame_overlay");
+    else
+        _uiManager.hide("ingame_overlay");
+    updateInGameOverlay();
+    auto &controllables = registry.getComponents<RType::Controllable>();
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    const auto actions = getInputManager().actionMask();
+    for (std::size_t i = 0; i < controllables.size(); ++i) {
+        if (!controllables[i].has_value())
+            continue;
+        if (i < networkEntities.size() && networkEntities[i].has_value() &&
+            networkEntities[i]->isLocalPlayer)
+            controllables[i]->actionMask = actions;
+        else
+            controllables[i]->actionMask = 0;
+    }
+    registry.runSystems();
+    // Like the server: the predicted ship stays in the play area.
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    for (auto [transform, network] : RType::Zipper(transforms, networkEntities))
+        if (network.isLocalPlayer)
+            transform.position = Protocol::clampToPlayArea(transform.position);
+    if (_scripts)
+        _scripts->setDeltaTime(dt);
+    _networkSyncSystem.syncWithServer(
+        getInputManager(), _networkClient, &getAudioManager());
+    _shipTilt.update(registry, getInputManager(), dt);
+    updateChargeEffect();
+    if (auto banner = _networkSyncSystem.takeBanner()) {
+        _bannerText = std::move(*banner);
+        _bannerTime = BANNER_TIME;
+    }
+    _bannerTime = std::max(_bannerTime - dt, 0.f);
+    updateEndOfGameUi();
+}
+
+void GameApp::renderGame()
+{
+    getWindow().clear(sf::Color(10, 10, 25));
+    _renderSystem.render(getRegistry(), getAssetManager(), getWindow());
+    // Render HUD elements
+    renderHud();
+    ImGui::SFML::Render(getWindow());
+}
+
+void GameApp::setupUi()
+{
+    auto uiPath = _configuration.path().parent_path() / "ui";
+    _uiManager.load("connection", uiPath / "connection.json");
+    _uiManager.load("ingame_overlay", uiPath / "ingame_overlay.json");
+    _uiManager.show("connection");
+    _uiManager.hide("ingame_overlay");
+
+    // Connection screen: connect button
+    _uiManager.onClick("connection/connect", [this]() {
+        std::string host = _uiManager.getText("connection/host");
+        std::string portStr = _uiManager.getText("connection/port");
+        std::string playerName = _uiManager.getText("connection/playerName");
+        int port = 4242;
+        try {
+            port = std::stoi(portStr);
+        } catch (...) {
+        }
+        if (port < 1)
+            port = 1;
+        if (port > 65535)
+            port = 65535;
+        _lastHost = host;
+        _lastPort = static_cast<std::uint16_t>(port);
+        _lastPlayerName = playerName;
+        _networkClient.connect(host, _lastPort, playerName);
+    });
+
+    // Game over screen: play again on the same server, or quit.
+    _uiManager.load("game_over", uiPath / "game_over.json");
+    _uiManager.load("banner", uiPath / "banner.json");
+    _uiManager.load("score", uiPath / "score.json");
+    _uiManager.load("boss_bar", uiPath / "boss_bar.json");
+    _uiManager.hide("score");
+    _uiManager.hide("boss_bar");
+    _uiManager.hide("game_over");
+    _uiManager.hide("banner");
+    _uiManager.onClick("game_over/play_again", [this]() { playAgain(); });
+    _uiManager.onClick("game_over/quit", [this]() { close(); });
+
+    // In-game overlay: settings
+    _uiManager.onClick("ingame_overlay/window_size", [this]() {
+        _windowSize = (_windowSize + 1) % WINDOW_SIZES.size();
+        _fullscreen = false;
+        _windowChanged = true;
+        updateSettingsText();
+    });
+    _uiManager.onClick("ingame_overlay/fullscreen", [this]() {
+        _fullscreen = !_fullscreen;
+        _windowChanged = true;
+        updateSettingsText();
+    });
+    _uiManager.onClick("ingame_overlay/music_down",
+        [this]() { changeVolume(RType::AudioChannel::Music, -VOLUME_STEP); });
+    _uiManager.onClick("ingame_overlay/music_up",
+        [this]() { changeVolume(RType::AudioChannel::Music, VOLUME_STEP); });
+    _uiManager.onClick("ingame_overlay/sounds_down",
+        [this]() { changeVolume(RType::AudioChannel::Sound, -VOLUME_STEP); });
+    _uiManager.onClick("ingame_overlay/sounds_up",
+        [this]() { changeVolume(RType::AudioChannel::Sound, VOLUME_STEP); });
+    updateSettingsText();
+
+    // In-game overlay: resume button
+    _uiManager.onClick("ingame_overlay/resume", [this]() {
+        _inGameOverlayVisible = false;
+        _uiManager.hide("ingame_overlay");
+    });
+
+    // In-game overlay: disconnect button
+    _uiManager.onClick("ingame_overlay/disconnect", [this]() {
+        _networkClient.disconnect();
+        _inGameOverlayVisible = false;
+        _uiManager.hide("ingame_overlay");
+    });
+}
+
+void GameApp::handleUiClicks()
+{
+    // Clicks are already processed by ImGuiUiRenderer via _uiManager.click()
+    // This method is reserved for any additional click handling logic
+}
+
+void GameApp::updateConnectionStatus()
+{
+    auto status = _networkClient.getStatus();
+    if (status == NetworkClient::ConnectionStatus::Connecting) {
+        std::string host = _uiManager.getText("connection/host");
+        std::string portStr = _uiManager.getText("connection/port");
+        _uiManager.setText("connection/status",
+            "Connecting to " + host + ":" + portStr + "...");
+    } else if (status == NetworkClient::ConnectionStatus::ConnectionFailed) {
+        std::string error = _networkClient.getLastError();
+        _uiManager.setText("connection/status",
+            "Connection Failed!" + (error.empty() ? "" : " (" + error + ")"));
+    } else if (status ==
+        NetworkClient::ConnectionStatus::DisconnectedByServer) {
+        std::string reason = _networkClient.getLastError();
+        _uiManager.setText("connection/status",
+            "Disconnected from server." +
+                (reason.empty() ? "" : " (" + reason + ")"));
+    } else {
+        _uiManager.setText("connection/status", "");
+    }
+}
+
+void GameApp::updateInGameOverlay()
+{
+    _uiManager.setText("ingame_overlay/clientId",
+        "Client ID: " + std::to_string(_networkClient.getClientId()));
+    _uiManager.setText("ingame_overlay/linkedEntity",
+        "Linked Entity: " + std::to_string(_networkClient.getLinkedEntity()));
+    _uiManager.setText("ingame_overlay/serverTick",
+        "Server Tick: " + std::to_string(_networkClient.getServerTick()) +
+            " (Rate: " + std::to_string(_networkClient.getTickRate()) + " Hz)");
+    _uiManager.setText("ingame_overlay/ping",
+        "Ping: " + std::to_string(_networkClient.getPingMs()) + " ms");
+}
+
+void GameApp::warmUpFont()
+{
+    if (_fontWarmedUp)
+        return;
+    _fontWarmedUp = true;
+    // Every printable character, at the size the UI uses, on the first
+    // frame: no glyph is added to the font texture later.
+    ImFontBaked *baked = ImGui::GetFontBaked();
+    for (ImWchar c = 0x20; c < 0x7F; ++c)
+        baked->FindGlyph(c);
+}
+
+void GameApp::updateChargeEffect()
+{
+    auto &registry = getRegistry();
+    auto &players = registry.getComponents<Player>();
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    std::optional<RType::Vector2> charging;
+
+    for (auto [player, transform, network] :
+        RType::Zipper(players, transforms, networkEntities))
+        if (network.isLocalPlayer && player.chargeTime > CHARGE_EFFECT_DELAY)
+            charging = transform.position;
+    if (!charging) {
+        if (_chargeEffect)
+            registry.killEntity(*_chargeEffect);
+        _chargeEffect.reset();
+        return;
+    }
+    if (!_chargeEffect && getAssetManager().hasAsset("laser_bullet")) {
+        // The energy gathering in front of the ship, as in R-Type.
+        static const std::vector<RType::Animation::AnimationFrame> FRAMES = {
+            {134, 18, 32, 32},
+            {167, 20, 32, 29},
+            {200, 21, 32, 25},
+            {300, 21, 32, 25},
+            {333, 20, 32, 29},
+            {366, 18, 32, 32}};
+        const auto entity = registry.spawnEntity();
+        const auto &first = FRAMES.front();
+
+        registry.addComponent(entity, RType::Transform2D(*charging));
+        registry.addComponent(entity,
+            RType::Sprite(getAssetManager().getAsset("laser_bullet").id,
+                first.left,
+                first.top,
+                first.width,
+                first.height,
+                12));
+        auto &animator = registry.addComponent<RType::Animation::Animator>(
+            entity, RType::Animation::Animator {});
+        if (animator) {
+            RType::Animation::AnimationSystem::addClip(*animator,
+                "charge",
+                RType::Animation::AnimationSystem::createClip(FRAMES, 0.06f));
+            RType::Animation::AnimationSystem::play(*animator, "charge", true);
+        }
+        _chargeEffect = entity;
+    }
+    if (_chargeEffect && *_chargeEffect < transforms.size() &&
+        transforms[*_chargeEffect])
+        transforms[*_chargeEffect]->position = {
+            charging->x + CHARGE_EFFECT_OFFSET, charging->y};
+}
+
+void GameApp::playAgain()
+{
+    // The server gives a new ship with full lives to a new connection.
+    _networkClient.disconnect();
+    _uiManager.hide("game_over");
+    _reconnect = true;
+}
+
+void GameApp::updateEndOfGameUi()
+{
+    const bool gameOver = _networkSyncSystem.isGameOver();
+    char score[32];
+
+    std::snprintf(
+        score, sizeof(score), "SCORE %06u", _networkSyncSystem.score());
+    _uiManager.setText("score/text", score);
+    _uiManager.show("score");
+    if (_networkSyncSystem.bossEntity())
+        _uiManager.show("boss_bar");
+    else
+        _uiManager.hide("boss_bar");
+
+    if (gameOver)
+        _uiManager.show("game_over");
+    else
+        _uiManager.hide("game_over");
+    if (_bannerTime > 0.f && !gameOver) {
+        _uiManager.setText("banner/text", _bannerText);
+        _uiManager.show("banner");
+    } else {
+        _uiManager.hide("banner");
+    }
+}
+
+void GameApp::renderLocalMarker()
+{
+    auto &registry = getRegistry();
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    auto &players = registry.getComponents<Player>();
+
+    // A small triangle above the local ship, pointing down at it.
+    for (auto [transform, network, player] :
+        RType::Zipper(transforms, networkEntities, players)) {
+        (void) player;
+        if (!network.isLocalPlayer)
+            continue;
+        const float x = transform.position.x;
+        const float y = transform.position.y - MARKER_GAP;
+        sf::ConvexShape marker(3);
+        marker.setPoint(0, {x - MARKER_SIZE, y - MARKER_SIZE});
+        marker.setPoint(1, {x + MARKER_SIZE, y - MARKER_SIZE});
+        marker.setPoint(2, {x, y});
+        marker.setFillColor(sf::Color(255, 255, 255, 220));
+        getWindow().draw(marker);
+    }
+}
+
+void GameApp::renderHealthBars()
+{
+    auto &registry = getRegistry();
+    auto &enemies = registry.getComponents<Enemy>();
+    auto &healths = registry.getComponents<Health>();
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    auto &sprites = registry.getComponents<RType::Sprite>();
+    const auto boss = _networkSyncSystem.bossEntity();
+    auto &window = getWindow();
+
+    for (auto [index, enemy, health, transform, sprite] :
+        RType::IndexedZipper(enemies, healths, transforms, sprites)) {
+        (void) enemy;
+        if (health.max <= 0 || (boss && *boss == index))
+            continue;
+        // Only the enemies that were hit, to keep the screen readable.
+        if (health.current >= health.max)
+            continue;
+        const float ratio = std::clamp(
+            static_cast<float>(health.current) / static_cast<float>(health.max),
+            0.f,
+            1.f);
+        const float top = transform.position.y -
+            static_cast<float>(sprite.rectHeight) * transform.scale.y / 2.f -
+            HEALTH_BAR_GAP;
+        const float left = transform.position.x - HEALTH_BAR_WIDTH / 2.f;
+        drawBar(
+            window, {left, top}, {HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT}, ratio);
+    }
+    if (boss && *boss < healths.size() && healths[*boss] &&
+        healths[*boss]->max > 0) {
+        const float ratio =
+            std::clamp(static_cast<float>(healths[*boss]->current) /
+                    static_cast<float>(healths[*boss]->max),
+                0.f,
+                1.f);
+        const float width = WORLD_WIDTH * 0.5f;
+        drawBar(window,
+            {(WORLD_WIDTH - width) / 2.f, BOSS_BAR_TOP},
+            {width, BOSS_BAR_HEIGHT},
+            ratio);
+    }
+}
+
+void GameApp::drawBar(sf::RenderWindow &window, sf::Vector2f position,
+    sf::Vector2f size, float ratio)
+{
+    sf::RectangleShape back(size);
+    back.setPosition(position);
+    back.setFillColor(sf::Color(30, 30, 40, 220));
+    back.setOutlineThickness(1.f);
+    back.setOutlineColor(sf::Color(200, 200, 210));
+    window.draw(back);
+    // Green when full, red when almost dead.
+    sf::RectangleShape fill({size.x * ratio, size.y});
+    fill.setPosition(position);
+    fill.setFillColor(sf::Color(static_cast<std::uint8_t>(230 * (1.f - ratio)),
+        static_cast<std::uint8_t>(200 * ratio + 30),
+        40));
+    window.draw(fill);
+}
+
+void GameApp::renderHud()
+{
+    renderHealthBars();
+    renderLocalMarker();
+    auto &registry = getRegistry();
+    auto &players = registry.getComponents<Player>();
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    for (auto [player, network] : RType::Zipper(players, networkEntities)) {
+        if (!network.isLocalPlayer)
+            continue;
+        // Charge Meter Background
+        sf::RectangleShape chargeBg(sf::Vector2f(200.0f, 14.0f));
+        chargeBg.setPosition(sf::Vector2f(20.0f, 1040.0f));
+        chargeBg.setFillColor(sf::Color(40, 40, 60));
+        chargeBg.setOutlineThickness(1.5f);
+        chargeBg.setOutlineColor(sf::Color(150, 150, 200));
+        getWindow().draw(chargeBg);
+
+        // Charge Meter Fill
+        if (player.chargeTime > 0.0f) {
+            float chargeRatio = std::min(player.chargeTime / 1.5f, 1.0f);
+            sf::RectangleShape chargeFill(
+                sf::Vector2f(196.0f * chargeRatio, 10.0f));
+            chargeFill.setPosition(sf::Vector2f(22.0f, 1042.0f));
+            chargeFill.setFillColor(chargeRatio >= 1.0f
+                    ? sf::Color(100, 240, 255)
+                    : sf::Color(60, 160, 240));
+            getWindow().draw(chargeFill);
         }
 
-        std::cout << "Client initialized successfully. Use ImGui dialog to connect to server." << std::endl;
-
-        sf::Clock clock;
-        _running = true;
-        while (_running && _window->isOpen()) {
-            float dt = clock.restart().asSeconds();
-            processEvents();
-            update(dt);
-            render();
+        // Lives representation
+        for (int l = 0; l < player.lives; ++l) {
+            sf::ConvexShape miniShip;
+            miniShip.setPointCount(3);
+            miniShip.setPoint(0, sf::Vector2f(12.0f, 0.0f));
+            miniShip.setPoint(1, sf::Vector2f(-6.0f, -6.0f));
+            miniShip.setPoint(2, sf::Vector2f(-6.0f, 6.0f));
+            miniShip.setFillColor(sf::Color(50, 150, 255));
+            miniShip.setPosition(
+                sf::Vector2f(30.0f + static_cast<float>(l * 24), 30.0f));
+            getWindow().draw(miniShip);
         }
-
-        ImGui::SFML::Shutdown(*_window);
-        return 0;
+        break; // HUD of the local player only
     }
+}
 
-    ScreenState GameApp::getScreenState() const
-    {
-        return _screenState;
-    }
+void GameApp::onWindowCreated()
+{
+    // Resizable, and small enough for most screens: the game world stays
+    // 1920x1080 whatever the size (see updateView()).
+    createWindow();
+    initImGui();
+}
 
-    void GameApp::setScreenState(ScreenState state)
-    {
-        _screenState = state;
-    }
+void GameApp::createWindow()
+{
+    auto &window = getWindow();
+    const auto [width, height] = WINDOW_SIZES.at(_windowSize);
 
-    RType::Registry &GameApp::getRegistry()
-    {
-        return _registry;
-    }
+    if (_fullscreen)
+        window.create(sf::VideoMode::getDesktopMode(),
+            "R-Type",
+            sf::Style::Default,
+            sf::State::Fullscreen);
+    else
+        window.create(
+            sf::VideoMode({width, height}), "R-Type", sf::Style::Default);
+    window.setFramerateLimit(60);
+    updateView();
+}
 
-    InputManager &GameApp::getInputManager()
-    {
-        return _inputManager;
+void GameApp::initImGui()
+{
+    // ImGui bakes the glyphs when they are first drawn. ImGui-SFML garbles
+    // the glyphs added once the font texture has to grow, so start with a
+    // texture big enough for every glyph (see warmUpFont()).
+    if (!ImGui::SFML::Init(getWindow(), false)) {
+        std::cerr << "Failed to initialize ImGui-SFML" << std::endl;
+        return;
     }
+    ImGui::GetIO().Fonts->TexMinWidth = FONT_TEXTURE_SIZE;
+    ImGui::GetIO().Fonts->TexMinHeight = FONT_TEXTURE_SIZE;
+    ImGui::GetIO().Fonts->AddFontDefault();
+    _fontWarmedUp = false;
+}
 
-    ResourceManager &GameApp::getResourceManager()
-    {
-        return _resourceManager;
-    }
+void GameApp::applyWindowChange()
+{
+    if (!_windowChanged)
+        return;
+    _windowChanged = false;
+    // ImGui-SFML keeps state per window: shut it down before the window is
+    // created again, then start it on the new one. The window keeps using
+    // the last cursor it was given, so give it one that outlives ImGui's.
+    if (!_arrowCursor)
+        _arrowCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow);
+    if (_arrowCursor)
+        getWindow().setMouseCursor(*_arrowCursor);
+    ImGui::SFML::Shutdown(getWindow());
+    createWindow();
+    initImGui();
+}
 
-    NetworkClient &GameApp::getNetworkClient()
-    {
-        return _networkClient;
-    }
+void GameApp::updateView()
+{
+    auto &window = getWindow();
+    const sf::Vector2f size(window.getSize());
+    const float worldRatio = WORLD_WIDTH / WORLD_HEIGHT;
+    const float windowRatio = size.x / size.y;
+    sf::FloatRect viewport({0.f, 0.f}, {1.f, 1.f});
 
-    sf::RenderWindow &GameApp::getWindow()
-    {
-        return *_window;
+    // Black bars on the sides or at the top and bottom: the whole
+    // 1920x1080 world stays visible and keeps its proportions.
+    if (windowRatio > worldRatio) {
+        viewport.size.x = worldRatio / windowRatio;
+        viewport.position.x = (1.f - viewport.size.x) / 2.f;
+    } else {
+        viewport.size.y = windowRatio / worldRatio;
+        viewport.position.y = (1.f - viewport.size.y) / 2.f;
     }
+    sf::View view(sf::FloatRect({0.f, 0.f}, {WORLD_WIDTH, WORLD_HEIGHT}));
+    view.setViewport(viewport);
+    window.setView(view);
+}
+
+void GameApp::changeVolume(RType::AudioChannel channel, float step)
+{
+    auto &audio = getAudioManager();
+    audio.setVolume(
+        channel, std::clamp(audio.getVolume(channel) + step, 0.f, 1.f));
+    updateSettingsText();
+}
+
+void GameApp::updateSettingsText()
+{
+    auto &audio = getAudioManager();
+    const auto [width, height] = WINDOW_SIZES.at(_windowSize);
+    const auto percent = [&](RType::AudioChannel channel) {
+        return std::to_string(std::lround(audio.getVolume(channel) * 100.f)) +
+            "%";
+    };
+
+    _uiManager.setText("ingame_overlay/window",
+        "Window: " + std::to_string(width) + "x" + std::to_string(height) +
+            ", full screen " + (_fullscreen ? "on" : "off"));
+    _uiManager.setText("ingame_overlay/music",
+        "Music: " + percent(RType::AudioChannel::Music));
+    _uiManager.setText("ingame_overlay/sounds",
+        "Sounds: " + percent(RType::AudioChannel::Sound) +
+            (_muted ? " (muted)" : ""));
+}
+
+void GameApp::onShutdown()
+{
+    ImGui::SFML::Shutdown(getWindow());
+}
+
+GameApp::GameApp(const RType::Configuration &configuration) :
+    RType::Game::GameApp(configuration)
+{
+}
+
+ScreenState GameApp::getScreenState() const
+{
+    return _screenState;
+}
+
+void GameApp::setScreenState(ScreenState state)
+{
+    _screenState = state;
+}
+
+NetworkClient &GameApp::getNetworkClient()
+{
+    return _networkClient;
+}
+
+RType::UI::UiManager &GameApp::getUiManager()
+{
+    return _uiManager;
+}
 
 } // namespace Game
