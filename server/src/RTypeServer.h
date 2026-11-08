@@ -77,6 +77,10 @@ private:
      */
     void hitPlayer(std::size_t entity);
     void sendLives(std::size_t entity, std::uint8_t lives);
+    /** @brief Sends the score to every player, if @p force or it changed. */
+    void sendScore(bool force);
+    /** @brief Sends the health of the enemies that changed this tick. */
+    void sendEnemyHealth();
     /** @brief A player took a PowerUp: it gets the double shot. */
     void givePowerUp(std::size_t entity);
     /** @brief Runs the game scripts, then the script of each entity. */
@@ -91,6 +95,11 @@ private:
     std::unordered_map<std::size_t, Weapon> _weapons;
     PlayerLives _lives;
     float _livesResend = 0.f;
+    /** @brief Score of the team, from the enemies shot down. */
+    std::uint32_t _score = 0;
+    std::uint32_t _sentScore = 0;
+    /** @brief Health last sent for each enemy: current and max. */
+    std::unordered_map<std::size_t, std::pair<int, int>> _sentHealth;
     // Member of the derived class: destroyed before the registry.
     ScriptEngine _scripts;
 };

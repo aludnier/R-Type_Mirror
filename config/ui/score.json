@@ -1,0 +1,28 @@
+{
+  "name": "score",
+  "elements": [
+    {
+      "type": "panel",
+      "id": "panel",
+      "rect": [
+        0.84,
+        0.01,
+        0.15,
+        0.05
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "text",
+          "rect": [
+            0.08,
+            0.2,
+            0.84,
+            0.6
+          ],
+          "text": "SCORE 000000"
+        }
+      ]
+    }
+  ]
+}

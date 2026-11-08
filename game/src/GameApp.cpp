@@ -9,6 +9,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <imgui.h>
 #include <iostream>
 
@@ -25,6 +26,7 @@
 #include "components/Projectile.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
+#include "ecs/IndexedZipper.h"
 #include "ecs/Zipper.h"
 #include "library/NlohmanReader.h"
 #include "network/GameProtocol.h"
@@ -42,6 +44,13 @@ namespace {
      *         front of the ship it is. */
     constexpr float CHARGE_EFFECT_DELAY = 0.2f;
     constexpr float CHARGE_EFFECT_OFFSET = 50.f;
+    /** @brief Size of the health bar above a hit enemy, and its gap. */
+    constexpr float HEALTH_BAR_WIDTH = 48.f;
+    constexpr float HEALTH_BAR_HEIGHT = 5.f;
+    constexpr float HEALTH_BAR_GAP = 10.f;
+    /** @brief The boss's health bar, at the top of the screen. */
+    constexpr float BOSS_BAR_TOP = 52.f;
+    constexpr float BOSS_BAR_HEIGHT = 14.f;
     /** @brief Volume of the music loop, from 0 to 1. */
     constexpr float MUSIC_VOLUME = 0.45f;
     /** @brief Width and height of the ImGui font texture, in pixels. */
@@ -235,6 +244,8 @@ void GameApp::updateGame(float dt)
         _uiManager.hide("ingame_overlay");
         _uiManager.hide("game_over");
         _uiManager.hide("banner");
+        _uiManager.hide("score");
+        _uiManager.hide("boss_bar");
         _inGameOverlayVisible = false;
         return;
     }
@@ -319,6 +330,10 @@ void GameApp::setupUi()
     // Game over screen: play again on the same server, or quit.
     _uiManager.load("game_over", uiPath / "game_over.json");
     _uiManager.load("banner", uiPath / "banner.json");
+    _uiManager.load("score", uiPath / "score.json");
+    _uiManager.load("boss_bar", uiPath / "boss_bar.json");
+    _uiManager.hide("score");
+    _uiManager.hide("boss_bar");
     _uiManager.hide("game_over");
     _uiManager.hide("banner");
     _uiManager.onClick("game_over/play_again", [this]() { playAgain(); });
@@ -457,6 +472,16 @@ void GameApp::playAgain()
 void GameApp::updateEndOfGameUi()
 {
     const bool gameOver = _networkSyncSystem.isGameOver();
+    char score[32];
+
+    std::snprintf(
+        score, sizeof(score), "SCORE %06u", _networkSyncSystem.score());
+    _uiManager.setText("score/text", score);
+    _uiManager.show("score");
+    if (_networkSyncSystem.bossEntity())
+        _uiManager.show("boss_bar");
+    else
+        _uiManager.hide("boss_bar");
 
     if (gameOver)
         _uiManager.show("game_over");
@@ -470,8 +495,72 @@ void GameApp::updateEndOfGameUi()
     }
 }
 
+void GameApp::renderHealthBars()
+{
+    auto &registry = getRegistry();
+    auto &enemies = registry.getComponents<Enemy>();
+    auto &healths = registry.getComponents<Health>();
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    auto &sprites = registry.getComponents<RType::Sprite>();
+    const auto boss = _networkSyncSystem.bossEntity();
+    auto &window = getWindow();
+
+    for (auto [index, enemy, health, transform, sprite] :
+        RType::IndexedZipper(enemies, healths, transforms, sprites)) {
+        (void) enemy;
+        if (health.max <= 0 || (boss && *boss == index))
+            continue;
+        // Only the enemies that were hit, to keep the screen readable.
+        if (health.current >= health.max)
+            continue;
+        const float ratio = std::clamp(
+            static_cast<float>(health.current) / static_cast<float>(health.max),
+            0.f,
+            1.f);
+        const float top = transform.position.y -
+            static_cast<float>(sprite.rectHeight) * transform.scale.y / 2.f -
+            HEALTH_BAR_GAP;
+        const float left = transform.position.x - HEALTH_BAR_WIDTH / 2.f;
+        drawBar(
+            window, {left, top}, {HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT}, ratio);
+    }
+    if (boss && *boss < healths.size() && healths[*boss] &&
+        healths[*boss]->max > 0) {
+        const float ratio =
+            std::clamp(static_cast<float>(healths[*boss]->current) /
+                    static_cast<float>(healths[*boss]->max),
+                0.f,
+                1.f);
+        const float width = static_cast<float>(window.getSize().x) * 0.5f;
+        drawBar(window,
+            {(static_cast<float>(window.getSize().x) - width) / 2.f,
+                BOSS_BAR_TOP},
+            {width, BOSS_BAR_HEIGHT},
+            ratio);
+    }
+}
+
+void GameApp::drawBar(sf::RenderWindow &window, sf::Vector2f position,
+    sf::Vector2f size, float ratio)
+{
+    sf::RectangleShape back(size);
+    back.setPosition(position);
+    back.setFillColor(sf::Color(30, 30, 40, 220));
+    back.setOutlineThickness(1.f);
+    back.setOutlineColor(sf::Color(200, 200, 210));
+    window.draw(back);
+    // Green when full, red when almost dead.
+    sf::RectangleShape fill({size.x * ratio, size.y});
+    fill.setPosition(position);
+    fill.setFillColor(sf::Color(static_cast<std::uint8_t>(230 * (1.f - ratio)),
+        static_cast<std::uint8_t>(200 * ratio + 30),
+        40));
+    window.draw(fill);
+}
+
 void GameApp::renderHud()
 {
+    renderHealthBars();
     auto &registry = getRegistry();
     auto &players = registry.getComponents<Player>();
     auto &networkEntities = registry.getComponents<NetworkEntity>();

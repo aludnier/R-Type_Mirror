@@ -432,6 +432,8 @@ and how a `ClientId` maps to a player color.
 |----------|--------------|------------------------|
 | `0x8000` | ENTITY_KIND  | `kind: u8` (see below) |
 | `0x8001` | PLAYER_LIVES | `lives: u8`            |
+| `0x8002` | ENEMY_HEALTH | `current: u16, max: u16` |
+| `0x8003` | TEAM_SCORE   | `score: u32`           |
 
 ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
 An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy (Bydo), `2` player laser, `3` charged beam
@@ -470,6 +472,13 @@ Levels: each level sends enemies for 45 s, then a boss. The boss only
 leaves when it is shot down: when its ENTITY_DESPAWN arrives, the next level
 starts, with more and faster enemies. The client counts the levels this way
 to show "LEVEL n" and "BOSS"; no message announces them.
+
+ENEMY_HEALTH is sent in COMPONENT_UPDATE for an enemy each time its health
+changes, and for every enemy once per second. The client draws a health bar
+above the enemies that were hit, and the boss's at the top of the screen.
+TEAM_SCORE is the score of all the players together: 50 points per health
+point of each enemy shot down. It is sent on each player's entity when it
+changes and once per second, and goes back to 0 when no player is left.
 
 Player colors: the client tints each player's ship by `ClientId`. Client 1
 keeps the colors of the sprite, then client 2 is orange (`#E69F00`), client

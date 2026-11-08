@@ -14,6 +14,7 @@
 #include <utility>
 #include "components/Controllable.h"
 #include "components/Enemy.h"
+#include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/Player.h"
 #include "components/Projectile.h"
@@ -266,6 +267,7 @@ void NetworkSyncSystem::reset()
     _gameOver = false;
     _bosses.clear();
     _banner.reset();
+    _score = 0;
     for (const auto &explosion : _explosions)
         _registry->get().killEntity(
             RType::Registry::entityFromIndex(explosion.first));
@@ -275,6 +277,19 @@ void NetworkSyncSystem::reset()
 bool NetworkSyncSystem::isGameOver() const
 {
     return _gameOver;
+}
+
+std::uint32_t NetworkSyncSystem::score() const
+{
+    return _score;
+}
+
+std::optional<RType::Entity> NetworkSyncSystem::bossEntity() const
+{
+    for (const auto networkId : _bosses)
+        if (const auto entity = findEntity(networkId))
+            return entity;
+    return std::nullopt;
 }
 
 std::optional<std::string> NetworkSyncSystem::takeBanner()
@@ -596,6 +611,19 @@ void NetworkSyncSystem::applyComponentData(RType::Entity entity,
 
     if (compData.typeId == Protocol::ENTITY_KIND) {
         applyEntityKind(entity, reader);
+        return;
+    }
+    if (compData.typeId == Protocol::ENEMY_HEALTH) {
+        const auto current = reader.read<std::uint16_t>();
+        const auto max = reader.read<std::uint16_t>();
+        if (reader.ok())
+            _registry->get().addComponent<Health>(entity, Health(current, max));
+        return;
+    }
+    if (compData.typeId == Protocol::TEAM_SCORE) {
+        const auto score = reader.read<std::uint32_t>();
+        if (reader.ok())
+            _score = score;
         return;
     }
     if (compData.typeId == Protocol::PLAYER_LIVES) {

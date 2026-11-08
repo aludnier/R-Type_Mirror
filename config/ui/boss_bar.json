@@ -1,0 +1,28 @@
+{
+  "name": "boss_bar",
+  "elements": [
+    {
+      "type": "panel",
+      "id": "panel",
+      "rect": [
+        0.46,
+        0.005,
+        0.08,
+        0.035
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "text",
+          "rect": [
+            0.15,
+            0.15,
+            0.7,
+            0.7
+          ],
+          "text": "BOSS"
+        }
+      ]
+    }
+  ]
+}

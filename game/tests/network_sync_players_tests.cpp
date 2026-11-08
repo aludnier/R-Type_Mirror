@@ -6,6 +6,7 @@
 #include "components/Animator.h"
 #include "components/Controllable.h"
 #include "components/Enemy.h"
+#include "components/Health.h"
 #include "components/Hitbox.h"
 #include "components/NetworkEntity.h"
 #include "components/Player.h"
@@ -237,4 +238,36 @@ TEST_CASE("A shot down enemy leaves an explosion", "[network][players]")
             animators[entity]->currentClip == "explode")
             ++explosions;
     CHECK(explosions == 1);
+}
+
+TEST_CASE("NetworkSyncSystem applies enemy health and the team score",
+    "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    registry.registerComponent<RType::Health>();
+    sync.init(registry, assets);
+    RType::Network::ByteWriter health;
+    health.write(std::uint16_t {1});
+    health.write(std::uint16_t {4});
+    RType::Network::ByteWriter score;
+    score.write(std::uint32_t {1250});
+
+    sync.processServerMessages(
+        {RType::Network::ComponentUpdatePacket {.tick = 1,
+            .entities =
+                {{60, {{Game::Protocol::ENEMY_HEALTH, health.release()}}},
+                    {61, {{Game::Protocol::TEAM_SCORE, score.release()}}}}}},
+        10);
+
+    const auto enemy = sync.findEntity(60);
+    REQUIRE(enemy);
+    REQUIRE(registry.getComponents<RType::Health>()[*enemy]);
+    CHECK(registry.getComponents<RType::Health>()[*enemy]->current == 1);
+    CHECK(registry.getComponents<RType::Health>()[*enemy]->max == 4);
+    CHECK(sync.score() == 1250);
+    sync.reset();
+    CHECK(sync.score() == 0);
 }

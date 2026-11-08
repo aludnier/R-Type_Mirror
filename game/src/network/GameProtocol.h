@@ -39,6 +39,14 @@ constexpr RType::Network::ComponentTypeId ENTITY_KIND = 0x8000;
 /** @brief PLAYER_LIVES component: `lives: u8`, in COMPONENT_UPDATE. */
 constexpr RType::Network::ComponentTypeId PLAYER_LIVES = 0x8001;
 
+/** @brief ENEMY_HEALTH component: `current: u16, max: u16`, sent in
+ *         ENTITY_SPAWN and COMPONENT_UPDATE when an enemy is hit. */
+constexpr RType::Network::ComponentTypeId ENEMY_HEALTH = 0x8002;
+
+/** @brief TEAM_SCORE component: `score: u32`, sent in COMPONENT_UPDATE on
+ *         each player's entity. */
+constexpr RType::Network::ComponentTypeId TEAM_SCORE = 0x8003;
+
 /** @brief Lives of a player when it joins. */
 constexpr std::uint8_t PLAYER_START_LIVES = 3;
 

@@ -4,6 +4,9 @@
 -- gets the double shot.
 
 local DROP_CHANCE = 0.15
+-- A shot down enemy gives this many points per health point: 100 for a
+-- scout, 150 for a walker, 200 for a gunner, 3000 per level for the boss.
+local POINTS_PER_HEALTH = 50
 
 local ok, _ = pcall(function()
     world.each({"CollisionEvents2D"}, function() end)
@@ -51,6 +54,7 @@ world.add_system("server_collision_resolution", function(dt)
                         rtype.spawn("PowerUp", position.x, position.y)
                     end
                     rtype.play_sound("sfx_explosion", 0.6)
+                    rtype.add_score(otherHealth.max * POINTS_PER_HEALTH)
                     world.kill(other)
                 end
             -- Enemy bullet hits player: the player loses a life

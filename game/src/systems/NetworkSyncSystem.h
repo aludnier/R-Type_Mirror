@@ -89,6 +89,12 @@ public:
      */
     [[nodiscard]] std::optional<std::string> takeBanner();
 
+    /** @return The score of the team, sent by the server. */
+    [[nodiscard]] std::uint32_t score() const;
+
+    /** @return The entity of the boss, if one is on screen. */
+    [[nodiscard]] std::optional<RType::Entity> bossEntity() const;
+
 private:
     struct ServerMessageVisitor;
 
@@ -151,6 +157,7 @@ private:
     bool _gameOver = false;
     std::unordered_set<RType::Network::NetworkId> _bosses {};
     int _level = 1;
+    std::uint32_t _score = 0;
     std::optional<std::string> _banner {};
     /** @brief Explosion entities, and when to remove them. */
     std::vector<std::pair<std::size_t, std::chrono::steady_clock::time_point>>

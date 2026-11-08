@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <ranges>
 #include <string>
 
 #include "Enemy.h"
@@ -124,6 +125,23 @@ namespace {
 
         writer.write(lives);
         return {Game::Protocol::PLAYER_LIVES, writer.release()};
+    }
+
+    Network::ComponentData encodeHealth(const Health &health)
+    {
+        Network::ByteWriter writer;
+
+        writer.write(static_cast<std::uint16_t>(std::max(health.current, 0)));
+        writer.write(static_cast<std::uint16_t>(std::max(health.max, 0)));
+        return {Game::Protocol::ENEMY_HEALTH, writer.release()};
+    }
+
+    Network::ComponentData encodeScore(std::uint32_t score)
+    {
+        Network::ByteWriter writer;
+
+        writer.write(score);
+        return {Game::Protocol::TEAM_SCORE, writer.release()};
     }
 
     Network::ComponentData encodeKind(EntityKind kind)
@@ -244,6 +262,10 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     _scripts.lua()["rtype"]["power_up"] = [this](std::size_t entity) {
         givePowerUp(entity);
     };
+    // For the collision script: the team scores points.
+    _scripts.lua()["rtype"]["add_score"] = [this](int points) {
+        _score += static_cast<std::uint32_t>(std::max(points, 0));
+    };
     // Plays a sound asset on every client (PLAY_SOUND).
     _scripts.lua()["rtype"]["play_sound"] =
         [this](const std::string &name, std::optional<float> volume) {
@@ -257,6 +279,8 @@ void RTypeServer::step()
     updatePlayers();
     updateWeapons();
     runScripts();
+    sendEnemyHealth();
+    sendScore(false);
     flushSpawns();
 }
 
@@ -282,12 +306,19 @@ void RTypeServer::updatePlayers()
                 Game::Protocol::clampToPlayArea(transforms[i]->position);
         }
     }
+    // Without players the game goes back to level 1: so does the score.
+    if (_lives.all().empty()) {
+        _score = 0;
+    }
     _livesResend -= dt;
     if (_livesResend <= 0.f) {
         _livesResend = LIVES_RESEND_INTERVAL;
         for (const auto &[entity, lives] : _lives.all()) {
             sendLives(entity, lives);
         }
+        sendScore(true);
+        // Health too, for the players who joined since (and lost packets).
+        _sentHealth.clear();
     }
 }
 
@@ -309,6 +340,41 @@ void RTypeServer::hitPlayer(std::size_t entity)
     _weapons.erase(entity);
     if (has(transforms, entity)) {
         transforms[entity]->position = RESPAWN_POSITION;
+    }
+}
+
+void RTypeServer::sendScore(bool force)
+{
+    if (!force && _score == _sentScore) {
+        return;
+    }
+    _sentScore = _score;
+    for (const auto &entity : _lives.all() | std::views::keys) {
+        sendComponents(
+            Registry::entityFromIndex(entity), {encodeScore(_score)});
+    }
+}
+
+void RTypeServer::sendEnemyHealth()
+{
+    auto &enemies = registry().getComponents<Enemy>();
+    auto &healths = registry().getComponents<Health>();
+
+    std::erase_if(_sentHealth, [&](const auto &pair) {
+        return !has(enemies, pair.first) || !has(healths, pair.first);
+    });
+    for (std::size_t i = 0; i < enemies.size(); ++i) {
+        if (!enemies[i] || !has(healths, i)) {
+            continue;
+        }
+        const std::pair<int, int> health {healths[i]->current, healths[i]->max};
+        auto [it, added] = _sentHealth.try_emplace(i, health);
+        if (!added && it->second == health) {
+            continue;
+        }
+        it->second = health;
+        sendComponents(
+            Registry::entityFromIndex(i), {encodeHealth(*healths[i])});
     }
 }
 

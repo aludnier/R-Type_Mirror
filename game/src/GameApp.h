@@ -54,6 +54,10 @@ protected:
 
 private:
     void renderHud();
+    /** @brief Health bars of the hit enemies, and of the boss at the top. */
+    void renderHealthBars();
+    static void drawBar(sf::RenderWindow &window, sf::Vector2f position,
+        sf::Vector2f size, float ratio);
     /** @brief Leaves and joins the same server again, with a new ship. */
     void playAgain();
     /** @brief Shows the game over screen and the LEVEL / BOSS banner. */
