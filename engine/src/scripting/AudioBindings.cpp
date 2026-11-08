@@ -13,27 +13,32 @@ sol::object RType::Scripting::AudioBindingFunctions::playSound(
     sol::state &lua, IAudioPlayer &audio)
 {
     return sol::make_object(lua,
-        [&audio](const std::string &name, sol::optional<float> volume,
-            sol::optional<float> pitch) {
-            return audio.playSound(name, volume.value_or(1.f),
-                pitch.value_or(1.f));
+        [&audio](const std::string &name,
+            sol::optional<float>
+                volume,
+            sol::optional<float>
+                pitch) {
+            return audio.playSound(
+                name, volume.value_or(1.f), pitch.value_or(1.f));
         });
 }
 
 sol::object RType::Scripting::AudioBindingFunctions::stopSound(
     sol::state &lua, IAudioPlayer &audio)
 {
-    return sol::make_object(lua, [&audio](SoundHandle handle) {
-        audio.stopSound(handle);
-    });
+    return sol::make_object(
+        lua, [&audio](SoundHandle handle) { audio.stopSound(handle); });
 }
 
 sol::object RType::Scripting::AudioBindingFunctions::playMusic(
     sol::state &lua, IAudioPlayer &audio)
 {
     return sol::make_object(lua,
-        [&audio](const std::string &name, sol::optional<bool> loop,
-            sol::optional<float> volume) {
+        [&audio](const std::string &name,
+            sol::optional<bool>
+                loop,
+            sol::optional<float>
+                volume) {
             audio.playMusic(name, loop.value_or(true), volume.value_or(1.f));
         });
 }
