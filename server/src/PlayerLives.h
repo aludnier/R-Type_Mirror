@@ -55,7 +55,7 @@ public:
 
 private:
     struct State {
-        std::uint8_t lives;
+        std::uint8_t lives {};
         float invulnerable = 0.f;
     };
 
