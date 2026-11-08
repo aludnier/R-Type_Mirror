@@ -7,6 +7,7 @@
 
 #include "systems/NetworkSyncSystem.h"
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -31,6 +32,11 @@
 #include "systems/ShipTiltSystem.h"
 
 namespace Game {
+namespace {
+    constexpr float EXPLOSION_SCALE = 2.f;
+    constexpr float EXPLOSION_FRAME_TIME = 0.07f;
+    constexpr auto EXPLOSION_DURATION = std::chrono::milliseconds(420);
+} // namespace
 
 // Animation frame data extracted from sprite sheets
 namespace AnimationFrames {
@@ -52,6 +58,15 @@ namespace AnimationFrames {
         {100, 2, 31, 25},
         {133, 3, 31, 24},
         {166, 4, 32, 23}};
+
+    // Explosion of a shot down enemy (laser bullet sheet, y = 296)
+    const std::vector<RType::Animation::AnimationFrame> explosion = {
+        {72, 296, 25, 30},
+        {109, 296, 25, 30},
+        {146, 296, 32, 29},
+        {182, 296, 32, 27},
+        {217, 300, 27, 20},
+        {247, 304, 18, 15}};
 
     // Force pod animation (12 frames)
     const std::vector<RType::Animation::AnimationFrame> forcePod = {
@@ -125,6 +140,7 @@ void NetworkSyncSystem::syncWithServer(const InputManager &input,
 
     _wasConnected = true;
 
+    removeOldExplosions();
     processServerMessages(
         client.pollServerMessages(), client.getLinkedEntity(), audio);
     sendLocalPlayerInput(input, client);
@@ -250,6 +266,10 @@ void NetworkSyncSystem::reset()
     _gameOver = false;
     _bosses.clear();
     _banner.reset();
+    for (const auto &explosion : _explosions)
+        _registry->get().killEntity(
+            RType::Registry::entityFromIndex(explosion.first));
+    _explosions.clear();
 }
 
 bool NetworkSyncSystem::isGameOver() const
@@ -472,6 +492,46 @@ void NetworkSyncSystem::handleEntitySpawn(
     }
 }
 
+void NetworkSyncSystem::spawnExplosion(RType::Vector2 position)
+{
+    if (!_resources->get().hasAsset("laser_bullet"))
+        return;
+    auto &registry = _registry->get();
+    const auto entity = registry.spawnEntity();
+    const auto &asset = _resources->get().getAsset("laser_bullet");
+    const auto &first = AnimationFrames::explosion.front();
+
+    registry.addComponent(entity,
+        RType::Transform2D(position, {EXPLOSION_SCALE, EXPLOSION_SCALE}));
+    registry.addComponent(entity,
+        RType::Sprite(
+            asset.id, first.left, first.top, first.width, first.height, 20));
+    auto &animator = registry.addComponent<RType::Animation::Animator>(
+        entity, RType::Animation::Animator {});
+    if (animator) {
+        RType::Animation::AnimationSystem::addClip(*animator,
+            "explode",
+            RType::Animation::AnimationSystem::createClip(
+                AnimationFrames::explosion, EXPLOSION_FRAME_TIME));
+        RType::Animation::AnimationSystem::play(*animator, "explode", false);
+    }
+    _explosions.emplace_back(static_cast<std::size_t>(entity),
+        std::chrono::steady_clock::now() + EXPLOSION_DURATION);
+}
+
+void NetworkSyncSystem::removeOldExplosions()
+{
+    const auto now = std::chrono::steady_clock::now();
+
+    std::erase_if(_explosions, [&](const auto &explosion) {
+        if (explosion.second > now)
+            return false;
+        _registry->get().killEntity(
+            RType::Registry::entityFromIndex(explosion.first));
+        return true;
+    });
+}
+
 void NetworkSyncSystem::handleEntityDespawn(
     const RType::Network::EntityDespawnPacket &packet)
 {
@@ -489,6 +549,12 @@ void NetworkSyncSystem::handleEntityDespawn(
         std::size_t entityId = it->second;
         _entityToNetwork.erase(entityId);
         _networkToEntity.erase(it);
+        // An enemy that goes away explodes (off screen, nobody sees it).
+        auto &enemies = _registry->get().getComponents<Enemy>();
+        auto &transforms = _registry->get().getComponents<RType::Transform2D>();
+        if (entityId < enemies.size() && enemies[entityId] &&
+            entityId < transforms.size() && transforms[entityId])
+            spawnExplosion(transforms[entityId]->position);
         try {
             _registry->get().killEntity(
                 RType::Registry::entityFromIndex(entityId));

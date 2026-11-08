@@ -9,6 +9,7 @@
 #define GAME_NETWORKSYNCSYSTEM_H
 
 #include <array>
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -20,6 +21,7 @@
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
 #include "library/InputManager.h"
+#include "math/Vector2.h"
 #include "network/ByteReader.h"
 #include "network/NetworkClient.h"
 
@@ -95,6 +97,10 @@ private:
         const std::vector<RType::Animation::AnimationFrame> &frames,
         float frameTime, int zIndex);
 
+    /** @brief Plays an explosion at @p position, removed once it ends. */
+    void spawnExplosion(RType::Vector2 position);
+    void removeOldExplosions();
+
     /** @brief Adds the level ship sprite to a player's entity. */
     void addShipSprite(RType::Entity entity);
 
@@ -146,6 +152,9 @@ private:
     std::unordered_set<RType::Network::NetworkId> _bosses {};
     int _level = 1;
     std::optional<std::string> _banner {};
+    /** @brief Explosion entities, and when to remove them. */
+    std::vector<std::pair<std::size_t, std::chrono::steady_clock::time_point>>
+        _explosions {};
 };
 
 } // namespace Game

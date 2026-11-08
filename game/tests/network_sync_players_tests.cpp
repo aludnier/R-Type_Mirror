@@ -205,3 +205,36 @@ TEST_CASE(
     CHECK(clampToPlayArea({5000.f, 5000.f}) ==
         RType::Vector2 {1920.f - 28.f, Game::Protocol::GROUND_TOP - 12.f});
 }
+
+TEST_CASE("A shot down enemy leaves an explosion", "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    assets.addAsset("laser_bullet", "laser_bullet.png", "Texture");
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+    RType::Network::ByteWriter kind;
+    kind.write(static_cast<std::uint8_t>(Game::Protocol::EntityKind::Enemy));
+    RType::Network::ByteWriter position;
+    position.writeFloat(300.f);
+    position.writeFloat(200.f);
+
+    sync.processServerMessages(
+        {RType::Network::EntitySpawnPacket {.networkId = 50,
+             .components = {{Game::Protocol::ENTITY_KIND, kind.release()},
+                 {static_cast<RType::Network::ComponentTypeId>(
+                      RType::Network::EngineComponentType::Position),
+                     position.release()}}},
+            RType::Network::EntityDespawnPacket {50}},
+        10);
+    registry.killAllEntities();
+
+    std::size_t explosions = 0;
+    auto &animators = registry.getComponents<RType::Animation::Animator>();
+    for (const auto &entity : registry.entities())
+        if (entity < animators.size() && animators[entity] &&
+            animators[entity]->currentClip == "explode")
+            ++explosions;
+    CHECK(explosions == 1);
+}
