@@ -78,40 +78,26 @@ namespace AnimationFrames {
         {474, 12, 21, 14},
         {507, 6, 21, 24}};
 
-    // Laser bullet animation (row 4 of laser bullet sheet - 6 frames)
+    // Laser bullet animation (small blue shot of the laser bullet sheet,
+    // y = 103: 4 frames)
     const std::vector<RType::Animation::AnimationFrame> laserBullet = {
-        {9, 82, 1, 1},
-        {19, 81, 1, 1},
-        {72, 81, 1, 1},
-        {459, 81, 1, 1},
-        {512, 81, 1, 1},
-        {522, 82, 1, 1}};
-
-    // Wave cannon energy beam animation (row 6 of laser bullet sheet)
-    const std::vector<RType::Animation::AnimationFrame> waveCannon = {
         {232, 103, 16, 12},
-        {249, 103, 16, 12},
-        {267, 103, 16, 12},
+        {249, 105, 16, 8},
+        {267, 105, 16, 8},
         {284, 103, 16, 12}};
 
-    // Enemy bullet animation (frames 0-19 from enemy bullet sheet - first row)
+    // Wave cannon energy beam animation (y = 120 of the laser bullet sheet:
+    // 4 frames, about the size of the beam's hitbox at scale 1.75)
+    const std::vector<RType::Animation::AnimationFrame> waveCannon = {
+        {200, 121, 32, 10},
+        {233, 120, 32, 12},
+        {267, 120, 32, 12},
+        {300, 121, 32, 10}};
+
+    // Enemy bullet: the blue orb of the enemy bullet sheet. The rest of
+    // its first row is an explosion, not a bullet.
     const std::vector<RType::Animation::AnimationFrame> enemyBullet = {
-        {118, 3, 32, 28},
-        {151, 3, 32, 28},
-        {184, 9, 16, 16},
-        {209, 12, 22, 10},
-        {237, 13, 26, 8},
-        {275, 17, 2, 1},
-        {278, 16, 4, 2},
-        {283, 14, 12, 6},
-        {305, 14, 12, 6},
-        {318, 16, 4, 2},
-        {323, 17, 2, 1},
-        {337, 13, 26, 8},
-        {369, 12, 22, 10},
-        {400, 9, 16, 16},
-        {417, 3, 32, 28},
-        {450, 3, 32, 28}};
+        {184, 9, 16, 16}};
 
 } // namespace AnimationFrames
 
@@ -662,7 +648,7 @@ void NetworkSyncSystem::applyEntityKind(
                 _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&
                 transforms[entity].has_value()) {
-                transforms[entity]->scale = {5.25f, 5.25f};
+                transforms[entity]->scale = {1.75f, 1.75f};
             }
             break;
         }
@@ -699,7 +685,7 @@ void NetworkSyncSystem::applyEntityKind(
                 _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&
                 transforms[entity].has_value()) {
-                transforms[entity]->scale = {4.375f, 4.375f};
+                transforms[entity]->scale = {1.75f, 1.75f};
             }
             break;
         }
@@ -736,7 +722,7 @@ void NetworkSyncSystem::applyEntityKind(
                 _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&
                 transforms[entity].has_value()) {
-                transforms[entity]->scale = {1.75f, 1.75f};
+                transforms[entity]->scale = {1.3125f, 1.3125f};
             }
             break;
         }
