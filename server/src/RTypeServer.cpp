@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdint>
 #include <optional>
+#include <string>
 
 #include "Enemy.h"
 #include "Physics2DBindings.h"
@@ -76,6 +77,13 @@ namespace {
     /** @brief A PowerUp drifts left, slower than the scrolling enemies. */
     constexpr Vector2 POWER_UP_VELOCITY {-120.f, 0.f};
     constexpr Vector2 POWER_UP_SIZE {36.f, 28.f};
+
+    // Volumes of the sounds the server plays, from 0 to 1: the lasers are
+    // frequent, so they are quieter.
+    constexpr float LASER_VOLUME = 0.35f;
+    constexpr float CHARGED_VOLUME = 0.6f;
+    constexpr float HIT_VOLUME = 0.8f;
+    constexpr float POWER_UP_VOLUME = 0.7f;
 
     /** @brief A projectile moving in a straight line. */
     struct Projectile {
@@ -231,6 +239,11 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     _scripts.lua()["rtype"]["power_up"] = [this](std::size_t entity) {
         givePowerUp(entity);
     };
+    // Plays a sound asset on every client (PLAY_SOUND).
+    _scripts.lua()["rtype"]["play_sound"] =
+        [this](const std::string &name, std::optional<float> volume) {
+            playSound(name, volume.value_or(1.f));
+        };
     _scripts.loadConfigFile(scriptsConfig);
 }
 
@@ -273,6 +286,7 @@ void RTypeServer::hitPlayer(std::size_t entity)
         return;
     }
     sendLives(entity, _lives.lives(entity));
+    playSound("sfx_hit", HIT_VOLUME);
     if (hit == PlayerLives::Hit::Out) {
         // The session stays: the player watches the others play.
         despawnEntity(Registry::entityFromIndex(entity));
@@ -288,6 +302,7 @@ void RTypeServer::givePowerUp(std::size_t entity)
 {
     if (has(registry().getComponents<Controllable>(), entity)) {
         _weapons[entity].doubleShot = true;
+        playSound("sfx_powerup", POWER_UP_VOLUME);
     }
 }
 
@@ -322,15 +337,18 @@ void RTypeServer::updateWeapons()
             if (chargeTime >= CHARGE_TIME) {
                 _pendingSpawns.push_back(
                     {EntityKind::ChargedBeam, {position.x + 35.f, position.y}});
+                playSound("sfx_charged", CHARGED_VOLUME);
             } else if (cooldown <= 0.f && doubleShot) {
                 _pendingSpawns.push_back({EntityKind::PlayerLaser,
                     {position.x + 25.f, position.y - DOUBLE_SHOT_GAP}});
                 _pendingSpawns.push_back({EntityKind::PlayerLaser,
                     {position.x + 25.f, position.y + DOUBLE_SHOT_GAP}});
+                playSound("sfx_laser", LASER_VOLUME);
                 cooldown = LASER_COOLDOWN;
             } else if (cooldown <= 0.f) {
                 _pendingSpawns.push_back(
                     {EntityKind::PlayerLaser, {position.x + 25.f, position.y}});
+                playSound("sfx_laser", LASER_VOLUME);
                 cooldown = LASER_COOLDOWN;
             }
             chargeTime = 0.f;

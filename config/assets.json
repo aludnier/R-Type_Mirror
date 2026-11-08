@@ -52,8 +52,24 @@
             "path": "assets/audio/explosion.wav",
             "type": "Sound"
         },
+        "sfx_charged": {
+            "path": "assets/audio/charged.wav",
+            "type": "Sound"
+        },
+        "sfx_hit": {
+            "path": "assets/audio/hit.wav",
+            "type": "Sound"
+        },
+        "sfx_powerup": {
+            "path": "assets/audio/powerup.wav",
+            "type": "Sound"
+        },
+        "sfx_boss": {
+            "path": "assets/audio/boss.wav",
+            "type": "Sound"
+        },
         "bgm_stage1": {
-            "path": "assets/audio/stage1.ogg",
+            "path": "assets/audio/stage1.wav",
             "type": "Music"
         }
     }

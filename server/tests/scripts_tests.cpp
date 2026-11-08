@@ -2,7 +2,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 
+#include <algorithm>
 #include <optional>
+#include <string>
 #include <vector>
 
 #include "Enemy.h"
@@ -77,6 +79,10 @@ struct ScriptedGame {
         scripts.lua()["rtype"]["hit_player"] = [this](std::size_t entity) {
             hits.push_back(entity);
         };
+        scripts.lua()["rtype"]["play_sound"] = [this](const std::string &name,
+                                                   std::optional<float>) {
+            sounds.push_back(name);
+        };
     }
 
     void tick()
@@ -119,6 +125,7 @@ struct ScriptedGame {
     std::vector<SpawnRequest> spawned;
     std::vector<RType::Entity> enemies;
     std::vector<std::size_t> hits;
+    std::vector<std::string> sounds;
     RType::Entity player = RType::Registry::entityFromIndex(0);
 };
 } // namespace
@@ -234,6 +241,7 @@ TEST_CASE(
         }
     }
     REQUIRE(boss.has_value());
+    CHECK(std::ranges::find(game.sounds, "sfx_boss") != game.sounds.end());
     CHECK(game.scripts.loadString("assert(rtype.level == 1)"));
 
     game.tick();

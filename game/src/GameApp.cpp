@@ -36,6 +36,8 @@ namespace Game {
 namespace {
     /** @brief Seconds a "LEVEL n" or "BOSS" banner stays on screen. */
     constexpr float BANNER_TIME = 2.5f;
+    /** @brief Volume of the music loop, from 0 to 1. */
+    constexpr float MUSIC_VOLUME = 0.45f;
     /** @brief Width and height of the ImGui font texture, in pixels. */
     constexpr int FONT_TEXTURE_SIZE = 1024;
 } // namespace
@@ -207,6 +209,8 @@ void GameApp::updateGame(float dt)
         updateConnectionStatus();
         if (_networkClient.isConnected()) {
             _screenState = ScreenState::Game;
+            if (!getAudioManager().isMusicPlaying())
+                getAudioManager().playMusic("bgm_stage1", true, MUSIC_VOLUME);
             _uiManager.hide("connection");
             _uiManager.hide("ingame_overlay");
             _inGameOverlayVisible = false;

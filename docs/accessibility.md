@@ -29,7 +29,7 @@ Each point is marked:
 | Feature | Status | Details |
 |---|---|---|
 | Playable without sound | Done | Every game event is visible: ships, enemies, shots, the charge of the wave cannon (a bar in the bottom-left corner). No information is given by sound only |
-| Subtitles and visual cues for sounds | Planned | The engine plays sounds and music (`AudioManager`), and the server can ask the clients to play a sound with `PLAY_SOUND`, but the R-Type server does not send any sound yet. Each important sound (enemy wave, hit, death) must also get a visual cue or a subtitle |
+| Visual cues for sounds | Done | The server plays a sound for each shot, explosion, hit, power-up and the boss's arrival, and each one has a visual cue: the shot itself, the enemy disappearing, the lives in the HUD going down, the ship respawning, the "BOSS" banner. The music has no information. Next step: optional subtitles for the sounds |
 | Volume per channel | Partial | `AudioManager::setVolume` sets the master, music and sound effect volumes separately, so a player can lower the music and keep the effects. The client has no menu for it yet |
 | Contrast | Done | The background is almost black (`#0A0A19`) and the sprites are bright, so ships, enemies and shots stay visible |
 | Shapes, not only colours | Done | Players, enemies, the force pod and each kind of shot have their own sprite, so a colour-blind player can tell them apart by shape |
@@ -66,7 +66,7 @@ Each point is marked:
 1. Show a number above each ship, in addition to its colour.
 2. Show and change the key bindings from the pause menu.
 3. Add an auto-fire option.
-4. Add visual cues or subtitles for every sound the server sends, and a
-   volume menu (master, music, effects).
+4. Add optional subtitles for the sounds, and a volume menu (master,
+   music, effects).
 5. Add a font scale option to the menus.
 6. Add gamepad support in `InputManager`.

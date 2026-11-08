@@ -103,6 +103,7 @@ world.add_system("levels", function(dt)
             -- Spawned at the end of the tick: it exists from the next one.
             rtype.spawn("Boss", rtype.SCREEN_WIDTH + 80,
                 rtype.SCREEN_HEIGHT / 2)
+            rtype.play_sound("sfx_boss", 0.8)
             state = "boss_spawned"
         end
     elseif state == "boss_spawned" then

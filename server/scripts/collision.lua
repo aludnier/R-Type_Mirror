@@ -50,6 +50,7 @@ world.add_system("server_collision_resolution", function(dt)
                     if math.random() < DROP_CHANCE then
                         rtype.spawn("PowerUp", position.x, position.y)
                     end
+                    rtype.play_sound("sfx_explosion", 0.6)
                     world.kill(other)
                 end
             -- Enemy bullet hits player: the player loses a life
