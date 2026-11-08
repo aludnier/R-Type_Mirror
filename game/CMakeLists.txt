@@ -64,6 +64,7 @@ if (BUILD_TESTS)
 
     add_executable(game_network_tests
             tests/network_sync_audio_tests.cpp
+            tests/network_sync_players_tests.cpp
             src/components/Enemy.cpp
             src/components/Player.cpp
             src/components/Projectile.cpp

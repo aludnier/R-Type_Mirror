@@ -188,6 +188,41 @@ void NetworkSyncSystem::processServerMessages(
     for (const auto &msg : messages) {
         std::visit(visitor, msg);
     }
+    applyPlayerColors();
+}
+
+std::array<std::uint8_t, 3> NetworkSyncSystem::playerTint(
+    RType::Network::ClientId clientId)
+{
+    // Okabe-Ito colours, safe for colour-blind players.
+    static constexpr std::array<std::array<std::uint8_t, 3>, 4> TINTS = {{
+        {255, 255, 255},
+        {230, 159, 0},
+        {240, 228, 66},
+        {204, 121, 167},
+    }};
+
+    return TINTS[(clientId + TINTS.size() - 1) % TINTS.size()];
+}
+
+void NetworkSyncSystem::applyPlayerColors()
+{
+    if (_clientToNetwork.empty() ||
+        !_registry->get().isRegistered<RType::Sprite>())
+        return;
+    auto &sprites = _registry->get().getComponents<RType::Sprite>();
+
+    for (const auto &[clientId, networkId] : _clientToNetwork) {
+        const auto entity = _networkToEntity.find(networkId);
+        if (entity == _networkToEntity.end() ||
+            entity->second >= sprites.size() || !sprites[entity->second])
+            continue;
+        const auto [r, g, b] = playerTint(clientId);
+        auto &sprite = *sprites[entity->second];
+        sprite.r = r;
+        sprite.g = g;
+        sprite.b = b;
+    }
 }
 
 void NetworkSyncSystem::sendLocalPlayerInput(
@@ -223,6 +258,7 @@ std::optional<RType::Entity> NetworkSyncSystem::findEntity(
 void NetworkSyncSystem::handleAcceptConnect(
     const RType::Network::AcceptConnectPacket &packet)
 {
+    _clientToNetwork[packet.clientId] = packet.linkedEntity;
     if (packet.linkedEntity == RType::Network::NO_ENTITY) {
         return;
     }

@@ -8,6 +8,8 @@
 #ifndef GAME_NETWORKSYNCSYSTEM_H
 #define GAME_NETWORKSYNCSYSTEM_H
 
+#include <array>
+#include <cstdint>
 #include <optional>
 #include <unordered_map>
 #include "audio/IAudioPlayer.h"
@@ -63,8 +65,19 @@ public:
         RType::Network::NetworkId localLinkedEntity,
         RType::IAudioPlayer *audio = nullptr);
 
+    /**
+     * @brief Tint of a player's ship, from its client id: white (no tint),
+     *        orange, yellow and purple, which stay distinct for the common
+     *        types of colour blindness.
+     */
+    [[nodiscard]] static std::array<std::uint8_t, 3> playerTint(
+        RType::Network::ClientId clientId);
+
 private:
     struct ServerMessageVisitor;
+
+    /** @brief Gives each player's sprite the tint of its client id. */
+    void applyPlayerColors();
 
     void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet);
 
