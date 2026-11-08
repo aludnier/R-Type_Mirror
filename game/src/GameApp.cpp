@@ -177,7 +177,7 @@ void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
     if (key.code == sf::Keyboard::Key::Enter && _networkSyncSystem.isGameOver())
         playAgain();
     else if (key.code == sf::Keyboard::Key::Escape &&
-        _screenState == ScreenState::Game)
+        _screenState == ScreenState::Game && !_networkSyncSystem.isGameOver())
         _inGameOverlayVisible = !_inGameOverlayVisible;
     else if (_screenState == ScreenState::Game ||
         !ImGui::GetIO().WantCaptureKeyboard)
@@ -229,7 +229,10 @@ void GameApp::updateGame(float dt)
         _inGameOverlayVisible = false;
         return;
     }
-    // Show/hide in-game overlay based on Escape key state
+    // Show/hide in-game overlay based on Escape key state. The game over
+    // screen replaces it.
+    if (_networkSyncSystem.isGameOver())
+        _inGameOverlayVisible = false;
     if (_inGameOverlayVisible)
         _uiManager.show("ingame_overlay");
     else
