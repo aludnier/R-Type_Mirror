@@ -29,7 +29,8 @@ Each point is marked:
 | Feature | Status | Details |
 |---|---|---|
 | Playable without sound | Done | Every game event is visible: ships, enemies, shots, the charge of the wave cannon (a glow that grows in front of the ship). No information is given by sound only |
-| Subtitles and visual cues for sounds | Planned | The `AudioSystem` can play sounds by asset name, but the game does not use it yet. When sounds are added, each important sound (enemy wave, hit, death) must also have a visual cue or a subtitle |
+| Subtitles and visual cues for sounds | Planned | The engine plays sounds and music (`AudioManager`), and the server can ask the clients to play a sound with `PLAY_SOUND`, but the R-Type server does not send any sound yet. Each important sound (enemy wave, hit, death) must also get a visual cue or a subtitle |
+| Volume per channel | Partial | `AudioManager::setVolume` sets the master, music and sound effect volumes separately, so a player can lower the music and keep the effects. The client has no menu for it yet |
 | Contrast | Done | The background is almost black (`#0A0A19`). Players are blue, enemies are red, the force pod is orange, and every ship has a light outline, so shapes stay visible on the background |
 | Shapes, not only colours | Done | Players, enemies and the force pod have different shapes, so a colour-blind player can tell them apart |
 | Distinguish the four players | Planned | All player ships have the same colour today. Each player should have a colour from a colour-blind safe set (for example blue, orange, yellow and white, which stay distinct for the three common types of colour blindness) and a number above the ship |
@@ -66,6 +67,7 @@ Each point is marked:
    (also needed by the subject: the four players must be distinguishable).
 2. Load the client's key bindings from a JSON file and show them in the menu.
 3. Add an auto-fire option.
-4. Add visual cues or subtitles for every sound, when sounds are added.
+4. Add visual cues or subtitles for every sound the server sends, and a
+   volume menu (master, music, effects).
 5. Add a font scale option to the menus.
 6. Add gamepad support in `InputManager`.

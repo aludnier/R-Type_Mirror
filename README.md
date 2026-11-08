@@ -12,7 +12,7 @@ never links the client library, so it never depends on the graphics library.
 | Target                               | Kind             | Contents                                                          | Used by           |
 |--------------------------------------|------------------|-------------------------------------------------------------------|-------------------|
 | `engine_core`                        | static library   | ECS, math, shared components and systems, network (Asio), modules | server and client |
-| `engine_client`                      | static library   | engine loop, input, later rendering and audio                     | client            |
+| `engine_client`                      | static library   | engine loop, input, audio, later rendering                        | client            |
 | `engine_server`                      | static library   | server runtime: game loop, client sessions                        | server            |
 | `engine_scripting`                   | static library   | Lua scripting (sol2), see `docs/scripting.md`                     | server and client |
 | `r-type_server`                      | executable       | server entry point                                                |                   |

@@ -59,11 +59,13 @@ ctest --test-dir build/debug --output-on-failure
 
 | Test executable | Folder | Covers |
 |---|---|---|
-| `game_engine_tests` | `engine/tests/` | ECS, network protocol and transport, modules, reflection, scenes, UI |
+| `game_engine_tests` | `engine/tests/` | ECS, network protocol and transport, audio, modules, reflection, scenes, UI |
 | `engine_server_tests` | `engine/tests/` | `GameServer` sending and sessions |
+| `engine_client_tests` | `engine/tests/` | Audio manager |
 | `engine_scripting_tests` | `engine/tests/` | Lua scripting and bindings |
 | `engine_editor_tests` | `engine/tests/` | Editor panels, scene files, Play mode |
 | `r-type_game_tests` | `game/tests/` | Game bindings |
+| `game_network_tests` | `game/tests/` | Sounds received from the server |
 | `r-type_server_tests` | `server/tests/` | R-Type server scripts |
 
 Add a test with every feature and every fixed bug. Add the new file to the
