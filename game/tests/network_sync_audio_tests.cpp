@@ -10,17 +10,6 @@ namespace {
 
 class MockAudioPlayer final : public RType::IAudioPlayer {
 public:
-    RType::SoundHandle playSound(const std::string &name, float volume,
-        float pitch, bool loop) override
-    {
-        lastName = name;
-        lastVolume = volume;
-        lastPitch = pitch;
-        lastLoop = loop;
-        ++playCalls;
-        return {0, 1};
-    }
-
     void stopSound(RType::SoundHandle) override
     {
     }
@@ -28,10 +17,6 @@ public:
     [[nodiscard]] bool isSoundPlaying(RType::SoundHandle) const override
     {
         return false;
-    }
-
-    void playMusic(const std::string &, bool, float) override
-    {
     }
 
     void stopMusic() override
@@ -77,6 +62,22 @@ public:
     float lastPitch = 0.f;
     bool lastLoop = false;
     int playCalls = 0;
+
+private:
+    RType::SoundHandle playSoundImpl(
+        const std::string &name, float volume, float pitch, bool loop) override
+    {
+        lastName = name;
+        lastVolume = volume;
+        lastPitch = pitch;
+        lastLoop = loop;
+        ++playCalls;
+        return {0, 1};
+    }
+
+    void playMusicImpl(const std::string &, bool, float) override
+    {
+    }
 };
 
 } // namespace
@@ -92,8 +93,8 @@ TEST_CASE("NetworkSyncSystem forwards PLAY_SOUND when audio is available",
         RType::Network::PlaySoundPacket {
             .assetName = "sfx_explosion", .volume = 0.35f, .pitch = 1.4f}};
 
-    sync.processServerMessages(messages, registry, assets,
-        RType::Network::NO_ENTITY, &audio);
+    sync.processServerMessages(
+        messages, registry, assets, RType::Network::NO_ENTITY, &audio);
 
     CHECK(audio.playCalls == 1);
     CHECK(audio.lastName == "sfx_explosion");
