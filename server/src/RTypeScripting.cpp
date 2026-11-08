@@ -20,9 +20,10 @@ namespace {
     using Game::Protocol::EntityKind;
 
     // Players are spawned when a client connects, not by scripts.
-    constexpr std::array<std::pair<std::string_view, EntityKind>, 4>
+    constexpr std::array<std::pair<std::string_view, EntityKind>, 5>
         SPAWNABLE_KINDS = {{
             {"Enemy", EntityKind::Enemy},
+            {"Gunner", EntityKind::Gunner},
             {"PlayerLaser", EntityKind::PlayerLaser},
             {"ChargedBeam", EntityKind::ChargedBeam},
             {"EnemyBullet", EntityKind::EnemyBullet},

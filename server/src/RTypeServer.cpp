@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <optional>
 
 #include "Enemy.h"
 #include "Physics2DBindings.h"
@@ -38,7 +39,25 @@ namespace {
     constexpr float CHARGE_TIME = 1.5f;
     constexpr float LASER_COOLDOWN = 0.15f;
 
-    constexpr int ENEMY_HEALTH = 2;
+    /** @brief Health, hitbox and entity script of an enemy kind. */
+    struct EnemyStats {
+        int health;
+        Vector2 size;
+        const char *script;
+    };
+
+    /** @return The stats of an enemy kind, nothing for other kinds. */
+    std::optional<EnemyStats> enemyStatsOf(EntityKind kind)
+    {
+        switch (kind) {
+            case EntityKind::Enemy:
+                return EnemyStats {2, {70.f, 52.5f}, "bydo.lua"};
+            case EntityKind::Gunner:
+                return EnemyStats {4, {38.5f, 52.5f}, "gunner.lua"};
+            default:
+                return std::nullopt;
+        }
+    }
 
     /** @brief Where a player respawns after losing a life. */
     constexpr Vector2 RESPAWN_POSITION {100.f, SCREEN_HEIGHT / 2.f};
@@ -46,8 +65,6 @@ namespace {
     constexpr float RESPAWN_INVULNERABILITY = 2.f;
     /** @brief Lives are sent again this often: COMPONENT_UPDATE can be lost. */
     constexpr float LIVES_RESEND_INTERVAL = 1.f;
-    /** @brief Entity script of every Bydo, in the script directory. */
-    constexpr const char *ENEMY_SCRIPT = "bydo.lua";
 
     /** @brief A projectile moving in a straight line. */
     struct Projectile {
@@ -314,17 +331,17 @@ void RTypeServer::spawn(const SpawnRequest &request)
     Entity entity = reg.spawnEntity();
 
     reg.addComponent(entity, Transform2D {request.position});
-    if (request.kind == EntityKind::Enemy) {
-        Vector2 size {70.f, 52.5f};
+    if (const auto stats = enemyStatsOf(request.kind)) {
+        const Vector2 size = stats->size;
 
         reg.addComponent(entity, Enemy {request.position.y, 0.f, 0.f});
-        reg.addComponent(entity, Health {ENEMY_HEALTH});
+        reg.addComponent(entity, Health {stats->health});
         reg.addComponent(entity, Hitbox {size});
         reg.addComponent(entity, RType::Physics2D::Rigidbody2D {});
         reg.addComponent(entity,
             RType::Physics2D::BoxCollider2D {size, {}, true, 1, 0xFFFFFFFFu});
         reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
-        reg.addComponent(entity, ScriptComponent {{ENEMY_SCRIPT}});
+        reg.addComponent(entity, ScriptComponent {{stats->script}});
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
         return;

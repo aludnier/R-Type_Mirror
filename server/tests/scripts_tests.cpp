@@ -55,7 +55,8 @@ struct ScriptedGame {
         scripts.update(registry.getComponents<RType::ScriptComponent>());
         for (const auto &request : pending) {
             spawned.push_back(request);
-            if (request.kind != EntityKind::Enemy) {
+            if (request.kind != EntityKind::Enemy &&
+                request.kind != EntityKind::Gunner) {
                 continue;
             }
             RType::Entity entity = registry.spawnEntity();
@@ -64,8 +65,10 @@ struct ScriptedGame {
                 entity, RType::Transform2D {request.position});
             registry.addComponent(
                 entity, RType::Enemy {request.position.y, 0.f, 0.f});
-            registry.addComponent(
-                entity, RType::ScriptComponent {{"bydo.lua"}});
+            registry.addComponent(entity,
+                RType::ScriptComponent {
+                    {request.kind == EntityKind::Gunner ? "gunner.lua"
+                                                        : "bydo.lua"}});
             enemies.push_back(entity);
         }
         pending.clear();
@@ -120,6 +123,31 @@ TEST_CASE(
         CHECK(request.kind == EntityKind::Enemy);
     }
     CHECK(game.spawned.size() == 2);
+    CHECK(game.scripts.lastError().empty());
+}
+
+TEST_CASE("Gunners shoot once on screen", "[server][scripting]")
+{
+    ScriptedGame game;
+    game.scripts.loadConfigFile(SCRIPTS_CONFIG_FILE);
+    REQUIRE(game.scripts.loadString(R"(rtype.spawn("Gunner", 1800, 540))"));
+    game.tick();
+    REQUIRE_FALSE(game.enemies.empty());
+    const RType::Entity gunner = game.enemies.front();
+
+    // 1.5 s between two shots: the first one after six ticks of 0.25 s.
+    std::size_t bullets = 0;
+    for (int i = 0; i < 6; ++i) {
+        game.tick();
+    }
+    for (const auto &request : game.spawned) {
+        if (request.kind == EntityKind::EnemyBullet) {
+            ++bullets;
+            CHECK(request.position.x == Approx(game.position(gunner).x - 25.f));
+        }
+    }
+    CHECK(bullets == 1);
+    CHECK(game.position(gunner).x < 1800.f);
     CHECK(game.scripts.lastError().empty());
 }
 

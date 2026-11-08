@@ -32,6 +32,10 @@ namespace Game {
 // Animation frame data extracted from sprite sheets
 namespace AnimationFrames {
 
+    // Gunner: the robot of the player sheet, facing left (3 frames)
+    const std::vector<RType::Animation::AnimationFrame> gunner = {
+        {238, 30, 22, 30}, {271, 30, 22, 30}, {304, 30, 22, 30}};
+
     // Force pod animation (12 frames)
     const std::vector<RType::Animation::AnimationFrame> forcePod = {
         {1, 2, 16, 12},
@@ -261,6 +265,33 @@ void NetworkSyncSystem::addShipSprite(RType::Entity entity)
     _registry->get().addComponent<RType::Sprite>(entity,
         RType::Sprite(
             asset.id, level.left, level.top, level.width, level.height, 10));
+}
+
+void NetworkSyncSystem::addAnimatedSprite(RType::Entity entity,
+    const std::string &assetName,
+    const std::vector<RType::Animation::AnimationFrame> &frames,
+    float frameTime, int zIndex)
+{
+    if (frames.empty() || !_resources->get().hasAsset(assetName))
+        return;
+    const auto &asset = _resources->get().getAsset(assetName);
+    const auto &first = frames.front();
+
+    _registry->get().addComponent<RType::Sprite>(entity,
+        RType::Sprite(asset.id,
+            first.left,
+            first.top,
+            first.width,
+            first.height,
+            zIndex));
+    auto &animator = _registry->get().addComponent<RType::Animation::Animator>(
+        entity, RType::Animation::Animator {});
+    if (animator) {
+        RType::Animation::AnimationSystem::addClip(*animator,
+            "idle",
+            RType::Animation::AnimationSystem::createClip(frames, frameTime));
+        RType::Animation::AnimationSystem::play(*animator, "idle", true);
+    }
 }
 
 void NetworkSyncSystem::handleAcceptConnect(
@@ -598,6 +629,19 @@ void NetworkSyncSystem::applyEntityKind(
                 } catch (...) {
                 }
             }
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {1.75f, 1.75f};
+            }
+            break;
+        }
+        case Protocol::EntityKind::Gunner: {
+            _registry->get().addComponent<Enemy>(entity, Enemy());
+            if (entityId >= sprites.size() || !sprites[entity].has_value())
+                addAnimatedSprite(
+                    entity, "player_ship", AnimationFrames::gunner, 0.2f, 5);
             auto &transforms =
                 _registry->get().getComponents<RType::Transform2D>();
             if (entityId < transforms.size() &&

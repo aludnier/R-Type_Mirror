@@ -11,8 +11,11 @@
 #include <array>
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <unordered_map>
+#include <vector>
 #include "audio/IAudioPlayer.h"
+#include "components/AnimationClip.h"
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
 #include "library/InputManager.h"
@@ -78,6 +81,11 @@ public:
 
 private:
     struct ServerMessageVisitor;
+
+    /** @brief Adds a looping animated sprite of @p assetName. */
+    void addAnimatedSprite(RType::Entity entity, const std::string &assetName,
+        const std::vector<RType::Animation::AnimationFrame> &frames,
+        float frameTime, int zIndex);
 
     /** @brief Adds the level ship sprite to a player's entity. */
     void addShipSprite(RType::Entity entity);

@@ -22,6 +22,7 @@ target_compile_definitions(r-type_server PRIVATE ENGINE_MODULE_DIR="${ENGINE_MOD
 # Same layout as the sources: config/scripts.json reads ../server/scripts.
 set(SERVER_SCRIPTS
         scripts/bydo.lua
+        scripts/gunner.lua
         scripts/waves.lua
         scripts/collision.lua
         scripts/cleanup.lua
