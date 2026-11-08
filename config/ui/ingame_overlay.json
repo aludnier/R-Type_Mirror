@@ -1,0 +1,105 @@
+{
+  "name": "ingame_overlay",
+  "elements": [
+    {
+      "type": "panel",
+      "id": "dialog",
+      "rect": [
+        0.29,
+        0.34,
+        0.42,
+        0.32
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "title",
+          "rect": [
+            0.05,
+            0.02,
+            0.9,
+            0.1
+          ],
+          "text": "Multiplayer Session Info"
+        },
+        {
+          "type": "text",
+          "id": "clientId",
+          "rect": [
+            0.05,
+            0.16,
+            0.9,
+            0.07
+          ],
+          "text": "Client ID: 0"
+        },
+        {
+          "type": "text",
+          "id": "linkedEntity",
+          "rect": [
+            0.05,
+            0.25,
+            0.9,
+            0.07
+          ],
+          "text": "Linked Entity: 0"
+        },
+        {
+          "type": "text",
+          "id": "serverTick",
+          "rect": [
+            0.05,
+            0.34,
+            0.9,
+            0.07
+          ],
+          "text": "Server Tick: 0"
+        },
+        {
+          "type": "text",
+          "id": "ping",
+          "rect": [
+            0.05,
+            0.43,
+            0.9,
+            0.07
+          ],
+          "text": "Ping: 0 ms"
+        },
+        {
+          "type": "button",
+          "id": "resume",
+          "rect": [
+            0.05,
+            0.58,
+            0.9,
+            0.12
+          ],
+          "text": "Resume Game"
+        },
+        {
+          "type": "button",
+          "id": "disconnect",
+          "rect": [
+            0.05,
+            0.74,
+            0.9,
+            0.12
+          ],
+          "text": "Disconnect & Return to Lobby"
+        },
+        {
+          "type": "text",
+          "id": "hint",
+          "rect": [
+            0.05,
+            0.9,
+            0.9,
+            0.08
+          ],
+          "text": "Press Escape to resume play."
+        }
+      ]
+    }
+  ]
+}

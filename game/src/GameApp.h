@@ -16,7 +16,6 @@
 #include "network/NetworkClient.h"
 #include "scripting/ScriptEngine.h"
 #include "systems/NetworkSyncSystem.h"
-#include "ui/ConnectionDialog.h"
 #include "ui/ImGuiUiRenderer.h"
 #include "ui/UiManager.h"
 
@@ -49,12 +48,17 @@ protected:
 
 private:
     void renderHud();
+    void setupUi();
+    void handleUiClicks();
+    void updateConnectionStatus();
+    void updateInGameOverlay();
 
     void handleKeyPressed(const sf::Event::KeyPressed &keyPressed);
     void handleKeyReleased(const sf::Event::KeyReleased &keyReleased);
 
+    bool _inGameOverlayVisible = false;
+
     NetworkClient _networkClient {};
-    ConnectionDialog _connectionDialog {};
     NetworkSyncSystem _networkSyncSystem {};
     RType::UI::UiManager _uiManager {};
     RType::UI::ImGuiUiRenderer _uiRenderer {};

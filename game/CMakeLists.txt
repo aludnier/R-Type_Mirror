@@ -19,8 +19,6 @@ set(SRC
         src/components/NetworkEntity.h
         src/network/NetworkClient.cpp
         src/network/NetworkClient.h
-        src/ui/ConnectionDialog.cpp
-        src/ui/ConnectionDialog.h
         src/systems/NetworkSyncSystem.cpp
         src/systems/NetworkSyncSystem.h
 )

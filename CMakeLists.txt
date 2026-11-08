@@ -17,6 +17,9 @@ configure_file(config/game_scripts.json ${CMAKE_BINARY_DIR}/config/game_scripts.
 file(GLOB _GAME_SCRIPTS "game/scripts/*.lua")
 file(COPY ${_GAME_SCRIPTS} DESTINATION ${CMAKE_BINARY_DIR}/game/scripts)
 
+file(GLOB _UI_DOCS "config/ui/*.json")
+file(COPY ${_UI_DOCS} DESTINATION ${CMAKE_BINARY_DIR}/config/ui)
+
 add_subdirectory(engine)
 add_subdirectory(game)
 add_subdirectory(server)

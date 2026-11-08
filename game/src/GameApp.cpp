@@ -82,6 +82,9 @@ void GameApp::setupSystems()
         std::cerr << "Failed to load game scripts from " << scriptsPath
                   << std::endl;
     }
+
+    // Set up UI documents
+    setupUi();
 }
 
 void GameApp::spawnInitialEntities()
@@ -114,7 +117,7 @@ void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
 {
     if (key.code == sf::Keyboard::Key::Escape &&
         _screenState == ScreenState::Game)
-        _connectionDialog.toggleVisible();
+        _inGameOverlayVisible = !_inGameOverlayVisible;
     else if (!ImGui::GetIO().WantCaptureKeyboard)
         getInputManager().setKeyState(static_cast<int>(key.code), true);
 }
@@ -130,21 +133,16 @@ void GameApp::updateGame(float dt)
     auto &window = getWindow();
     ImGui::SFML::Update(window, sf::seconds(dt));
     _uiRenderer.render(_uiManager, getAssetManager(), window);
-    const auto size = window.getSize();
-    if (_screenState == ScreenState::Connection)
-        _connectionDialog.renderScreen(_networkClient,
-            static_cast<float>(size.x),
-            static_cast<float>(size.y));
-    else
-        _connectionDialog.renderInGameOverlay(_networkClient,
-            static_cast<float>(size.x),
-            static_cast<float>(size.y));
+    handleUiClicks();
     auto &registry = getRegistry();
     if (_screenState == ScreenState::Connection) {
         _networkClient.update(dt);
+        updateConnectionStatus();
         if (_networkClient.isConnected()) {
             _screenState = ScreenState::Game;
-            _connectionDialog.setVisible(false);
+            _uiManager.hide("connection");
+            _uiManager.hide("ingame_overlay");
+            _inGameOverlayVisible = false;
         }
         registry.runSystems();
         return;
@@ -152,9 +150,17 @@ void GameApp::updateGame(float dt)
     if (!_networkClient.isConnected()) {
         _networkSyncSystem.reset();
         _screenState = ScreenState::Connection;
-        _connectionDialog.setVisible(true);
+        _uiManager.show("connection");
+        _uiManager.hide("ingame_overlay");
+        _inGameOverlayVisible = false;
         return;
     }
+    // Show/hide in-game overlay based on Escape key state
+    if (_inGameOverlayVisible)
+        _uiManager.show("ingame_overlay");
+    else
+        _uiManager.hide("ingame_overlay");
+    updateInGameOverlay();
     auto &controllables = registry.getComponents<RType::Controllable>();
     auto &networkEntities = registry.getComponents<NetworkEntity>();
     const auto actions = getInputManager().actionMask();
@@ -182,6 +188,88 @@ void GameApp::renderGame()
     // Render HUD elements
     renderHud();
     ImGui::SFML::Render(getWindow());
+}
+
+void GameApp::setupUi()
+{
+    auto uiPath = _configuration.path().parent_path() / "ui";
+    _uiManager.load("connection", uiPath / "connection.json");
+    _uiManager.load("ingame_overlay", uiPath / "ingame_overlay.json");
+    _uiManager.show("connection");
+    _uiManager.hide("ingame_overlay");
+
+    // Connection screen: connect button
+    _uiManager.onClick("connection/connect", [this]() {
+        std::string host = _uiManager.getText("connection/host");
+        std::string portStr = _uiManager.getText("connection/port");
+        std::string playerName = _uiManager.getText("connection/playerName");
+        int port = 4242;
+        try {
+            port = std::stoi(portStr);
+        } catch (...) {
+        }
+        if (port < 1)
+            port = 1;
+        if (port > 65535)
+            port = 65535;
+        _networkClient.connect(
+            host, static_cast<std::uint16_t>(port), playerName);
+    });
+
+    // In-game overlay: resume button
+    _uiManager.onClick("ingame_overlay/resume", [this]() {
+        _inGameOverlayVisible = false;
+        _uiManager.hide("ingame_overlay");
+    });
+
+    // In-game overlay: disconnect button
+    _uiManager.onClick("ingame_overlay/disconnect", [this]() {
+        _networkClient.disconnect();
+        _inGameOverlayVisible = false;
+        _uiManager.hide("ingame_overlay");
+    });
+}
+
+void GameApp::handleUiClicks()
+{
+    // Clicks are already processed by ImGuiUiRenderer via _uiManager.click()
+    // This method is reserved for any additional click handling logic
+}
+
+void GameApp::updateConnectionStatus()
+{
+    auto status = _networkClient.getStatus();
+    if (status == NetworkClient::ConnectionStatus::Connecting) {
+        std::string host = _uiManager.getText("connection/host");
+        std::string portStr = _uiManager.getText("connection/port");
+        _uiManager.setText("connection/status",
+            "Connecting to " + host + ":" + portStr + "...");
+    } else if (status == NetworkClient::ConnectionStatus::ConnectionFailed) {
+        std::string error = _networkClient.getLastError();
+        _uiManager.setText("connection/status",
+            "Connection Failed!" + (error.empty() ? "" : " (" + error + ")"));
+    } else if (status ==
+        NetworkClient::ConnectionStatus::DisconnectedByServer) {
+        std::string reason = _networkClient.getLastError();
+        _uiManager.setText("connection/status",
+            "Disconnected from server." +
+                (reason.empty() ? "" : " (" + reason + ")"));
+    } else {
+        _uiManager.setText("connection/status", "");
+    }
+}
+
+void GameApp::updateInGameOverlay()
+{
+    _uiManager.setText("ingame_overlay/clientId",
+        "Client ID: " + std::to_string(_networkClient.getClientId()));
+    _uiManager.setText("ingame_overlay/linkedEntity",
+        "Linked Entity: " + std::to_string(_networkClient.getLinkedEntity()));
+    _uiManager.setText("ingame_overlay/serverTick",
+        "Server Tick: " + std::to_string(_networkClient.getServerTick()) +
+            " (Rate: " + std::to_string(_networkClient.getTickRate()) + " Hz)");
+    _uiManager.setText("ingame_overlay/ping",
+        "Ping: " + std::to_string(_networkClient.getPingMs()) + " ms");
 }
 
 void GameApp::renderHud()
