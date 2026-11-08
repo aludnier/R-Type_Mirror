@@ -66,6 +66,16 @@ private:
     void warmUpFont();
     /** @brief Shows the energy in front of the local ship while it charges. */
     void updateChargeEffect();
+    /** @brief Creates the window again with the size or mode chosen. */
+    void createWindow();
+    void initImGui();
+    /** @brief Recreates the window between two frames if asked. */
+    void applyWindowChange();
+    /** @brief Letterboxed view of the 1920x1080 world, for any window. */
+    void updateView();
+    void changeVolume(RType::AudioChannel channel, float step);
+    /** @brief Shows the window size and volumes in the Escape menu. */
+    void updateSettingsText();
     void setupUi();
     void handleUiClicks();
     void updateConnectionStatus();
@@ -85,6 +95,11 @@ private:
     bool _reconnect = false;
     bool _fontWarmedUp = false;
     std::optional<RType::Entity> _chargeEffect;
+    std::size_t _windowSize = 0;
+    bool _fullscreen = false;
+    bool _windowChanged = false;
+    bool _muted = false;
+    std::optional<sf::Cursor> _arrowCursor;
 
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};

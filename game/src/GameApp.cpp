@@ -8,6 +8,7 @@
 #include "GameApp.h"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstdio>
 #include <imgui.h>
@@ -51,6 +52,17 @@ namespace {
     /** @brief The boss's health bar, at the top of the screen. */
     constexpr float BOSS_BAR_TOP = 52.f;
     constexpr float BOSS_BAR_HEIGHT = 14.f;
+    /** @brief Size of the game world: the view shows all of it. */
+    constexpr float WORLD_WIDTH = 1920.f;
+    constexpr float WORLD_HEIGHT = 1080.f;
+    /** @brief Window sizes of F10 and the Escape menu, the first by default. */
+    constexpr std::array<std::pair<unsigned, unsigned>, 3> WINDOW_SIZES = {{
+        {1280, 720},
+        {1600, 900},
+        {1920, 1080},
+    }};
+    /** @brief Volume change of a - or + button. */
+    constexpr float VOLUME_STEP = 0.1f;
     /** @brief Volume of the music loop, from 0 to 1. */
     constexpr float MUSIC_VOLUME = 0.45f;
     /** @brief Width and height of the ImGui font texture, in pixels. */
@@ -179,6 +191,8 @@ void GameApp::handleEvent(const sf::Event &event)
         ImGui::SFML::ProcessEvent(getWindow(), event);
     if (event.is<sf::Event::Closed>()) {
         RType::Game::GameApp::handleEvent(event);
+    } else if (event.is<sf::Event::Resized>()) {
+        updateView();
     } else if (const auto *keyPressed = event.getIf<sf::Event::KeyPressed>()) {
         handleKeyPressed(*keyPressed);
     } else if (const auto *keyReleased =
@@ -189,6 +203,21 @@ void GameApp::handleEvent(const sf::Event &event)
 
 void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
 {
+    if (key.code == sf::Keyboard::Key::F11) {
+        _fullscreen = !_fullscreen;
+        _windowChanged = true;
+        updateSettingsText();
+    } else if (key.code == sf::Keyboard::Key::F10) {
+        _windowSize = (_windowSize + 1) % WINDOW_SIZES.size();
+        _fullscreen = false;
+        _windowChanged = true;
+        updateSettingsText();
+    } else if (key.code == sf::Keyboard::Key::M) {
+        _muted = !_muted;
+        getAudioManager().setVolume(
+            RType::AudioChannel::Master, _muted ? 0.f : 1.f);
+        updateSettingsText();
+    }
     if (key.code == sf::Keyboard::Key::Enter && _networkSyncSystem.isGameOver())
         playAgain();
     else if (key.code == sf::Keyboard::Key::Escape &&
@@ -208,6 +237,7 @@ void GameApp::handleKeyReleased(const sf::Event::KeyReleased &key)
 
 void GameApp::updateGame(float dt)
 {
+    applyWindowChange();
     auto &window = getWindow();
     ImGui::SFML::Update(window, sf::seconds(dt));
     warmUpFont();
@@ -338,6 +368,28 @@ void GameApp::setupUi()
     _uiManager.hide("banner");
     _uiManager.onClick("game_over/play_again", [this]() { playAgain(); });
     _uiManager.onClick("game_over/quit", [this]() { close(); });
+
+    // In-game overlay: settings
+    _uiManager.onClick("ingame_overlay/window_size", [this]() {
+        _windowSize = (_windowSize + 1) % WINDOW_SIZES.size();
+        _fullscreen = false;
+        _windowChanged = true;
+        updateSettingsText();
+    });
+    _uiManager.onClick("ingame_overlay/fullscreen", [this]() {
+        _fullscreen = !_fullscreen;
+        _windowChanged = true;
+        updateSettingsText();
+    });
+    _uiManager.onClick("ingame_overlay/music_down",
+        [this]() { changeVolume(RType::AudioChannel::Music, -VOLUME_STEP); });
+    _uiManager.onClick("ingame_overlay/music_up",
+        [this]() { changeVolume(RType::AudioChannel::Music, VOLUME_STEP); });
+    _uiManager.onClick("ingame_overlay/sounds_down",
+        [this]() { changeVolume(RType::AudioChannel::Sound, -VOLUME_STEP); });
+    _uiManager.onClick("ingame_overlay/sounds_up",
+        [this]() { changeVolume(RType::AudioChannel::Sound, VOLUME_STEP); });
+    updateSettingsText();
 
     // In-game overlay: resume button
     _uiManager.onClick("ingame_overlay/resume", [this]() {
@@ -531,10 +583,9 @@ void GameApp::renderHealthBars()
                     static_cast<float>(healths[*boss]->max),
                 0.f,
                 1.f);
-        const float width = static_cast<float>(window.getSize().x) * 0.5f;
+        const float width = WORLD_WIDTH * 0.5f;
         drawBar(window,
-            {(static_cast<float>(window.getSize().x) - width) / 2.f,
-                BOSS_BAR_TOP},
+            {(WORLD_WIDTH - width) / 2.f, BOSS_BAR_TOP},
             {width, BOSS_BAR_HEIGHT},
             ratio);
     }
@@ -605,6 +656,31 @@ void GameApp::renderHud()
 
 void GameApp::onWindowCreated()
 {
+    // Resizable, and small enough for most screens: the game world stays
+    // 1920x1080 whatever the size (see updateView()).
+    createWindow();
+    initImGui();
+}
+
+void GameApp::createWindow()
+{
+    auto &window = getWindow();
+    const auto [width, height] = WINDOW_SIZES.at(_windowSize);
+
+    if (_fullscreen)
+        window.create(sf::VideoMode::getDesktopMode(),
+            "R-Type",
+            sf::Style::Default,
+            sf::State::Fullscreen);
+    else
+        window.create(
+            sf::VideoMode({width, height}), "R-Type", sf::Style::Default);
+    window.setFramerateLimit(60);
+    updateView();
+}
+
+void GameApp::initImGui()
+{
     // ImGui bakes the glyphs when they are first drawn. ImGui-SFML garbles
     // the glyphs added once the font texture has to grow, so start with a
     // texture big enough for every glyph (see warmUpFont()).
@@ -615,6 +691,73 @@ void GameApp::onWindowCreated()
     ImGui::GetIO().Fonts->TexMinWidth = FONT_TEXTURE_SIZE;
     ImGui::GetIO().Fonts->TexMinHeight = FONT_TEXTURE_SIZE;
     ImGui::GetIO().Fonts->AddFontDefault();
+    _fontWarmedUp = false;
+}
+
+void GameApp::applyWindowChange()
+{
+    if (!_windowChanged)
+        return;
+    _windowChanged = false;
+    // ImGui-SFML keeps state per window: shut it down before the window is
+    // created again, then start it on the new one. The window keeps using
+    // the last cursor it was given, so give it one that outlives ImGui's.
+    if (!_arrowCursor)
+        _arrowCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow);
+    if (_arrowCursor)
+        getWindow().setMouseCursor(*_arrowCursor);
+    ImGui::SFML::Shutdown(getWindow());
+    createWindow();
+    initImGui();
+}
+
+void GameApp::updateView()
+{
+    auto &window = getWindow();
+    const sf::Vector2f size(window.getSize());
+    const float worldRatio = WORLD_WIDTH / WORLD_HEIGHT;
+    const float windowRatio = size.x / size.y;
+    sf::FloatRect viewport({0.f, 0.f}, {1.f, 1.f});
+
+    // Black bars on the sides or at the top and bottom: the whole
+    // 1920x1080 world stays visible and keeps its proportions.
+    if (windowRatio > worldRatio) {
+        viewport.size.x = worldRatio / windowRatio;
+        viewport.position.x = (1.f - viewport.size.x) / 2.f;
+    } else {
+        viewport.size.y = windowRatio / worldRatio;
+        viewport.position.y = (1.f - viewport.size.y) / 2.f;
+    }
+    sf::View view(sf::FloatRect({0.f, 0.f}, {WORLD_WIDTH, WORLD_HEIGHT}));
+    view.setViewport(viewport);
+    window.setView(view);
+}
+
+void GameApp::changeVolume(RType::AudioChannel channel, float step)
+{
+    auto &audio = getAudioManager();
+    audio.setVolume(
+        channel, std::clamp(audio.getVolume(channel) + step, 0.f, 1.f));
+    updateSettingsText();
+}
+
+void GameApp::updateSettingsText()
+{
+    auto &audio = getAudioManager();
+    const auto [width, height] = WINDOW_SIZES.at(_windowSize);
+    const auto percent = [&](RType::AudioChannel channel) {
+        return std::to_string(std::lround(audio.getVolume(channel) * 100.f)) +
+            "%";
+    };
+
+    _uiManager.setText("ingame_overlay/window",
+        "Window: " + std::to_string(width) + "x" + std::to_string(height) +
+            ", full screen " + (_fullscreen ? "on" : "off"));
+    _uiManager.setText("ingame_overlay/music",
+        "Music: " + percent(RType::AudioChannel::Music));
+    _uiManager.setText("ingame_overlay/sounds",
+        "Sounds: " + percent(RType::AudioChannel::Sound) +
+            (_muted ? " (muted)" : ""));
 }
 
 void GameApp::onShutdown()
