@@ -2,7 +2,7 @@
 -- projectiles and their targets (enemies or players).
 
 world.add_system("collision_resolution", function(dt)
-    world.each({"CollisionEvents2D", "Transform2D"}, function(e, events, transform)
+    world.each({"CollisionEvents2D"}, function(e, events)
         for _, event in ipairs(events.events) do
             if event.kind ~= CollisionKind.Enter then
                 return

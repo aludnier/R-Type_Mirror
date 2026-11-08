@@ -23,6 +23,7 @@
 #include "components/Projectile.h"
 #include "components/Transform2D.h"
 #include "ecs/Zipper.h"
+#include "library/NlohmanReader.h"
 #include "scripting/GameBindings.h"
 #include "scripting/ScriptEngine.h"
 #include "scripting/ScriptSystem.h"
@@ -80,11 +81,23 @@ void GameApp::setupSystems()
         _scripts->defineAction(name, action);
     RType::addScriptSystem(registry, *_scripts);
 
-    // Load game scripts
+    // Load game scripts individually so one failure doesn't block the rest
     auto scriptsPath =
         _configuration.path().parent_path() / "game_scripts.json";
     try {
-        _scripts->loadConfigFile(scriptsPath);
+        RType::nlohamReader reader(scriptsPath);
+        std::filesystem::path directory =
+            reader.get<std::string>("directory", ".");
+        if (directory.is_relative())
+            directory = scriptsPath.parent_path() / directory;
+        _scripts->setScriptDirectory(directory);
+        for (const auto &script :
+            reader.get<std::vector<std::string>>("scripts", {})) {
+            if (!_scripts->loadFile(directory / script)) {
+                std::cerr << "[GameApp] script warning: "
+                          << _scripts->lastError() << std::endl;
+            }
+        }
     } catch (...) {
         std::cerr << "Failed to load game scripts from " << scriptsPath
                   << std::endl;
@@ -125,13 +138,15 @@ void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
     if (key.code == sf::Keyboard::Key::Escape &&
         _screenState == ScreenState::Game)
         _inGameOverlayVisible = !_inGameOverlayVisible;
-    else if (!ImGui::GetIO().WantCaptureKeyboard)
+    else if (_screenState == ScreenState::Game ||
+        !ImGui::GetIO().WantCaptureKeyboard)
         getInputManager().setKeyState(static_cast<int>(key.code), true);
 }
 
 void GameApp::handleKeyReleased(const sf::Event::KeyReleased &key)
 {
-    if (!ImGui::GetIO().WantCaptureKeyboard)
+    if (_screenState == ScreenState::Game ||
+        !ImGui::GetIO().WantCaptureKeyboard)
         getInputManager().setKeyState(static_cast<int>(key.code), false);
 }
 
