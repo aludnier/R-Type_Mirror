@@ -14,6 +14,7 @@
 #include "Physics2DBindings.h"
 #include "RTypeScripting.h"
 #include "components/BoxCollider2D.h"
+#include "components/CollisionEvents2D.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
@@ -234,8 +235,10 @@ void RTypeServer::spawn(const SpawnRequest &request)
         reg.addComponent(entity, Enemy {request.position.y, 0.f, 0.f});
         reg.addComponent(entity, Health {ENEMY_HEALTH});
         reg.addComponent(entity, Hitbox {size});
+        reg.addComponent(entity, RType::Physics2D::Rigidbody2D {});
         reg.addComponent(entity,
             RType::Physics2D::BoxCollider2D {size, {}, true, 1, 0xFFFFFFFFu});
+        reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
         reg.addComponent(entity, ScriptComponent {{ENEMY_SCRIPT}});
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
@@ -261,6 +264,7 @@ void RTypeServer::spawn(const SpawnRequest &request)
     }
     reg.addComponent(entity,
         RType::Physics2D::BoxCollider2D {hitbox, {}, true, 1, 0xFFFFFFFFu});
+    reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
     // Straight line: the clients move it themselves from its PHYSICS.
     replicateEntity(entity,
         {encodeKind(request.kind), encodePhysics(velocity, hitbox)},

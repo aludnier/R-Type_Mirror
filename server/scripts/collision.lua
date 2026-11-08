@@ -12,7 +12,7 @@ world.add_system("server_collision_resolution", function(dt)
     world.each({"CollisionEvents2D"}, function(e, events)
         for _, event in ipairs(events.events) do
             if event.kind ~= CollisionKind.Enter then
-                return
+                goto continue
             end
             local other = event.other
             local proj = world.get(e, "Projectile")
@@ -21,7 +21,7 @@ world.add_system("server_collision_resolution", function(dt)
             local otherControllable = world.get(other, "Controllable")
 
             if not proj then
-                return
+                goto continue
             end
 
             -- Player bullet hits enemy
@@ -39,6 +39,7 @@ world.add_system("server_collision_resolution", function(dt)
                     world.kill(e)
                 end
             end
+            ::continue::
         end
     end)
 end)
