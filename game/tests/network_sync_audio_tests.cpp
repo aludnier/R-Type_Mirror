@@ -93,8 +93,8 @@ TEST_CASE("NetworkSyncSystem forwards PLAY_SOUND when audio is available",
         RType::Network::PlaySoundMsgPacket {
             .assetName = "sfx_explosion", .volume = 0.35f, .pitch = 1.4f}};
 
-    sync.processServerMessages(
-        messages, registry, assets, RType::Network::NO_ENTITY, &audio);
+    sync.init(registry, assets);
+    sync.processServerMessages(messages, RType::Network::NO_ENTITY, &audio);
 
     CHECK(audio.playCalls == 1);
     CHECK(audio.lastName == "sfx_explosion");
@@ -113,8 +113,8 @@ TEST_CASE("NetworkSyncSystem ignores PLAY_SOUND when audio is unavailable",
     std::vector<Game::NetworkClient::ServerMessage> messages {
         RType::Network::PlaySoundMsgPacket {.assetName = "sfx_explosion"}};
 
-    sync.processServerMessages(
-        messages, registry, assets, RType::Network::NO_ENTITY, nullptr);
+    sync.init(registry, assets);
+    sync.processServerMessages(messages, RType::Network::NO_ENTITY, nullptr);
 
     CHECK(audio.playCalls == 0);
 }

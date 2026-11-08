@@ -428,13 +428,23 @@ layout. It also gives the bits of the CONTROLLABLE `actions` (for example,
 bit 0: up, bit 4: shoot), the coordinate system and units used by POSITION,
 and how a `ClientId` maps to a player color.
 
-| Id       | Name        | Layout                 |
-|----------|-------------|------------------------|
-| `0x8000` | ENTITY_KIND | `kind: u8` (see below) |
+| Id       | Name         | Layout                 |
+|----------|--------------|------------------------|
+| `0x8000` | ENTITY_KIND  | `kind: u8` (see below) |
+| `0x8001` | PLAYER_LIVES | `lives: u8`            |
+| `0x8002` | ENEMY_HEALTH | `current: u16, max: u16` |
+| `0x8003` | TEAM_SCORE   | `score: u32`           |
 
 ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
 An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy (Bydo), `2` player laser, `3` charged beam
-(wave cannon), `4` enemy bullet.
+(wave cannon), `4` enemy bullet, `5` gunner (an enemy that shoots), `6`
+boss, `7` power-up (a pickup that gives the double shot to the player who
+touches it), `8` walker (an enemy that walks on the ground).
+
+The ground: its top is at `y = 960`, and it scrolls to the left at 120
+pixels per second. Walkers stay on it, and enemies that fly are spawned
+above it. The server keeps each player's ship (56 x 24 pixels) inside the
+play area and above the ground.
 A client ignores an unknown value.
 
 Enemies and projectiles also carry PHYSICS in their ENTITY_SPAWN, with their
@@ -447,3 +457,30 @@ POSITION is in pixels, in a 1920x1080 play area, and its origin is at the top-le
 CONTROLLABLE `actions`: bit 0 up, bit 1 down, bit 2 left, bit 3 right,
 bit 4 shoot. The server fires when the shoot bit goes from 1 to 0: a laser,
 or a charged beam if it was held for 1.5 s or more.
+
+PLAYER_LIVES is sent in COMPONENT_UPDATE for each player's entity: when it
+joins (3 lives), each time it loses a life, and again every second, since
+COMPONENT_UPDATE is not reliable. A player loses a life when an enemy or an
+enemy bullet touches it; it then respawns at (100, 540) and takes no hit for
+2 s. When its last life is lost, the server despawns its entity with
+ENTITY_DESPAWN: the client shows the game is over, and the session stays
+open. To play again, the client sends ASK_DISCONNECT and then ASK_CONNECT:
+the server gives the new session a new ship with 3 lives. When no player is
+left, the game goes back to level 1.
+
+Levels: each level sends enemies for 45 s, then a boss. The boss only
+leaves when it is shot down: when its ENTITY_DESPAWN arrives, the next level
+starts, with more and faster enemies. The client counts the levels this way
+to show "LEVEL n" and "BOSS"; no message announces them.
+
+ENEMY_HEALTH is sent in COMPONENT_UPDATE for an enemy each time its health
+changes, and for every enemy once per second. The client draws a health bar
+above the enemies that were hit, and the boss's at the top of the screen.
+TEAM_SCORE is the score of all the players together: 50 points per health
+point of each enemy shot down. It is sent on each player's entity when it
+changes and once per second, and goes back to 0 when no player is left.
+
+Player colors: the client tints each player's ship by `ClientId`. Client 1
+keeps the colors of the sprite, then client 2 is orange (`#E69F00`), client
+3 yellow (`#F0E442`) and client 4 purple (`#CC79A7`), colors that stay
+distinct for the common types of color blindness.

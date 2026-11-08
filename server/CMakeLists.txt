@@ -4,6 +4,8 @@
 add_executable(r-type_server
         src/main.cpp
         src/Enemy.h
+        src/PlayerLives.cpp
+        src/PlayerLives.h
         src/RTypeScripting.cpp
         src/RTypeScripting.h
         src/RTypeServer.cpp
@@ -20,7 +22,12 @@ target_compile_definitions(r-type_server PRIVATE ENGINE_MODULE_DIR="${ENGINE_MOD
 # Same layout as the sources: config/scripts.json reads ../server/scripts.
 set(SERVER_SCRIPTS
         scripts/bydo.lua
+        scripts/gunner.lua
+        scripts/boss.lua
+        scripts/walker.lua
         scripts/waves.lua
+        scripts/collision.lua
+        scripts/cleanup.lua
 )
 foreach(script IN LISTS SERVER_SCRIPTS)
     configure_file(${script} ${CMAKE_CURRENT_BINARY_DIR}/${script} COPYONLY)
@@ -31,6 +38,8 @@ if (BUILD_TESTS)
 
     add_executable(r-type_server_tests
             tests/scripts_tests.cpp
+            tests/player_lives_tests.cpp
+            src/PlayerLives.cpp
             src/RTypeScripting.cpp
     )
 

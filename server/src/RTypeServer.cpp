@@ -7,16 +7,22 @@
 
 #include "RTypeServer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <unordered_set>
+#include <optional>
+#include <ranges>
+#include <string>
 
 #include "Enemy.h"
 #include "Physics2DBindings.h"
 #include "RTypeScripting.h"
+#include "components/BoxCollider2D.h"
+#include "components/CollisionEvents2D.h"
 #include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
+#include "components/Rigidbody2D.h"
 #include "components/Transform2D.h"
 #include "ecs/SparseArray.h"
 #include "network/ByteWriter.h"
@@ -31,15 +37,54 @@ namespace {
     // Appendix B).
     constexpr float SCREEN_WIDTH = 1920.f;
     constexpr float SCREEN_HEIGHT = 1080.f;
-    /** @brief Margin past the screen edges before an entity is removed. */
-    constexpr float OUT_OF_BOUNDS_MARGIN = 100.f;
 
     constexpr float CHARGE_TIME = 1.5f;
     constexpr float LASER_COOLDOWN = 0.15f;
 
-    constexpr int ENEMY_HEALTH = 2;
-    /** @brief Entity script of every Bydo, in the script directory. */
-    constexpr const char *ENEMY_SCRIPT = "bydo.lua";
+    /** @brief Health, hitbox and entity script of an enemy kind. */
+    struct EnemyStats {
+        int health;
+        Vector2 size;
+        const char *script;
+    };
+
+    /** @return The stats of an enemy kind, nothing for other kinds. */
+    std::optional<EnemyStats> enemyStatsOf(EntityKind kind)
+    {
+        switch (kind) {
+            case EntityKind::Enemy:
+                return EnemyStats {2, {70.f, 52.5f}, "bydo.lua"};
+            case EntityKind::Gunner:
+                return EnemyStats {4, {38.5f, 52.5f}, "gunner.lua"};
+            case EntityKind::Walker:
+                return EnemyStats {3, {56.f, 42.f}, "walker.lua"};
+            // boss.lua scales its health with the level.
+            case EntityKind::Boss:
+                return EnemyStats {60, {160.f, 120.f}, "boss.lua"};
+            default:
+                return std::nullopt;
+        }
+    }
+
+    /** @brief Where a player respawns after losing a life. */
+    constexpr Vector2 RESPAWN_POSITION {100.f, SCREEN_HEIGHT / 2.f};
+    /** @brief Seconds without taking hits after a respawn. */
+    constexpr float RESPAWN_INVULNERABILITY = 2.f;
+    /** @brief Lives are sent again this often: COMPONENT_UPDATE can be lost. */
+    constexpr float LIVES_RESEND_INTERVAL = 1.f;
+
+    /** @brief Half the distance between the two lasers of the double shot. */
+    constexpr float DOUBLE_SHOT_GAP = 12.f;
+    /** @brief A PowerUp drifts left, slower than the scrolling enemies. */
+    constexpr Vector2 POWER_UP_VELOCITY {-120.f, 0.f};
+    constexpr Vector2 POWER_UP_SIZE {36.f, 28.f};
+
+    // Volumes of the sounds the server plays, from 0 to 1: the lasers are
+    // frequent, so they are quieter.
+    constexpr float LASER_VOLUME = 0.35f;
+    constexpr float CHARGED_VOLUME = 0.6f;
+    constexpr float HIT_VOLUME = 0.8f;
+    constexpr float POWER_UP_VOLUME = 0.7f;
 
     /** @brief A projectile moving in a straight line. */
     struct Projectile {
@@ -61,17 +106,42 @@ namespace {
     {
         switch (kind) {
             case EntityKind::ChargedBeam:
-                return {{900.f, 0.f}, {48.f, 24.f}, 5, true};
+                return {{900.f, 0.f}, {42.f, 21.f}, 5, true};
             case EntityKind::EnemyBullet:
-                return {{-450.f, 0.f}, {12.f, 12.f}, 1, false};
+                return {{-450.f, 0.f}, {21.f, 21.f}, 1, false};
             default:
-                return {{700.f, 0.f}, {16.f, 8.f}, 1, false};
+                return {{700.f, 0.f}, {28.f, 14.f}, 1, false};
         }
     }
 
     bool isShooting(ActionMask actionMask)
     {
         return (actionMask & (ActionMask {1} << Action::Shoot)) != 0;
+    }
+
+    Network::ComponentData encodeLives(std::uint8_t lives)
+    {
+        Network::ByteWriter writer;
+
+        writer.write(lives);
+        return {Game::Protocol::PLAYER_LIVES, writer.release()};
+    }
+
+    Network::ComponentData encodeHealth(const Health &health)
+    {
+        Network::ByteWriter writer;
+
+        writer.write(static_cast<std::uint16_t>(std::max(health.current, 0)));
+        writer.write(static_cast<std::uint16_t>(std::max(health.max, 0)));
+        return {Game::Protocol::ENEMY_HEALTH, writer.release()};
+    }
+
+    Network::ComponentData encodeScore(std::uint32_t score)
+    {
+        Network::ByteWriter writer;
+
+        writer.write(score);
+        return {Game::Protocol::TEAM_SCORE, writer.release()};
     }
 
     Network::ComponentData encodeKind(EntityKind kind)
@@ -97,13 +167,6 @@ namespace {
             writer.release()};
     }
 
-    bool overlap(const Vector2 &posA, const Vector2 &sizeA, const Vector2 &posB,
-        const Vector2 &sizeB)
-    {
-        return std::abs(posA.x - posB.x) * 2.f < sizeA.x + sizeB.x &&
-            std::abs(posA.y - posB.y) * 2.f < sizeA.y + sizeB.y;
-    }
-
     template<class C>
     bool has(const SparseArray<C> &storage, std::size_t entity)
     {
@@ -112,13 +175,17 @@ namespace {
 } // namespace
 
 RTypeServer::RTypeServer(const ServerConfig &config) :
-    GameServer(config), _scripts(registry())
+    GameServer(config),
+    _lives(Game::Protocol::PLAYER_START_LIVES, RESPAWN_INVULNERABILITY),
+    _scripts(registry())
 {
     setup(ENGINE_MODULE_DIR "/../config/scripts.json");
 }
 
 RTypeServer::RTypeServer(const Configuration &configuration) :
-    GameServer(configuration), _scripts(registry())
+    GameServer(configuration),
+    _lives(Game::Protocol::PLAYER_START_LIVES, RESPAWN_INVULNERABILITY),
+    _scripts(registry())
 {
     // Next to the game configuration.
     setup(configuration.path().parent_path() / "scripts.json");
@@ -130,8 +197,28 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
 
     reg.registerComponent<Projectile>();
     reg.registerComponent<Enemy>();
+    reg.registerComponent<Boss>();
+    reg.registerComponent<PowerUp>();
     reg.registerComponent<Health>();
     reg.registerComponent<Hitbox>();
+    // Ensure player entities (marked Controllable) have a collider so
+    // enemy bullets can collide with them.
+    if (isModuleLoaded(Physics2D::MODULE_NAME)) {
+        reg.addSystem<Controllable, Transform2D, Physics2D::BoxCollider2D>(
+            [](auto &controllables, auto &transforms, auto &colliders) {
+                for (std::size_t i = 0; i < controllables.size(); ++i) {
+                    if (controllables[i] && !colliders[i] && transforms[i]) {
+                        colliders[i] = Physics2D::BoxCollider2D {
+                            {Game::Protocol::PLAYER_WIDTH,
+                                Game::Protocol::PLAYER_HEIGHT},
+                            {},
+                            true,
+                            1,
+                            0xFFFFFFFFu};
+                    }
+                }
+            });
+    }
     // Runs after the engine's systems: players have moved this tick.
     reg.addSystem<Transform2D>([this](auto &) { step(); });
 
@@ -150,20 +237,158 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     // Spawned at the end of the tick, like the projectiles.
     bindRTypeScripting(_scripts,
         {SCREEN_WIDTH, SCREEN_HEIGHT},
-        [this](EntityKind kind, Vector2 position) {
-            _pendingSpawns.push_back({kind, position});
+        [this](EntityKind kind,
+            Vector2 position,
+            std::optional<Vector2>
+                velocity) {
+            _pendingSpawns.push_back({kind, position, velocity});
         });
+    // Projectile is in an anonymous namespace, so bind it here.
+    _scripts.lua().new_usertype<Projectile>("Projectile",
+        sol::constructors<Projectile>(),
+        "velocity",
+        &Projectile::velocity,
+        "damage",
+        &Projectile::damage,
+        "is_player_bullet",
+        &Projectile::fromPlayer,
+        "is_charged_beam",
+        &Projectile::piercing);
+    _scripts.bindComponent<Projectile>("Projectile");
+    // For the collision script: an enemy or its bullet hit a player.
+    _scripts.lua()["rtype"]["hit_player"] = [this](std::size_t entity) {
+        hitPlayer(entity);
+    };
+    _scripts.lua()["rtype"]["power_up"] = [this](std::size_t entity) {
+        givePowerUp(entity);
+    };
+    // For the collision script: the team scores points.
+    _scripts.lua()["rtype"]["add_score"] = [this](int points) {
+        _score += static_cast<std::uint32_t>(std::max(points, 0));
+    };
+    // Plays a sound asset on every client (PLAY_SOUND).
+    _scripts.lua()["rtype"]["play_sound"] =
+        [this](const std::string &name, std::optional<float> volume) {
+            playSound(name, volume.value_or(1.f));
+        };
     _scripts.loadConfigFile(scriptsConfig);
 }
 
 void RTypeServer::step()
 {
+    updatePlayers();
     updateWeapons();
     runScripts();
-    moveProjectiles();
-    resolveHits();
-    cleanupOutOfBounds();
+    sendEnemyHealth();
+    sendScore(false);
     flushSpawns();
+}
+
+void RTypeServer::updatePlayers()
+{
+    const auto &controllables = registry().getComponents<Controllable>();
+    auto &transforms = registry().getComponents<Transform2D>();
+    float dt = tickDelta();
+
+    _lives.forgetIf(
+        [&](std::size_t entity) { return !has(controllables, entity); });
+    _lives.update(dt);
+    for (std::size_t i = 0; i < controllables.size(); ++i) {
+        if (!controllables[i]) {
+            continue;
+        }
+        if (_lives.track(i)) {
+            sendLives(i, _lives.lives(i));
+        }
+        // Players stay on screen and above the ground.
+        if (has(transforms, i)) {
+            transforms[i]->position =
+                Game::Protocol::clampToPlayArea(transforms[i]->position);
+        }
+    }
+    // Without players the game goes back to level 1: so does the score.
+    if (_lives.all().empty()) {
+        _score = 0;
+    }
+    _livesResend -= dt;
+    if (_livesResend <= 0.f) {
+        _livesResend = LIVES_RESEND_INTERVAL;
+        for (const auto &[entity, lives] : _lives.all()) {
+            sendLives(entity, lives);
+        }
+        sendScore(true);
+        // Health too, for the players who joined since (and lost packets).
+        _sentHealth.clear();
+    }
+}
+
+void RTypeServer::hitPlayer(std::size_t entity)
+{
+    auto &transforms = registry().getComponents<Transform2D>();
+    const PlayerLives::Hit hit = _lives.hit(entity);
+
+    if (hit == PlayerLives::Hit::Ignored) {
+        return;
+    }
+    sendLives(entity, _lives.lives(entity));
+    playSound("sfx_hit", HIT_VOLUME);
+    if (hit == PlayerLives::Hit::Out) {
+        // The session stays: the player watches the others play.
+        despawnEntity(Registry::entityFromIndex(entity));
+        return;
+    }
+    _weapons.erase(entity);
+    if (has(transforms, entity)) {
+        transforms[entity]->position = RESPAWN_POSITION;
+    }
+}
+
+void RTypeServer::sendScore(bool force)
+{
+    if (!force && _score == _sentScore) {
+        return;
+    }
+    _sentScore = _score;
+    for (const auto &entity : _lives.all() | std::views::keys) {
+        sendComponents(
+            Registry::entityFromIndex(entity), {encodeScore(_score)});
+    }
+}
+
+void RTypeServer::sendEnemyHealth()
+{
+    auto &enemies = registry().getComponents<Enemy>();
+    auto &healths = registry().getComponents<Health>();
+
+    std::erase_if(_sentHealth, [&](const auto &pair) {
+        return !has(enemies, pair.first) || !has(healths, pair.first);
+    });
+    for (std::size_t i = 0; i < enemies.size(); ++i) {
+        if (!enemies[i] || !has(healths, i)) {
+            continue;
+        }
+        const std::pair<int, int> health {healths[i]->current, healths[i]->max};
+        auto [it, added] = _sentHealth.try_emplace(i, health);
+        if (!added && it->second == health) {
+            continue;
+        }
+        it->second = health;
+        sendComponents(
+            Registry::entityFromIndex(i), {encodeHealth(*healths[i])});
+    }
+}
+
+void RTypeServer::givePowerUp(std::size_t entity)
+{
+    if (has(registry().getComponents<Controllable>(), entity)) {
+        _weapons[entity].doubleShot = true;
+        playSound("sfx_powerup", POWER_UP_VOLUME);
+    }
+}
+
+void RTypeServer::sendLives(std::size_t entity, std::uint8_t lives)
+{
+    sendComponents(Registry::entityFromIndex(entity), {encodeLives(lives)});
 }
 
 void RTypeServer::updateWeapons()
@@ -179,7 +404,7 @@ void RTypeServer::updateWeapons()
         if (!controllables[i] || !has(transforms, i)) {
             continue;
         }
-        auto &[wasShooting, chargeTime, cooldown] = _weapons[i];
+        auto &[wasShooting, chargeTime, cooldown, doubleShot] = _weapons[i];
         bool shooting = isShooting(controllables[i]->actionMask);
         Vector2 position = transforms[i]->position;
 
@@ -192,9 +417,18 @@ void RTypeServer::updateWeapons()
             if (chargeTime >= CHARGE_TIME) {
                 _pendingSpawns.push_back(
                     {EntityKind::ChargedBeam, {position.x + 35.f, position.y}});
+                playSound("sfx_charged", CHARGED_VOLUME);
+            } else if (cooldown <= 0.f && doubleShot) {
+                _pendingSpawns.push_back({EntityKind::PlayerLaser,
+                    {position.x + 25.f, position.y - DOUBLE_SHOT_GAP}});
+                _pendingSpawns.push_back({EntityKind::PlayerLaser,
+                    {position.x + 25.f, position.y + DOUBLE_SHOT_GAP}});
+                playSound("sfx_laser", LASER_VOLUME);
+                cooldown = LASER_COOLDOWN;
             } else if (cooldown <= 0.f) {
                 _pendingSpawns.push_back(
                     {EntityKind::PlayerLaser, {position.x + 25.f, position.y}});
+                playSound("sfx_laser", LASER_VOLUME);
                 cooldown = LASER_COOLDOWN;
             }
             chargeTime = 0.f;
@@ -209,93 +443,6 @@ void RTypeServer::runScripts()
     // A script error is printed by the engine and only disables that
     // script: the game goes on.
     _scripts.update(registry().getComponents<ScriptComponent>());
-}
-
-void RTypeServer::moveProjectiles()
-{
-    auto &transforms = registry().getComponents<Transform2D>();
-    const auto &projectiles = registry().getComponents<Projectile>();
-    float dt = tickDelta();
-
-    for (std::size_t i = 0; i < projectiles.size(); ++i) {
-        if (projectiles[i] && has(transforms, i)) {
-            transforms[i]->position += projectiles[i]->velocity * dt;
-        }
-    }
-}
-
-void RTypeServer::resolveHits()
-{
-    const auto &transforms = registry().getComponents<Transform2D>();
-    const auto &hitboxes = registry().getComponents<Hitbox>();
-    const auto &projectiles = registry().getComponents<Projectile>();
-    const auto &enemies = registry().getComponents<Enemy>();
-    const auto &controllables = registry().getComponents<Controllable>();
-    auto &healths = registry().getComponents<Health>();
-    // Killed entities keep their components until the end of the tick.
-    std::unordered_set<std::size_t> destroyed;
-
-    for (std::size_t p = 0; p < projectiles.size(); ++p) {
-        if (!projectiles[p] || !has(transforms, p) || !has(hitboxes, p)) {
-            continue;
-        }
-        const Projectile &projectile = *projectiles[p];
-
-        for (std::size_t t = 0; t < transforms.size(); ++t) {
-            if (destroyed.contains(p)) {
-                break;
-            }
-            if (t == p || destroyed.contains(t) || !transforms[t]) {
-                continue;
-            }
-            bool isTarget =
-                projectile.fromPlayer ? has(enemies, t) : has(controllables, t);
-            // Players have no Hitbox component: the size of the ship.
-            Vector2 targetSize =
-                has(hitboxes, t) ? hitboxes[t]->size : Vector2 {40.f, 20.f};
-
-            if (!isTarget ||
-                !overlap(transforms[p]->position,
-                    hitboxes[p]->size,
-                    transforms[t]->position,
-                    targetSize)) {
-                continue;
-            }
-            if (!projectile.piercing) {
-                destroyed.insert(p);
-                destroy(p);
-            }
-            // Players do not lose lives yet: the bullet just vanishes.
-            if (projectile.fromPlayer && has(healths, t)) {
-                healths[t]->takeDamage(projectile.damage);
-                if (healths[t]->isDead()) {
-                    destroyed.insert(t);
-                    destroy(t);
-                }
-            }
-        }
-    }
-}
-
-void RTypeServer::cleanupOutOfBounds()
-{
-    const auto &transforms = registry().getComponents<Transform2D>();
-    const auto &projectiles = registry().getComponents<Projectile>();
-    const auto &enemies = registry().getComponents<Enemy>();
-
-    for (std::size_t i = 0; i < transforms.size(); ++i) {
-        if (!transforms[i] || (!has(projectiles, i) && !has(enemies, i))) {
-            continue;
-        }
-        const Vector2 &pos = transforms[i]->position;
-
-        if (pos.x < -OUT_OF_BOUNDS_MARGIN ||
-            pos.x > SCREEN_WIDTH + OUT_OF_BOUNDS_MARGIN ||
-            pos.y < -OUT_OF_BOUNDS_MARGIN ||
-            pos.y > SCREEN_HEIGHT + OUT_OF_BOUNDS_MARGIN) {
-            destroy(i);
-        }
-    }
 }
 
 void RTypeServer::flushSpawns()
@@ -314,18 +461,47 @@ void RTypeServer::spawn(const SpawnRequest &request)
     Entity entity = reg.spawnEntity();
 
     reg.addComponent(entity, Transform2D {request.position});
-    if (request.kind == EntityKind::Enemy) {
-        Vector2 size {40.f, 30.f};
+    if (const auto stats = enemyStatsOf(request.kind)) {
+        const Vector2 size = stats->size;
 
         reg.addComponent(entity, Enemy {request.position.y, 0.f, 0.f});
-        reg.addComponent(entity, Health {ENEMY_HEALTH});
+        reg.addComponent(entity, Health {stats->health});
         reg.addComponent(entity, Hitbox {size});
-        reg.addComponent(entity, ScriptComponent {{ENEMY_SCRIPT}});
+        reg.addComponent(entity, RType::Physics2D::Rigidbody2D {});
+        reg.addComponent(entity,
+            RType::Physics2D::BoxCollider2D {size, {}, true, 1, 0xFFFFFFFFu});
+        reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
+        reg.addComponent(entity, ScriptComponent {{stats->script}});
+        if (request.kind == EntityKind::Boss) {
+            reg.addComponent(entity, Boss {});
+        }
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
         return;
     }
+    if (request.kind == EntityKind::PowerUp) {
+        RType::Physics2D::Rigidbody2D body;
+
+        body.velocity = POWER_UP_VELOCITY;
+        body.gravityScale = 0.f;
+        reg.addComponent(entity, PowerUp {});
+        reg.addComponent(entity, Hitbox {POWER_UP_SIZE});
+        reg.addComponent(entity, Physics2D::Rigidbody2D {body});
+        reg.addComponent(entity,
+            RType::Physics2D::BoxCollider2D {
+                POWER_UP_SIZE, {}, true, 1, 0xFFFFFFFFu});
+        reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
+        replicateEntity(entity,
+            {encodeKind(request.kind),
+                encodePhysics(POWER_UP_VELOCITY, POWER_UP_SIZE)},
+            true);
+        return;
+    }
     auto [velocity, hitbox, damage, piercing] = statsOf(request.kind);
+
+    if (request.velocity) {
+        velocity = *request.velocity;
+    }
 
     reg.addComponent(entity,
         Projectile {velocity,
@@ -333,6 +509,19 @@ void RTypeServer::spawn(const SpawnRequest &request)
             request.kind != EntityKind::EnemyBullet,
             piercing});
     reg.addComponent(entity, Hitbox {hitbox});
+    {
+        RType::Physics2D::Rigidbody2D body;
+        body.velocity = velocity;
+        body.mass = 1.f;
+        body.drag = 0.f;
+        body.gravityScale = 0.f;
+        body.isKinematic = false;
+        body.isStatic = false;
+        reg.addComponent(entity, Physics2D::Rigidbody2D {body});
+    }
+    reg.addComponent(entity,
+        RType::Physics2D::BoxCollider2D {hitbox, {}, true, 1, 0xFFFFFFFFu});
+    reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
     // Straight line: the clients move it themselves from its PHYSICS.
     replicateEntity(entity,
         {encodeKind(request.kind), encodePhysics(velocity, hitbox)},

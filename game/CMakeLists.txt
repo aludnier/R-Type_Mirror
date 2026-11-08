@@ -19,24 +19,10 @@ set(SRC
         src/components/NetworkEntity.h
         src/network/NetworkClient.cpp
         src/network/NetworkClient.h
-        src/ui/ConnectionDialog.cpp
-        src/ui/ConnectionDialog.h
-        src/systems/EnemyAISystem.cpp
-        src/systems/EnemyAISystem.h
-        src/systems/ForcePodSystem.cpp
-        src/systems/ForcePodSystem.h
-        src/systems/PlayerWeaponSystem.cpp
-        src/systems/PlayerWeaponSystem.h
-        src/systems/CollisionSystem.cpp
-        src/systems/CollisionSystem.h
-        src/systems/BoundaryCleanupSystem.cpp
-        src/systems/BoundaryCleanupSystem.h
-        src/systems/GameRenderSystem.cpp
-        src/systems/GameRenderSystem.h
-        src/systems/AudioSystem.cpp
-        src/systems/AudioSystem.h
         src/systems/NetworkSyncSystem.cpp
         src/systems/NetworkSyncSystem.h
+        src/systems/ShipTiltSystem.cpp
+        src/systems/ShipTiltSystem.h
 )
 
 add_executable(r-type_client ${SRC})
@@ -44,12 +30,12 @@ target_include_directories(r-type_client PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 add_dependencies(r-type_client physics2d_module environment2d_module
-        sfml_assets_module)
+        sfml_assets_module animation2d_module)
 target_compile_definitions(r-type_client PRIVATE
         ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}"
         GAME_ASSET_MODULE_PATH="$<TARGET_FILE:sfml_assets_module>")
-target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::environment2d SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
-target_link_libraries(r-type_client PRIVATE Eng::sfml_assets)
+target_link_libraries(r-type_client PRIVATE Eng::client Eng::physics2d Eng::physics2d_scripting Eng::environment2d Eng::scripting SFML::Graphics SFML::Window SFML::Audio SFML::System ImGui-SFML::ImGui-SFML)
+target_link_libraries(r-type_client PRIVATE Eng::sfml_assets r-type_game_scripting Eng::animation2d)
 
 # Lua bindings of the game components (Game::bindGameComponents), for the
 # hosts that script the game. No graphics dependency.
@@ -80,16 +66,19 @@ if (BUILD_TESTS)
 
     add_executable(game_network_tests
             tests/network_sync_audio_tests.cpp
+            tests/network_sync_players_tests.cpp
             src/components/Enemy.cpp
             src/components/Player.cpp
             src/components/Projectile.cpp
             src/network/NetworkClient.cpp
             src/systems/NetworkSyncSystem.cpp
+            src/systems/ShipTiltSystem.cpp
+            tests/ship_tilt_tests.cpp
     )
     target_include_directories(game_network_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src)
     target_link_libraries(game_network_tests PRIVATE
-            Eng::core Eng::physics2d Catch2::Catch2WithMain)
+            Eng::core Eng::physics2d Eng::animation2d Catch2::Catch2WithMain)
     add_test(NAME game_network_tests COMMAND game_network_tests)
 endif ()
 

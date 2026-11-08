@@ -13,7 +13,9 @@ target_compile_definitions(tower_defense PRIVATE
         ENGINE_MODULE_DIR="${ENGINE_MODULE_DIR}"
         TOWER_DEFENSE_ROOT="${CMAKE_SOURCE_DIR}"
 )
-add_dependencies(tower_defense physics2d_module environment2d_module)
+# The plugins of config/game.json, loaded at run time.
+add_dependencies(tower_defense physics2d_module environment2d_module
+        animation2d_module)
 set_target_properties(tower_defense PROPERTIES
         RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/game"
 )

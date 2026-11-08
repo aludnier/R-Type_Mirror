@@ -1,0 +1,28 @@
+{
+  "name": "banner",
+  "elements": [
+    {
+      "type": "panel",
+      "id": "panel",
+      "rect": [
+        0.42,
+        0.2,
+        0.16,
+        0.07
+      ],
+      "children": [
+        {
+          "type": "text",
+          "id": "text",
+          "rect": [
+            0.1,
+            0.2,
+            0.8,
+            0.6
+          ],
+          "text": "LEVEL 1"
+        }
+      ]
+    }
+  ]
+}

@@ -8,11 +8,20 @@
 #ifndef GAME_NETWORKSYNCSYSTEM_H
 #define GAME_NETWORKSYNCSYSTEM_H
 
+#include <array>
+#include <chrono>
+#include <cstdint>
+#include <optional>
+#include <string>
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 #include "audio/IAudioPlayer.h"
+#include "components/AnimationClip.h"
 #include "ecs/Registry.h"
 #include "library/AssetManager.h"
 #include "library/InputManager.h"
+#include "math/Vector2.h"
 #include "network/ByteReader.h"
 #include "network/NetworkClient.h"
 
@@ -29,22 +38,27 @@ public:
     ~NetworkSyncSystem() = default;
 
     /**
+     * @brief Initializes the system with references to shared resources.
+     * @param registry The client ECS registry.
+     * @param resources The resource manager holding game assets.
+     */
+    void init(RType::Registry &registry, AssetManager &resources);
+
+    /**
      * @brief Updates network client, sends local predicted inputs, and
      * replicates server state.
-     * @param registry The client ECS registry.
      * @param input The input manager capturing player inputs.
-     * @param resources The resource manager holding game assets.
      * @param client The network client managing the connection.
+     * @param audio Optional audio player for sound effects.
      */
-    void syncWithServer(RType::Registry &registry, const InputManager &input,
-        AssetManager &resources, NetworkClient &client,
+    void syncWithServer(const InputManager &input, NetworkClient &client,
         RType::IAudioPlayer *audio = nullptr);
 
     /**
      * @brief Clears all replicated entities and resets network mappings on
      * disconnect.
      */
-    void reset(RType::Registry &registry);
+    void reset();
 
     /**
      * @brief Finds the local ECS entity associated with a given NetworkId.
@@ -54,52 +68,100 @@ public:
 
     void processServerMessages(
         const std::vector<NetworkClient::ServerMessage> &messages,
-        RType::Registry &registry, AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity,
         RType::IAudioPlayer *audio = nullptr);
+
+    /**
+     * @brief Tint of a player's ship, from its client id: white (no tint),
+     *        orange, yellow and purple, which stay distinct for the common
+     *        types of colour blindness.
+     */
+    [[nodiscard]] static std::array<std::uint8_t, 3> playerTint(
+        RType::Network::ClientId clientId);
+
+    /** @return Whether the server despawned the local player's ship. */
+    [[nodiscard]] bool isGameOver() const;
+
+    /**
+     * @return Text to show for a while ("LEVEL 2", "BOSS") since the last
+     *         call, if any: a level starts when the player joins and each
+     *         time a boss is shot down.
+     */
+    [[nodiscard]] std::optional<std::string> takeBanner();
+
+    /** @return The score of the team, sent by the server. */
+    [[nodiscard]] std::uint32_t score() const;
+
+    /** @return The entity of the boss, if one is on screen. */
+    [[nodiscard]] std::optional<RType::Entity> bossEntity() const;
 
 private:
     struct ServerMessageVisitor;
 
-    void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet,
-        RType::Registry &registry, const AssetManager &resources);
+    /** @brief Adds a looping animated sprite of @p assetName. */
+    void addAnimatedSprite(RType::Entity entity, const std::string &assetName,
+        const std::vector<RType::Animation::AnimationFrame> &frames,
+        float frameTime, int zIndex);
+
+    /** @brief Plays an explosion at @p position, removed once it ends. */
+    void spawnExplosion(RType::Vector2 position);
+    void removeOldExplosions();
+
+    /** @brief Adds the level ship sprite to a player's entity. */
+    void addShipSprite(RType::Entity entity);
+
+    /** @brief Gives each player's sprite the tint of its client id. */
+    void applyPlayerColors();
+
+    void handleAcceptConnect(const RType::Network::AcceptConnectPacket &packet);
 
     void handlePlayerConnected(
         const RType::Network::PlayerConnectedPacket &packet,
-        RType::Registry &registry, const AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
     void handlePlayerDisconnected(
-        const RType::Network::PlayerDisconnectedPacket &packet,
-        RType::Registry &registry);
+        const RType::Network::PlayerDisconnectedPacket &packet);
 
     void handleEntitySpawn(const RType::Network::EntitySpawnPacket &packet,
-        RType::Registry &registry, const AssetManager &resources,
         RType::Network::NetworkId localLinkedEntity);
 
-    void handleEntityDespawn(const RType::Network::EntityDespawnPacket &packet,
-        RType::Registry &registry);
+    void handleEntityDespawn(const RType::Network::EntityDespawnPacket &packet);
 
     void handleComponentUpdate(
         const RType::Network::ComponentUpdatePacket &packet,
-        RType::Registry &registry, RType::Network::NetworkId localLinkedEntity);
+        RType::Network::NetworkId localLinkedEntity);
 
-    static void applyComponentData(RType::Entity entity,
-        const RType::Network::ComponentData &compData,
-        RType::Registry &registry, bool isLocalPlayer);
+    void applyComponentData(RType::Entity entity,
+        const RType::Network::ComponentData &compData, bool isLocalPlayer);
 
     /** @brief Adds the game component matching an ENTITY_KIND component. */
-    static void applyEntityKind(RType::Entity entity,
-        RType::Network::ByteReader &reader, RType::Registry &registry);
+    void applyEntityKind(
+        RType::Entity entity, RType::Network::ByteReader &reader);
 
     static void sendLocalPlayerInput(
         const InputManager &input, NetworkClient &client);
 
-    std::unordered_map<RType::Network::NetworkId, std::size_t> _networkToEntity;
-    std::unordered_map<std::size_t, RType::Network::NetworkId> _entityToNetwork;
+    std::optional<std::reference_wrapper<RType::Registry>> _registry =
+        std::nullopt;
+    std::optional<std::reference_wrapper<AssetManager>> _resources =
+        std::nullopt;
+
+    std::unordered_map<RType::Network::NetworkId, std::size_t>
+        _networkToEntity {};
+    std::unordered_map<std::size_t, RType::Network::NetworkId>
+        _entityToNetwork {};
     std::unordered_map<RType::Network::ClientId, RType::Network::NetworkId>
-        _clientToNetwork;
+        _clientToNetwork {};
     bool _wasConnected = false;
+    RType::Network::NetworkId _localNetworkId = RType::Network::NO_ENTITY;
+    bool _gameOver = false;
+    std::unordered_set<RType::Network::NetworkId> _bosses {};
+    int _level = 1;
+    std::uint32_t _score = 0;
+    std::optional<std::string> _banner {};
+    /** @brief Explosion entities, and when to remove them. */
+    std::vector<std::pair<std::size_t, std::chrono::steady_clock::time_point>>
+        _explosions {};
 };
 
 } // namespace Game

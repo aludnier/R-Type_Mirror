@@ -1,0 +1,277 @@
+{
+  "entities": [
+    {
+      "name": "Background_Nebula",
+      "components": {
+        "Transform2D": {
+          "position": [
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "Sprite": {
+          "assetId": "bg_nebula",
+          "rectLeft": 0,
+          "rectTop": 0,
+          "rectWidth": 0,
+          "rectHeight": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255,
+          "zIndex": 0
+        },
+        "ParallaxBackground": {
+          "scrollSpeed": 10.0,
+          "resetX": -1920.0,
+          "startX": 1920.0
+        }
+      }
+    },
+    {
+      "name": "Background_Stars",
+      "components": {
+        "Transform2D": {
+          "position": [
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "Sprite": {
+          "assetId": "bg_space_stars",
+          "rectLeft": 0,
+          "rectTop": 0,
+          "rectWidth": 0,
+          "rectHeight": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255,
+          "zIndex": 1
+        },
+        "ParallaxBackground": {
+          "scrollSpeed": 30.0,
+          "resetX": -1920.0,
+          "startX": 1920.0
+        }
+      }
+    },
+    {
+      "name": "Music",
+      "components": {
+        "Transform2D": {
+          "position": [
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "MusicPlayer": {
+          "assetId": "bgm_stage1",
+          "loop": true,
+          "volume": 0.5
+        }
+      }
+    },
+    {
+      "name": "Player",
+      "components": {
+        "Transform2D": {
+          "position": [
+            100,
+            300
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "Sprite": {
+          "assetId": "player_ship",
+          "rectLeft": 0,
+          "rectTop": 0,
+          "rectWidth": 0,
+          "rectHeight": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255,
+          "zIndex": 10
+        },
+        "Health": {
+          "current": 10,
+          "max": 10
+        },
+        "Controllable": {},
+        "Rigidbody2D": {
+          "velocity": [
+            0,
+            0
+          ],
+          "mass": 1.0,
+          "drag": 0.0,
+          "gravityScale": 0.0,
+          "isKinematic": false,
+          "isStatic": false
+        },
+        "BoxCollider2D": {
+          "size": [
+            32,
+            24
+          ],
+          "offset": [
+            0,
+            0
+          ],
+          "isTrigger": false,
+          "layer": 1,
+          "mask": 4294967295
+        },
+        "Hitbox": {
+          "size": [
+            32,
+            24
+          ]
+        },
+        "Script": {
+          "scripts": [
+            "player_weapon.lua"
+          ]
+        }
+      }
+    },
+    {
+      "name": "ForcePod",
+      "components": {
+        "Transform2D": {
+          "position": [
+            60,
+            300
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "Sprite": {
+          "assetId": "force_pod",
+          "rectLeft": 0,
+          "rectTop": 0,
+          "rectWidth": 0,
+          "rectHeight": 0,
+          "originX": 0.5,
+          "originY": 0.5,
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255,
+          "zIndex": 11
+        },
+        "Health": {
+          "current": 5,
+          "max": 5
+        },
+        "Rigidbody2D": {
+          "velocity": [
+            0,
+            0
+          ],
+          "mass": 1.0,
+          "drag": 0.0,
+          "gravityScale": 0.0,
+          "isKinematic": false,
+          "isStatic": false
+        },
+        "CircleCollider2D": {
+          "radius": 8.0,
+          "offset": [
+            0,
+            0
+          ],
+          "isTrigger": false,
+          "layer": 1,
+          "mask": 4294967295
+        },
+        "Hitbox": {
+          "size": [
+            16,
+            16
+          ]
+        },
+        "Script": {
+          "scripts": [
+            "forcepod.lua"
+          ]
+        }
+      }
+    },
+    {
+      "name": "PhysicsSettings",
+      "components": {
+        "Transform2D": {
+          "position": [
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "PhysicsSettings2D": {
+          "gravity": [
+            0,
+            0
+          ],
+          "dt": 0.0166667,
+          "bounciness": 0.0
+        }
+      }
+    },
+    {
+      "name": "GameScripts",
+      "components": {
+        "Transform2D": {
+          "position": [
+            0,
+            0
+          ],
+          "scale": [
+            1,
+            1
+          ],
+          "rotation": 0
+        },
+        "Script": {
+          "scripts": [
+            "collision.lua",
+            "cleanup.lua"
+          ]
+        }
+      }
+    }
+  ]
+}

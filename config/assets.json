@@ -20,12 +20,28 @@
             "path": "assets/sprites/wave_cannon.png",
             "type": "Texture"
         },
+        "enemy_bullet": {
+            "path": "assets/sprites/enemy_bullet.png",
+            "type": "Texture"
+        },
         "bg_space_stars": {
             "path": "assets/backgrounds/space_stars.png",
             "type": "Texture"
         },
         "bg_nebula": {
             "path": "assets/backgrounds/nebula.png",
+            "type": "Texture"
+        },
+        "bg_stars_far": {
+            "path": "assets/backgrounds/stars_far.png",
+            "type": "Texture"
+        },
+        "bg_stars_near": {
+            "path": "assets/backgrounds/stars_near.png",
+            "type": "Texture"
+        },
+        "bg_ground": {
+            "path": "assets/backgrounds/ground.png",
             "type": "Texture"
         },
         "sfx_laser": {
@@ -36,8 +52,24 @@
             "path": "assets/audio/explosion.wav",
             "type": "Sound"
         },
+        "sfx_charged": {
+            "path": "assets/audio/charged.wav",
+            "type": "Sound"
+        },
+        "sfx_hit": {
+            "path": "assets/audio/hit.wav",
+            "type": "Sound"
+        },
+        "sfx_powerup": {
+            "path": "assets/audio/powerup.wav",
+            "type": "Sound"
+        },
+        "sfx_boss": {
+            "path": "assets/audio/boss.wav",
+            "type": "Sound"
+        },
         "bgm_stage1": {
-            "path": "assets/audio/stage1.ogg",
+            "path": "assets/audio/stage1.wav",
             "type": "Music"
         }
     }

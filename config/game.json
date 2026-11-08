@@ -1,9 +1,13 @@
 {
-    "name": "R-Type",
-    "plugin_directory": "../modules",
-    "plugins": ["physics2d", "environment2d"],
-    "port": 4242,
-    "max_players": 4,
-    "tick_rate": 60,
-    "player_speed": 300.0
+  "name": "R-Type",
+  "plugin_directory": "../modules",
+  "plugins": [
+    "physics2d",
+    "environment2d",
+    "animation"
+  ],
+  "port": 4242,
+  "max_players": 4,
+  "tick_rate": 60,
+  "player_speed": 300.0
 }

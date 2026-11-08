@@ -9,11 +9,15 @@
 #define RTYPESERVER_H
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
 #include "GameProtocol.h"
+#include "PlayerLives.h"
+#include "components/Rigidbody2D.h"
 #include "math/Vector2.h"
 #include "scripting/ScriptEngine.h"
 #include "server/GameServer.h"
@@ -37,6 +41,8 @@ private:
     struct SpawnRequest {
         Game::Protocol::EntityKind kind {};
         Vector2 position;
+        /** @brief Velocity of a projectile, instead of its default one. */
+        std::optional<Vector2> velocity;
     };
 
     /** @brief Shooting state of a player, kept between ticks. */
@@ -44,6 +50,8 @@ private:
         bool wasShooting = false;
         float chargeTime = 0.f;
         float cooldown = 0.f;
+        /** @brief Fires two lasers, until the player loses a life. */
+        bool doubleShot = false;
     };
 
     /**
@@ -54,12 +62,29 @@ private:
     void setup(const std::filesystem::path &scriptsConfig);
 
     void step();
+    /**
+     * @brief Tracks the players that joined or left, counts down their
+     *        invulnerability and sends their lives again every second.
+     */
+    void updatePlayers();
     void updateWeapons();
+
+    /**
+     * @brief A player is hit: it loses a life and respawns, invulnerable
+     *        for a while; without lives left its ship is despawned.
+     * @note Does nothing for an entity that is not a player, or while the
+     *       player is invulnerable.
+     */
+    void hitPlayer(std::size_t entity);
+    void sendLives(std::size_t entity, std::uint8_t lives);
+    /** @brief Sends the score to every player, if @p force or it changed. */
+    void sendScore(bool force);
+    /** @brief Sends the health of the enemies that changed this tick. */
+    void sendEnemyHealth();
+    /** @brief A player took a PowerUp: it gets the double shot. */
+    void givePowerUp(std::size_t entity);
     /** @brief Runs the game scripts, then the script of each entity. */
     void runScripts();
-    void moveProjectiles();
-    void resolveHits();
-    void cleanupOutOfBounds();
 
     /** @brief Spawns and replicates the requests queued this tick. */
     void flushSpawns();
@@ -68,6 +93,13 @@ private:
 
     std::vector<SpawnRequest> _pendingSpawns;
     std::unordered_map<std::size_t, Weapon> _weapons;
+    PlayerLives _lives;
+    float _livesResend = 0.f;
+    /** @brief Score of the team, from the enemies shot down. */
+    std::uint32_t _score = 0;
+    std::uint32_t _sentScore = 0;
+    /** @brief Health last sent for each enemy: current and max. */
+    std::unordered_map<std::size_t, std::pair<int, int>> _sentHealth;
     // Member of the derived class: destroyed before the registry.
     ScriptEngine _scripts;
 };

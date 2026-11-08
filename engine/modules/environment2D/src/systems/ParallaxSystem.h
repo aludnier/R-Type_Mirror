@@ -25,8 +25,10 @@ inline void addParallaxSystem(Registry &registry, float dt)
         [dt](auto &transforms, auto &backgrounds) {
             for (auto [transform, bg] : Zipper(transforms, backgrounds)) {
                 transform.position.x -= bg.scrollSpeed * dt;
+                // Moved by the whole loop, not set to startX: two tiles
+                // side by side stay joined without a gap.
                 if (transform.position.x <= bg.resetX) {
-                    transform.position.x = bg.startX;
+                    transform.position.x += bg.startX - bg.resetX;
                 }
             }
         });

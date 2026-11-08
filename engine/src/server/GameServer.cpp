@@ -375,6 +375,17 @@ void GameServer::despawnEntity(Entity entity)
     }
 }
 
+void GameServer::sendComponents(
+    Entity entity, std::vector<Network::ComponentData> components)
+{
+    auto it = std::ranges::find(
+        _replicated, entity, [](const auto &pair) { return pair.second; });
+
+    if (it != _replicated.end()) {
+        sendComponentUpdate({{it->first, std::move(components)}});
+    }
+}
+
 void GameServer::despawn(Network::NetworkId networkId)
 {
     auto it = _replicated.find(networkId);

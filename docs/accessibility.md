@@ -17,7 +17,7 @@ Each point is marked:
 |---|---|---|
 | Actions instead of keys | Done | The game never reads a key directly. It reads actions (`MoveUp`, `MoveDown`, `MoveLeft`, `MoveRight`, `Shoot`), and each action can be bound to several keys (`InputManager::bind`). Anything that produces key events, such as an adapted keyboard, a one-hand keyboard or a switch interface that emulates keys, can play |
 | Two layouts by default | Done | The client binds both the arrow keys and WASD to movement, and Space to shoot, so a player can use the left or the right hand |
-| Remappable bindings | Partial | The [editor](editor.md#key-bindings-input-panel)'s Input panel lists the actions, binds the next key pressed, unbinds keys and saves them to a JSON file (`{"bindings": {"MoveUp": [<key code>, ...]}}`) that `InputManager::loadActions` reads. A game made with the engine can load this file. The R-Type client does not load one yet: its keys are fixed in its code. Next step: load a bindings file next to the client and show the bindings in the pause menu |
+| Remappable bindings | Done | The R-Type client reads its keys from `config/inputs.json` (`{"bindings": {"MoveUp": [<key code>, ...]}}`, SFML key codes), so a player can change them without rebuilding. The [editor](editor.md#key-bindings-input-panel)'s Input panel edits and saves the same format for games made with the engine (GLFW key codes). Next step: show and change the bindings from the pause menu |
 | No key mashing to charge | Done | The charged shot (wave cannon) is done by holding the fire key and releasing it, not by pressing it fast |
 | Auto-fire | Planned | A normal shot needs one press and one release per shot. An option that fires while the key is held would help players who cannot tap quickly |
 | Gamepad | Planned | Only keyboard events are turned into actions. Since the game works with actions, adding gamepad buttons and sticks means adding inputs in `InputManager`, without touching the game |
@@ -28,14 +28,14 @@ Each point is marked:
 
 | Feature | Status | Details |
 |---|---|---|
-| Playable without sound | Done | Every game event is visible: ships, enemies, shots, the charge of the wave cannon (a glow that grows in front of the ship). No information is given by sound only |
-| Subtitles and visual cues for sounds | Planned | The engine plays sounds and music (`AudioManager`), and the server can ask the clients to play a sound with `PLAY_SOUND`, but the R-Type server does not send any sound yet. Each important sound (enemy wave, hit, death) must also get a visual cue or a subtitle |
+| Playable without sound | Done | Every game event is visible: ships, enemies, shots, the charge of the wave cannon (a bar in the bottom-left corner). No information is given by sound only |
+| Visual cues for sounds | Done | The server plays a sound for each shot, explosion, hit, power-up and the boss's arrival, and each one has a visual cue: the shot itself, the enemy disappearing, the lives in the HUD going down, the ship respawning, the "BOSS" banner. The music has no information. Next step: optional subtitles for the sounds |
 | Volume per channel | Partial | `AudioManager::setVolume` sets the master, music and sound effect volumes separately, so a player can lower the music and keep the effects. The client has no menu for it yet |
-| Contrast | Done | The background is almost black (`#0A0A19`). Players are blue, enemies are red, the force pod is orange, and every ship has a light outline, so shapes stay visible on the background |
-| Shapes, not only colours | Done | Players, enemies and the force pod have different shapes, so a colour-blind player can tell them apart |
-| Distinguish the four players | Planned | All player ships have the same colour today. Each player should have a colour from a colour-blind safe set (for example blue, orange, yellow and white, which stay distinct for the three common types of colour blindness) and a number above the ship |
-| Colour-blind friendly palette | Partial | Blue against red/orange is readable for most colour-blind players, but red and orange (enemies and force pod) can look alike for protanopia and deuteranopia; the shapes and outlines are what make them different today |
-| Text size | Planned | Menus use the default ImGui font. An option to scale the font (`ImGuiIO::FontGlobalScale`) would help players with low vision |
+| Contrast | Done | The background is almost black (`#0A0A19`) and the sprites are bright, so ships, enemies and shots stay visible |
+| Shapes, not only colours | Done | Players, enemies, the force pod and each kind of shot have their own sprite, so a colour-blind player can tell them apart by shape |
+| Distinguish the four players | Done | Each ship is tinted by client id with Okabe-Ito colours, which stay distinct for the common types of colour blindness: player 1 keeps the original colours, then orange, yellow and purple. Next step: a number above each ship |
+| Colour-blind friendly palette | Partial | The player tints are colour-blind safe. The enemy and shot sprites keep the colours of the original game; their shapes are what make them different |
+| Text size | Partial | The menus use the default ImGui font at twice its size. An option to choose the scale would help more players with low vision |
 | Screen reader | Not planned | Neither SFML nor ImGui exposes the UI to screen readers. The connection dialog is the only text input; it is short and the default values (`127.0.0.1`, port `4242`) work for a local game |
 | Flashing | Done | The game has no flashing effects or fast light changes, which can trigger photosensitive epilepsy |
 
@@ -63,11 +63,10 @@ Each point is marked:
 
 ## 5. Next steps, by priority
 
-1. Give each player a colour from a colour-blind safe set and a number
-   (also needed by the subject: the four players must be distinguishable).
-2. Load the client's key bindings from a JSON file and show them in the menu.
+1. Show a number above each ship, in addition to its colour.
+2. Show and change the key bindings from the pause menu.
 3. Add an auto-fire option.
-4. Add visual cues or subtitles for every sound the server sends, and a
-   volume menu (master, music, effects).
+4. Add optional subtitles for the sounds, and a volume menu (master,
+   music, effects).
 5. Add a font scale option to the menus.
 6. Add gamepad support in `InputManager`.
