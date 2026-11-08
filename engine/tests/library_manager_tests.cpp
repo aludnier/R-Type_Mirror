@@ -11,6 +11,9 @@
 #include <cstdint>
 #include <set>
 #include <stdexcept>
+#include <string>
+#include <unordered_set>
+#include <vector>
 
 #include <SFML/Graphics.hpp>
 #include "TempConfigFile.hpp"
@@ -743,4 +746,98 @@ TEST_CASE("InputManager refuses too many actions", "[input][manager][config]")
     InputManager manager;
 
     CHECK_THROWS_AS(manager.loadActions(config.path()), std::out_of_range);
+}
+
+TEST_CASE("InputManager saves the actions in the format it loads",
+    "[input][manager][config]")
+{
+    InputManager saved;
+    const RType::ActionId jump = saved.addAction("Jump");
+    const RType::ActionId shoot = saved.addAction("Shoot");
+    saved.bind(jump, 32);
+    saved.bind(jump, "MOUSE_LEFT");
+    TempConfigFile config("{}");
+
+    saved.saveActions(config.path());
+    const nlohmann::json bindings =
+        RType::nlohamReader(config.path())["bindings"];
+    CHECK(bindings["Jump"] == nlohmann::json::array({32, "MOUSE_LEFT"}));
+    CHECK(bindings["Shoot"] == nlohmann::json::array());
+
+    InputManager loaded;
+    loaded.loadActions(config.path());
+    REQUIRE(loaded.actions() == saved.actions());
+    CHECK(loaded.bindings(jump) == saved.bindings(jump));
+    CHECK(loaded.bindings(shoot).empty());
+}
+
+TEST_CASE("InputManager adds actions on free bits", "[input][manager]")
+{
+    InputManager manager;
+    manager.defineAction("Shoot", 0);
+
+    CHECK(manager.addAction("Jump") == 1);
+    CHECK(manager.addAction("Shoot") == 0);
+    manager.removeAction("Shoot");
+    CHECK(manager.addAction("Dash") == 0);
+
+    for (std::size_t i = manager.actions().size(); i < RType::MAX_ACTIONS; ++i)
+        manager.addAction("Action" + std::to_string(i));
+    CHECK_THROWS_AS(manager.addAction("TooMany"), std::out_of_range);
+}
+
+TEST_CASE("InputManager removes an action and its inputs", "[input][manager]")
+{
+    InputManager manager;
+    const RType::ActionId jump = manager.addAction("Jump");
+    manager.bind(jump, 42);
+
+    manager.removeAction("Jump");
+    manager.removeAction("Unknown");
+
+    CHECK(manager.actions().empty());
+    CHECK(manager.bindings(jump).empty());
+    manager.setKeyState(42, true);
+    CHECK(manager.actionMask() == 0);
+}
+
+TEST_CASE("InputManager renames an action without changing its bit",
+    "[input][manager]")
+{
+    InputManager manager;
+    const RType::ActionId jump = manager.addAction("Jump");
+    manager.addAction("Shoot");
+    manager.bind(jump, 42);
+
+    manager.renameAction("Jump", "Hop");
+
+    CHECK_FALSE(manager.actions().contains("Jump"));
+    CHECK(manager.actions().at("Hop") == jump);
+    CHECK(manager.bindings(jump) == std::vector<std::string> {"KEY_CODE_42"});
+    CHECK_THROWS_AS(
+        manager.renameAction("Hop", "Shoot"), std::invalid_argument);
+    CHECK_THROWS_AS(
+        manager.renameAction("Unknown", "Other"), std::invalid_argument);
+}
+
+TEST_CASE("InputManager reads the key of a key code id", "[input][manager]")
+{
+    CHECK(InputManager::keyCodeOf(InputManager::keyCodeId(65)) == 65);
+    CHECK(InputManager::keyCodeOf("KEY_CODE_-1") == -1);
+    CHECK_FALSE(InputManager::keyCodeOf("MOUSE_LEFT").has_value());
+    CHECK_FALSE(InputManager::keyCodeOf("KEY_CODE_").has_value());
+    CHECK_FALSE(InputManager::keyCodeOf("KEY_CODE_12x").has_value());
+}
+
+TEST_CASE("InputManager lists the inputs that are down", "[input][manager]")
+{
+    InputManager manager;
+
+    manager.setKeyState(65, true);
+    manager.setInputState("MOUSE_LEFT", true);
+    manager.setKeyState(66, true);
+    manager.setKeyState(66, false);
+
+    CHECK(manager.pressedInputs() ==
+        std::unordered_set<std::string> {"KEY_CODE_65", "MOUSE_LEFT"});
 }

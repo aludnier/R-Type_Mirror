@@ -14,6 +14,7 @@ namespace {
 void buildDefaultLayout(ImGuiID dockspace, const ImGuiViewport *viewport)
 {
     using RType::Editor::HierarchyPanel;
+    using RType::Editor::InputPanel;
     using RType::Editor::InspectorPanel;
     using RType::Editor::ViewportPanel;
 
@@ -26,6 +27,7 @@ void buildDefaultLayout(ImGuiID dockspace, const ImGuiViewport *viewport)
         center, ImGuiDir_Right, 0.25f, nullptr, &center);
     ImGui::DockBuilderDockWindow(HierarchyPanel::TITLE, left);
     ImGui::DockBuilderDockWindow(InspectorPanel::TITLE, right);
+    ImGui::DockBuilderDockWindow(InputPanel::TITLE, right);
     ImGui::DockBuilderDockWindow(ViewportPanel::TITLE, center);
     ImGui::DockBuilderFinish(dockspace);
 }
@@ -46,6 +48,7 @@ void EditorShell::draw(EditorContext &context)
     _hierarchy.draw(context);
     _viewport.draw(context);
     _inspector.draw(context);
+    _input.draw(context);
 }
 
 void EditorShell::drawMenuBar(EditorContext &context)
