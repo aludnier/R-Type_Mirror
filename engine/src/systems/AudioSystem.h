@@ -19,8 +19,8 @@ namespace RType {
 
 class AudioSystem {
 public:
-    void update(Registry &registry, const AssetManager &assets,
-        IAudioPlayer &audio);
+    void update(
+        Registry &registry, const AssetManager &assets, IAudioPlayer &audio);
 
 private:
     struct SourceState {

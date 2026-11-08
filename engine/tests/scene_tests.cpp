@@ -7,12 +7,12 @@
 #include <system_error>
 #include <vector>
 
-#include "components/Controllable.h"
 #include "components/AudioSource.h"
+#include "components/Controllable.h"
 #include "components/Health.h"
 #include "components/Hitbox.h"
-#include "components/Name.h"
 #include "components/MusicPlayer.h"
+#include "components/Name.h"
 #include "components/Sprite.h"
 #include "components/Transform2D.h"
 #include "ecs/Registry.h"
@@ -62,23 +62,25 @@ RType::Entity spawnPlayer(SceneFixture &scene)
 {
     auto player = scene.source.spawnEntity();
     scene.source.addComponent(player, RType::Name {"Player"});
-    scene.source.addComponent(player, RType::AudioSource {
-        .assetId = scene.sound,
-        .volume = 0.7f,
-        .pitch = 1.2f,
-        .loop = false,
-        .playOnSpawn = true,
-        .playing = true,
-    });
+    scene.source.addComponent(player,
+        RType::AudioSource {
+            .assetId = scene.sound,
+            .volume = 0.7f,
+            .pitch = 1.2f,
+            .loop = false,
+            .playOnSpawn = true,
+            .playing = true,
+        });
     scene.source.addComponent(player,
         RType::Transform2D {
             RType::Vector2 {120.f, 40.f}, RType::Vector2 {2.f, 3.f}, 0.5f});
     scene.source.addComponent(player, RType::Health {2, 5});
-    scene.source.addComponent(player, RType::MusicPlayer {
-        .assetId = scene.music,
-        .loop = true,
-        .volume = 0.4f,
-    });
+    scene.source.addComponent(player,
+        RType::MusicPlayer {
+            .assetId = scene.music,
+            .loop = true,
+            .volume = 0.4f,
+        });
     RType::Sprite sprite(scene.playerTexture, 1, 2, 32, 16, 4);
     sprite.originX = 0.25f;
     sprite.r = 10;

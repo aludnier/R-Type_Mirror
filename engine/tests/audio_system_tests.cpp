@@ -32,8 +32,8 @@ public:
         float volume;
     };
 
-    RType::SoundHandle playSound(const std::string &name, float volume,
-        float pitch, bool loop) override
+    RType::SoundHandle playSound(
+        const std::string &name, float volume, float pitch, bool loop) override
     {
         const RType::SoundHandle handle {
             static_cast<std::uint32_t>(sounds.size()), 1};
@@ -51,12 +51,10 @@ public:
 
     [[nodiscard]] bool isSoundPlaying(RType::SoundHandle handle) const override
     {
-        return handle.index < soundPlaying.size() &&
-            soundPlaying[handle.index];
+        return handle.index < soundPlaying.size() && soundPlaying[handle.index];
     }
 
-    void playMusic(
-        const std::string &name, bool loop, float volume) override
+    void playMusic(const std::string &name, bool loop, float volume) override
     {
         music.push_back({name, loop, volume});
         musicPlaying = true;
@@ -135,14 +133,15 @@ TEST_CASE("AudioSystem follows AudioSource lifecycle", "[audio][ecs]")
     MockAudioPlayer audio;
     RType::AudioSystem system;
     const auto entity = registry.spawnEntity();
-    registry.addComponent(entity, RType::AudioSource {
-        .assetId = soundId,
-        .volume = 0.6f,
-        .pitch = 1.25f,
-        .loop = false,
-        .playOnSpawn = true,
-        .playing = false,
-    });
+    registry.addComponent(entity,
+        RType::AudioSource {
+            .assetId = soundId,
+            .volume = 0.6f,
+            .pitch = 1.25f,
+            .loop = false,
+            .playOnSpawn = true,
+            .playing = false,
+        });
 
     system.update(registry, assets, audio);
     auto &source = registry.getComponents<RType::AudioSource>()[entity].value();
@@ -177,8 +176,8 @@ TEST_CASE("AudioSystem stops sources when their entities are destroyed",
     MockAudioPlayer audio;
     RType::AudioSystem system;
     const auto entity = registry.spawnEntity();
-    registry.addComponent(entity, RType::AudioSource {
-        .assetId = soundId, .loop = true, .playing = true});
+    registry.addComponent(entity,
+        RType::AudioSource {.assetId = soundId, .loop = true, .playing = true});
 
     system.update(registry, assets, audio);
     REQUIRE(audio.sounds.size() == 1);
@@ -188,14 +187,15 @@ TEST_CASE("AudioSystem stops sources when their entities are destroyed",
     CHECK(audio.stopSoundCalls == 1);
 }
 
-TEST_CASE("AudioSystem drives the first MusicPlayer as level music",
-    "[audio][ecs]")
+TEST_CASE(
+    "AudioSystem drives the first MusicPlayer as level music", "[audio][ecs]")
 {
     RType::Registry registry;
     registry.registerComponent<RType::MusicPlayer>();
     AssetManager assets;
-    const auto firstId = assets.addAsset(
-        "bgm_stage1", "assets/audio/stage1.ogg", AssetManager::AssetType::Music);
+    const auto firstId = assets.addAsset("bgm_stage1",
+        "assets/audio/stage1.ogg",
+        AssetManager::AssetType::Music);
     const auto secondId = assets.addAsset(
         "bgm_boss", "assets/audio/boss.ogg", AssetManager::AssetType::Music);
     MockAudioPlayer audio;

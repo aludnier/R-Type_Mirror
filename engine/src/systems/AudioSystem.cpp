@@ -87,8 +87,7 @@ void AudioSystem::update(
     if (registry.isRegistered<MusicPlayer>()) {
         auto &musicPlayers = registry.getComponents<MusicPlayer>();
         for (const Entity entity : registry.entities()) {
-            auto &component = musicPlayers[
-                static_cast<entity_id_type>(entity)];
+            auto &component = musicPlayers[static_cast<entity_id_type>(entity)];
             if (component) {
                 musicPlayer = &*component;
                 break;

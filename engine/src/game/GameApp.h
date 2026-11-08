@@ -11,6 +11,7 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 
+#include "../systems/AudioSystem.h"
 #include "DLLoader.hpp"
 #include "Module.h"
 #include "audio/AudioManager.h"
@@ -19,7 +20,6 @@
 #include "library/ClientAssetManager.h"
 #include "library/InputManager.h"
 #include "library/PluginManager.h"
-#include "../systems/AudioSystem.h"
 
 namespace RType::Game {
 
