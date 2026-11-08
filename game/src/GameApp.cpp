@@ -198,6 +198,7 @@ void GameApp::updateGame(float dt)
     }
     if (!_networkClient.isConnected()) {
         _networkSyncSystem.reset();
+        _shipTilt.reset();
         _screenState = ScreenState::Connection;
         _uiManager.show("connection");
         _uiManager.hide("ingame_overlay");
@@ -227,6 +228,7 @@ void GameApp::updateGame(float dt)
         _scripts->setDeltaTime(dt);
     _networkSyncSystem.syncWithServer(
         getInputManager(), _networkClient, &getAudioManager());
+    _shipTilt.update(registry, getInputManager(), dt);
 }
 
 void GameApp::renderGame()

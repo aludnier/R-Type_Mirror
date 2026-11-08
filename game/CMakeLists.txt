@@ -21,6 +21,8 @@ set(SRC
         src/network/NetworkClient.h
         src/systems/NetworkSyncSystem.cpp
         src/systems/NetworkSyncSystem.h
+        src/systems/ShipTiltSystem.cpp
+        src/systems/ShipTiltSystem.h
 )
 
 add_executable(r-type_client ${SRC})
@@ -70,6 +72,8 @@ if (BUILD_TESTS)
             src/components/Projectile.cpp
             src/network/NetworkClient.cpp
             src/systems/NetworkSyncSystem.cpp
+            src/systems/ShipTiltSystem.cpp
+            tests/ship_tilt_tests.cpp
     )
     target_include_directories(game_network_tests PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src)

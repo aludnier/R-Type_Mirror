@@ -25,24 +25,12 @@
 #include "components/AnimationClip.h"
 #include "components/Animator.h"
 #include "systems/AnimationSystem.h"
+#include "systems/ShipTiltSystem.h"
 
 namespace Game {
 
 // Animation frame data extracted from sprite sheets
 namespace AnimationFrames {
-
-    // Player idle animation (row 1 of laser bullet sheet - 10 frames)
-    const std::vector<RType::Animation::AnimationFrame> playerIdle = {
-        {101, 3, 32, 14},
-        {134, 3, 32, 13},
-        {167, 3, 32, 12},
-        {200, 3, 32, 13},
-        {233, 2, 32, 14},
-        {267, 2, 32, 14},
-        {300, 3, 32, 13},
-        {333, 3, 32, 12},
-        {366, 3, 32, 13},
-        {399, 3, 32, 14}};
 
     // Force pod animation (12 frames)
     const std::vector<RType::Animation::AnimationFrame> forcePod = {
@@ -262,6 +250,19 @@ std::optional<RType::Entity> NetworkSyncSystem::findEntity(
     return std::nullopt;
 }
 
+void NetworkSyncSystem::addShipSprite(RType::Entity entity)
+{
+    if (!_resources->get().hasAsset("laser_bullet"))
+        return;
+    const auto &asset = _resources->get().getAsset("laser_bullet");
+    const auto &level = ShipTiltSystem::FRAMES[ShipTiltSystem::LEVEL_FRAME];
+
+    // Not animated: ShipTiltSystem picks the frame from the movement.
+    _registry->get().addComponent<RType::Sprite>(entity,
+        RType::Sprite(
+            asset.id, level.left, level.top, level.width, level.height, 10));
+}
+
 void NetworkSyncSystem::handleAcceptConnect(
     const RType::Network::AcceptConnectPacket &packet)
 {
@@ -291,29 +292,7 @@ void NetworkSyncSystem::handleAcceptConnect(
         _registry->get().addComponent<Hitbox>(
             entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
 
-        try {
-            auto &asset = _resources->get().getAsset("laser_bullet");
-            const auto &firstFrame = AnimationFrames::playerIdle[0];
-            _registry->get().addComponent<RType::Sprite>(entity,
-                RType::Sprite(asset.id,
-                    firstFrame.left,
-                    firstFrame.top,
-                    firstFrame.width,
-                    firstFrame.height,
-                    10));
-            auto &animatorOpt =
-                _registry->get().addComponent<RType::Animation::Animator>(
-                    entity, RType::Animation::Animator {});
-            if (animatorOpt) {
-                RType::Animation::AnimationSystem::addClip(*animatorOpt,
-                    "idle",
-                    RType::Animation::AnimationSystem::createClip(
-                        AnimationFrames::playerIdle, 0.12f));
-                RType::Animation::AnimationSystem::play(
-                    *animatorOpt, "idle", true);
-            }
-        } catch (...) {
-        }
+        addShipSprite(entity);
     }
 }
 
@@ -345,29 +324,7 @@ void NetworkSyncSystem::handlePlayerConnected(
         _registry->get().addComponent<Hitbox>(
             entity, Hitbox(RType::Vector2 {40.0f, 20.0f}));
 
-        try {
-            auto &asset = _resources->get().getAsset("laser_bullet");
-            const auto &firstFrame = AnimationFrames::playerIdle[0];
-            _registry->get().addComponent<RType::Sprite>(entity,
-                RType::Sprite(asset.id,
-                    firstFrame.left,
-                    firstFrame.top,
-                    firstFrame.width,
-                    firstFrame.height,
-                    10));
-            auto &animatorOpt =
-                _registry->get().addComponent<RType::Animation::Animator>(
-                    entity, RType::Animation::Animator {});
-            if (animatorOpt) {
-                RType::Animation::AnimationSystem::addClip(*animatorOpt,
-                    "idle",
-                    RType::Animation::AnimationSystem::createClip(
-                        AnimationFrames::playerIdle, 0.12f));
-                RType::Animation::AnimationSystem::play(
-                    *animatorOpt, "idle", true);
-            }
-        } catch (...) {
-        }
+        addShipSprite(entity);
     }
 }
 
@@ -453,29 +410,7 @@ void NetworkSyncSystem::handleEntitySpawn(
 
     auto &sprites = _registry->get().getComponents<RType::Sprite>();
     if (entityId >= sprites.size() || !sprites[entity].has_value()) {
-        try {
-            auto &asset = _resources->get().getAsset("laser_bullet");
-            const auto &firstFrame = AnimationFrames::playerIdle[0];
-            _registry->get().addComponent<RType::Sprite>(entity,
-                RType::Sprite(asset.id,
-                    firstFrame.left,
-                    firstFrame.top,
-                    firstFrame.width,
-                    firstFrame.height,
-                    10));
-            auto &animatorOpt =
-                _registry->get().addComponent<RType::Animation::Animator>(
-                    entity, RType::Animation::Animator {});
-            if (animatorOpt) {
-                RType::Animation::AnimationSystem::addClip(*animatorOpt,
-                    "idle",
-                    RType::Animation::AnimationSystem::createClip(
-                        AnimationFrames::playerIdle, 0.12f));
-                RType::Animation::AnimationSystem::play(
-                    *animatorOpt, "idle", true);
-            }
-        } catch (...) {
-        }
+        addShipSprite(entity);
     }
     auto &transforms = _registry->get().getComponents<RType::Transform2D>();
     if (entityId < transforms.size() && transforms[entity].has_value()) {

@@ -16,6 +16,7 @@
 #include "network/NetworkClient.h"
 #include "scripting/ScriptEngine.h"
 #include "systems/NetworkSyncSystem.h"
+#include "systems/ShipTiltSystem.h"
 #include "ui/ImGuiUiRenderer.h"
 #include "ui/UiManager.h"
 
@@ -61,6 +62,7 @@ private:
 
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};
+    ShipTiltSystem _shipTilt {};
     RType::UI::UiManager _uiManager {};
     RType::UI::ImGuiUiRenderer _uiRenderer {};
     ScreenState _screenState = ScreenState::Connection;

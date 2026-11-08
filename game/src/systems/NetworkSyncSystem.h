@@ -79,6 +79,9 @@ public:
 private:
     struct ServerMessageVisitor;
 
+    /** @brief Adds the level ship sprite to a player's entity. */
+    void addShipSprite(RType::Entity entity);
+
     /** @brief Gives each player's sprite the tint of its client id. */
     void applyPlayerColors();
 
