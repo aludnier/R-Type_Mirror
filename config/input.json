@@ -1,9 +1,0 @@
-{
-  "bindings": {
-    "MoveUp": [87, 265],
-    "MoveDown": [83, 264],
-    "Build": [66],
-    "NextWave": [78],
-    "Shoot": [32]
-  }
-}
