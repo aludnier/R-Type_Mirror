@@ -182,6 +182,8 @@ set(EDITOR_SRC
         src/editor/SceneFile.h
         src/editor/panels/HierarchyPanel.cpp
         src/editor/panels/HierarchyPanel.h
+        src/editor/panels/InputPanel.cpp
+        src/editor/panels/InputPanel.h
         src/editor/panels/InspectorPanel.cpp
         src/editor/panels/InspectorPanel.h
         src/editor/panels/ViewportPanel.cpp
@@ -346,6 +348,7 @@ if (BUILD_TESTS)
     add_executable(engine_editor_tests
             tests/editor_shell_tests.cpp
             tests/editor_hierarchy_tests.cpp
+            tests/editor_input_tests.cpp
             tests/editor_inspector_tests.cpp
             tests/editor_play_mode_tests.cpp
             tests/editor_scene_file_tests.cpp

@@ -66,6 +66,9 @@ public:
             [this](const auto &file) { _assets.loadConfigFile(file); });
         loadOptional(inputConfig,
             [this](const auto &file) { input().loadActions(file); });
+        // Kept even if it does not exist yet: the Input panel creates it.
+        if (!inputConfig.empty())
+            _context.inputPath = inputConfig;
     }
 
 protected:
@@ -124,8 +127,9 @@ int main(int argc, char **argv)
                   << " [assets.json [input.json [game.json]]]\n"
                   << "    assets.json  Asset config, needed to show and save "
                      "sprites\n"
-                  << "    input.json   Actions and keys, for scripts in Play "
-                     "mode\n"
+                  << "    input.json   Actions and keys, edited in the Input "
+                     "panel and given\n"
+                  << "                 to the scripts in Play mode\n"
                   << "    game.json    Game config: its \"plugins\" are "
                      "loaded (default: the\n"
                   << "                 build's config/game.json)\n";
