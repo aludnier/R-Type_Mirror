@@ -206,7 +206,7 @@ set(SERVER_SRC
 
 add_library(engine_server STATIC ${SERVER_SRC})
 
-target_link_libraries(engine_server PUBLIC engine_core Eng::physics2d)
+target_link_libraries(engine_server PUBLIC engine_core)
 
 # ---------------------------------------------------------------------------
 # engine_scripting: Lua scripting on top of the ECS (sol2 + Lua 5.5). No

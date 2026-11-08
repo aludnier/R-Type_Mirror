@@ -14,7 +14,6 @@
 #include <vector>
 
 #include "components/Controllable.h"
-#include "components/CollisionEvents2D.h"
 #include "components/Name.h"
 #include "components/Transform2D.h"
 #include "network/ByteWriter.h"
@@ -331,7 +330,6 @@ Network::NetworkId GameServer::spawnPlayer(Network::ClientId id)
 
     _registry.addComponent(entity, Transform2D {playerSpawnPosition(id)});
     _registry.addComponent(entity, Controllable {});
-    _registry.addComponent(entity, Physics2D::CollisionEvents2D {});
     _replicated.emplace(networkId, entity);
     return networkId;
 }

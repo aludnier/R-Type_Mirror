@@ -125,6 +125,19 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     reg.registerComponent<Enemy>();
     reg.registerComponent<Health>();
     reg.registerComponent<Hitbox>();
+    // Ensure player entities (marked Controllable) have a collider so
+    // enemy bullets can collide with them.
+    if (isModuleLoaded(Physics2D::MODULE_NAME)) {
+        reg.addSystem<Controllable, Transform2D, Physics2D::BoxCollider2D>(
+            [](auto &controllables, auto &transforms, auto &colliders) {
+                for (std::size_t i = 0; i < controllables.size(); ++i) {
+                    if (controllables[i] && !colliders[i] && transforms[i]) {
+                        colliders[i] = Physics2D::BoxCollider2D {
+                            {30.f, 30.f}, {}, true, 1, 0xFFFFFFFFu};
+                    }
+                }
+            });
+    }
     // Runs after the engine's systems: players have moved this tick.
     reg.addSystem<Transform2D>([this](auto &) { step(); });
 
