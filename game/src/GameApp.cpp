@@ -298,7 +298,10 @@ void GameApp::renderHud()
 {
     auto &registry = getRegistry();
     auto &players = registry.getComponents<Player>();
-    for (auto [player] : RType::Zipper(players)) {
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    for (auto [player, network] : RType::Zipper(players, networkEntities)) {
+        if (!network.isLocalPlayer)
+            continue;
         // Charge Meter Background
         sf::RectangleShape chargeBg(sf::Vector2f(200.0f, 14.0f));
         chargeBg.setPosition(sf::Vector2f(20.0f, 1040.0f));
@@ -331,7 +334,7 @@ void GameApp::renderHud()
                 sf::Vector2f(30.0f + static_cast<float>(l * 24), 30.0f));
             getWindow().draw(miniShip);
         }
-        break; // HUD for main player
+        break; // HUD of the local player only
     }
 }
 
