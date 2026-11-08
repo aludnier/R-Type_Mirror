@@ -8,6 +8,7 @@
 #ifndef GAME_GAMEAPP_H
 #define GAME_GAMEAPP_H
 
+#include <cstdint>
 #include <imgui-SFML.h>
 #include <memory>
 #include <string>
@@ -52,6 +53,10 @@ protected:
 
 private:
     void renderHud();
+    /** @brief Leaves and joins the same server again, with a new ship. */
+    void playAgain();
+    /** @brief Shows the game over screen and the LEVEL / BOSS banner. */
+    void updateEndOfGameUi();
     void setupUi();
     void handleUiClicks();
     void updateConnectionStatus();
@@ -64,6 +69,11 @@ private:
     /** @brief "LEVEL n" or "BOSS", shown for _bannerTime more seconds. */
     std::string _bannerText;
     float _bannerTime = 0.f;
+    /** @brief Server of the last Connect, for Play again. */
+    std::string _lastHost;
+    std::uint16_t _lastPort = 0;
+    std::string _lastPlayerName;
+    bool _reconnect = false;
 
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};

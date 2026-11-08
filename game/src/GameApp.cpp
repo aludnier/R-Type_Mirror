@@ -8,7 +8,6 @@
 #include "GameApp.h"
 
 #include <algorithm>
-#include <cfloat>
 #include <cmath>
 #include <imgui.h>
 #include <iostream>
@@ -171,7 +170,9 @@ void GameApp::handleEvent(const sf::Event &event)
 
 void GameApp::handleKeyPressed(const sf::Event::KeyPressed &key)
 {
-    if (key.code == sf::Keyboard::Key::Escape &&
+    if (key.code == sf::Keyboard::Key::Enter && _networkSyncSystem.isGameOver())
+        playAgain();
+    else if (key.code == sf::Keyboard::Key::Escape &&
         _screenState == ScreenState::Game)
         _inGameOverlayVisible = !_inGameOverlayVisible;
     else if (_screenState == ScreenState::Game ||
@@ -194,6 +195,11 @@ void GameApp::updateGame(float dt)
     handleUiClicks();
     auto &registry = getRegistry();
     if (_screenState == ScreenState::Connection) {
+        // After Play again: join the same server as a new player.
+        if (_reconnect) {
+            _reconnect = false;
+            _networkClient.connect(_lastHost, _lastPort, _lastPlayerName);
+        }
         _networkClient.update(dt);
         updateConnectionStatus();
         if (_networkClient.isConnected()) {
@@ -211,6 +217,8 @@ void GameApp::updateGame(float dt)
         _screenState = ScreenState::Connection;
         _uiManager.show("connection");
         _uiManager.hide("ingame_overlay");
+        _uiManager.hide("game_over");
+        _uiManager.hide("banner");
         _inGameOverlayVisible = false;
         return;
     }
@@ -243,6 +251,7 @@ void GameApp::updateGame(float dt)
         _bannerTime = BANNER_TIME;
     }
     _bannerTime = std::max(_bannerTime - dt, 0.f);
+    updateEndOfGameUi();
 }
 
 void GameApp::renderGame()
@@ -276,9 +285,19 @@ void GameApp::setupUi()
             port = 1;
         if (port > 65535)
             port = 65535;
-        _networkClient.connect(
-            host, static_cast<std::uint16_t>(port), playerName);
+        _lastHost = host;
+        _lastPort = static_cast<std::uint16_t>(port);
+        _lastPlayerName = playerName;
+        _networkClient.connect(host, _lastPort, playerName);
     });
+
+    // Game over screen: play again on the same server, or quit.
+    _uiManager.load("game_over", uiPath / "game_over.json");
+    _uiManager.load("banner", uiPath / "banner.json");
+    _uiManager.hide("game_over");
+    _uiManager.hide("banner");
+    _uiManager.onClick("game_over/play_again", [this]() { playAgain(); });
+    _uiManager.onClick("game_over/quit", [this]() { close(); });
 
     // In-game overlay: resume button
     _uiManager.onClick("ingame_overlay/resume", [this]() {
@@ -336,6 +355,30 @@ void GameApp::updateInGameOverlay()
         "Ping: " + std::to_string(_networkClient.getPingMs()) + " ms");
 }
 
+void GameApp::playAgain()
+{
+    // The server gives a new ship with full lives to a new connection.
+    _networkClient.disconnect();
+    _uiManager.hide("game_over");
+    _reconnect = true;
+}
+
+void GameApp::updateEndOfGameUi()
+{
+    const bool gameOver = _networkSyncSystem.isGameOver();
+
+    if (gameOver)
+        _uiManager.show("game_over");
+    else
+        _uiManager.hide("game_over");
+    if (_bannerTime > 0.f && !gameOver) {
+        _uiManager.setText("banner/text", _bannerText);
+        _uiManager.show("banner");
+    } else {
+        _uiManager.hide("banner");
+    }
+}
+
 void GameApp::renderHud()
 {
     auto &registry = getRegistry();
@@ -377,32 +420,6 @@ void GameApp::renderHud()
             getWindow().draw(miniShip);
         }
         break; // HUD of the local player only
-    }
-    if (_bannerTime > 0.f && !_networkSyncSystem.isGameOver()) {
-        constexpr float SIZE = 72.f;
-        const auto window = getWindow().getSize();
-        ImFont *font = ImGui::GetFont();
-        const ImVec2 size =
-            font->CalcTextSizeA(SIZE, FLT_MAX, 0.f, _bannerText.c_str());
-        ImGui::GetForegroundDrawList()->AddText(font,
-            SIZE,
-            ImVec2((static_cast<float>(window.x) - size.x) / 2.f,
-                static_cast<float>(window.y) / 4.f),
-            IM_COL32(255, 220, 90, 255),
-            _bannerText.c_str());
-    }
-    if (_networkSyncSystem.isGameOver()) {
-        constexpr const char *GAME_OVER = "GAME OVER";
-        constexpr float SIZE = 96.f;
-        const auto window = getWindow().getSize();
-        ImFont *font = ImGui::GetFont();
-        const ImVec2 size = font->CalcTextSizeA(SIZE, FLT_MAX, 0.f, GAME_OVER);
-        ImGui::GetForegroundDrawList()->AddText(font,
-            SIZE,
-            ImVec2((static_cast<float>(window.x) - size.x) / 2.f,
-                (static_cast<float>(window.y) - size.y) / 2.f),
-            IM_COL32(255, 80, 80, 255),
-            GAME_OVER);
     }
 }
 
