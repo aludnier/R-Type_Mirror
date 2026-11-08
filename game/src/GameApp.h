@@ -17,6 +17,7 @@
 #include "network/NetworkClient.h"
 #include "scripting/ScriptEngine.h"
 #include "systems/NetworkSyncSystem.h"
+#include "systems/RenderSystem.h"
 #include "systems/ShipTiltSystem.h"
 #include "ui/ImGuiUiRenderer.h"
 #include "ui/UiManager.h"
@@ -67,6 +68,8 @@ private:
     NetworkClient _networkClient {};
     NetworkSyncSystem _networkSyncSystem {};
     ShipTiltSystem _shipTilt {};
+    /** @brief Kept between frames: it caches the textures it loaded. */
+    RType::RenderSystem _renderSystem {};
     RType::UI::UiManager _uiManager {};
     RType::UI::ImGuiUiRenderer _uiRenderer {};
     ScreenState _screenState = ScreenState::Connection;

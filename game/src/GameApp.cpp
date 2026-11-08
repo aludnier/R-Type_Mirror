@@ -248,8 +248,7 @@ void GameApp::updateGame(float dt)
 void GameApp::renderGame()
 {
     getWindow().clear(sf::Color(10, 10, 25));
-    RType::RenderSystem renderSystem;
-    renderSystem.render(getRegistry(), getAssetManager(), getWindow());
+    _renderSystem.render(getRegistry(), getAssetManager(), getWindow());
     // Render HUD elements
     renderHud();
     ImGui::SFML::Render(getWindow());
