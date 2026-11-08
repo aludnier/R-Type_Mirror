@@ -64,7 +64,7 @@ void decodeAsEveryPayload(const Packet &packet)
     decodeAs<EntityDespawnPacket>(packet);
     decodeAs<ComponentUpdatePacket>(packet);
     decodeAs<HeartbeatReplyPacket>(packet);
-    decodeAs<PlaySoundPacket>(packet);
+    decodeAs<PlaySoundMsgPacket>(packet);
 }
 } // namespace
 
@@ -182,7 +182,7 @@ TEST_CASE(
 TEST_CASE("Protocol classifies game message types", "[network][protocol]")
 {
     REQUIRE_FALSE(isGameMessageType(MessageType::HeartbeatReply));
-    REQUIRE_FALSE(isGameMessageType(MessageType::PlaySound));
+    REQUIRE_FALSE(isGameMessageType(MessageType::PlaySoundMsg));
     REQUIRE(isGameMessageType(static_cast<MessageType>(0x80)));
     REQUIRE(isGameMessageType(static_cast<MessageType>(0xFF)));
 }
@@ -339,7 +339,7 @@ TEST_CASE(
             {.networkId = 9, .components = {{.typeId = 1, .data = {4, 5}}}},
             {.networkId = 10, .components = {}}}};
     HeartbeatReplyPacket reply {.clientTime = 123456, .serverTick = 99};
-    PlaySoundPacket sound {
+    PlaySoundMsgPacket sound {
         .assetName = "sfx_laser", .volume = 0.75f, .pitch = 1.25f};
 
     REQUIRE(roundTrip(accept) == accept);
@@ -353,25 +353,25 @@ TEST_CASE(
     REQUIRE(roundTrip(sound) == sound);
 
     const auto packet = makePacket(sound);
-    REQUIRE(packet.header.type == MessageType::PlaySound);
+    REQUIRE(packet.header.type == MessageType::PlaySoundMsg);
     REQUIRE_FALSE(packet.header.isReliable());
 }
 
 TEST_CASE("PLAY_SOUND rejects overlong names and malformed payloads",
     "[network][server-packets]")
 {
-    REQUIRE_THROWS_AS((void) makePacket(PlaySoundPacket {
-                            .assetName = std::string(MAX_STRING_SIZE + 1, 'x')}),
+    REQUIRE_THROWS_AS((void) makePacket(PlaySoundMsgPacket {
+                          .assetName = std::string(MAX_STRING_SIZE + 1, 'x')}),
         std::length_error);
 
-    Packet packet = makePacket(PlaySoundPacket {
-        .assetName = "sfx", .volume = 0.5f, .pitch = 1.f});
+    Packet packet = makePacket(
+        PlaySoundMsgPacket {.assetName = "sfx", .volume = 0.5f, .pitch = 1.f});
     packet.payload.pop_back();
-    REQUIRE_FALSE(readPayload<PlaySoundPacket>(packet));
-    packet = makePacket(PlaySoundPacket {
-        .assetName = "sfx", .volume = 0.5f, .pitch = 1.f});
+    REQUIRE_FALSE(readPayload<PlaySoundMsgPacket>(packet));
+    packet = makePacket(
+        PlaySoundMsgPacket {.assetName = "sfx", .volume = 0.5f, .pitch = 1.f});
     packet.payload.push_back(0);
-    REQUIRE_FALSE(readPayload<PlaySoundPacket>(packet));
+    REQUIRE_FALSE(readPayload<PlaySoundMsgPacket>(packet));
 }
 
 TEST_CASE("Payloads encodes controllable actions as a u32 bitmask",

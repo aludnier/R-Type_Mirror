@@ -301,16 +301,16 @@ HeartbeatReplyPacket HeartbeatReplyPacket::deserialize(ByteReader &reader)
     return packet;
 }
 
-void PlaySoundPacket::serialize(ByteWriter &writer) const
+void PlaySoundMsgPacket::serialize(ByteWriter &writer) const
 {
     writer.writeString(assetName);
     writer.writeFloat(volume);
     writer.writeFloat(pitch);
 }
 
-PlaySoundPacket PlaySoundPacket::deserialize(ByteReader &reader)
+PlaySoundMsgPacket PlaySoundMsgPacket::deserialize(ByteReader &reader)
 {
-    PlaySoundPacket packet;
+    PlaySoundMsgPacket packet;
 
     packet.assetName = reader.readString();
     packet.volume = reader.readFloat();

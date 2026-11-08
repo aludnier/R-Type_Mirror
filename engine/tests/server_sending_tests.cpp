@@ -395,7 +395,7 @@ TEST_CASE("Server sends PLAY_SOUND to all clients or only its target",
 
     server.requestPlaySound("sfx_explosion", 0.6f, 1.2f);
     for (auto *client : {&alice, &bob}) {
-        auto sound = client->expect<PlaySoundPacket>();
+        auto sound = client->expect<PlaySoundMsgPacket>();
 
         REQUIRE(sound.has_value());
         CHECK(sound->assetName == "sfx_explosion");
@@ -405,7 +405,7 @@ TEST_CASE("Server sends PLAY_SOUND to all clients or only its target",
 
     server.requestPlaySound(
         "sfx_laser", 0.4f, 0.9f, aliceAccept.clientId);
-    auto targeted = alice.expect<PlaySoundPacket>();
+    auto targeted = alice.expect<PlaySoundMsgPacket>();
 
     REQUIRE(targeted.has_value());
     CHECK(targeted->assetName == "sfx_laser");

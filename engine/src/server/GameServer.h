@@ -129,7 +129,7 @@ protected:
     {
         if (assetName.size() > Network::MAX_STRING_SIZE)
             throw std::length_error("sound asset name exceeds MAX_STRING_SIZE");
-        Network::PlaySoundPacket packet {
+        Network::PlaySoundMsgPacket packet {
             .assetName = assetName, .volume = volume, .pitch = pitch};
         if (target)
             sendTo(*target, packet);

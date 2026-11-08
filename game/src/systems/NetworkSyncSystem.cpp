@@ -88,7 +88,7 @@ struct NetworkSyncSystem::ServerMessageVisitor {
         system.handleComponentUpdate(packet, registry, localLinkedEntity);
     }
 
-    void operator()(const RType::Network::PlaySoundPacket &packet) const
+    void operator()(const RType::Network::PlaySoundMsgPacket &packet) const
     {
         if (audio)
             audio->playSound(packet.assetName, packet.volume, packet.pitch);

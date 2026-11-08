@@ -172,8 +172,8 @@ struct HeartbeatReplyPacket {
     bool operator==(const HeartbeatReplyPacket &other) const = default;
 };
 
-struct PlaySoundPacket {
-    static constexpr auto TYPE = MessageType::PlaySound;
+struct PlaySoundMsgPacket {
+    static constexpr auto TYPE = MessageType::PlaySoundMsg;
     static constexpr bool RELIABLE = false;
 
     std::string assetName;
@@ -181,8 +181,8 @@ struct PlaySoundPacket {
     float pitch = 1.f;
 
     void serialize(ByteWriter &writer) const;
-    static PlaySoundPacket deserialize(ByteReader &reader);
-    bool operator==(const PlaySoundPacket &other) const = default;
+    static PlaySoundMsgPacket deserialize(ByteReader &reader);
+    bool operator==(const PlaySoundMsgPacket &other) const = default;
 };
 } // namespace RType::Network
 

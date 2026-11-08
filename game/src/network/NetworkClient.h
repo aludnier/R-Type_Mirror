@@ -47,7 +47,7 @@ public:
         RType::Network::EntitySpawnPacket, RType::Network::EntityDespawnPacket,
         RType::Network::ComponentUpdatePacket,
         RType::Network::HeartbeatReplyPacket,
-        RType::Network::PlaySoundPacket>;
+        RType::Network::PlaySoundMsgPacket>;
 
     NetworkClient();
     ~NetworkClient();
