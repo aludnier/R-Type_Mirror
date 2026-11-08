@@ -1,5 +1,9 @@
 -- Server script: processes CollisionEvents2D and resolves hits between
--- projectiles and their targets (enemies or players).
+-- projectiles and their targets (enemies or players). A shot down enemy
+-- drops a PowerUp DROP_CHANCE times out of one; a player that touches it
+-- gets the double shot.
+
+local DROP_CHANCE = 0.15
 
 local ok, _ = pcall(function()
     world.each({"CollisionEvents2D"}, function() end)
@@ -20,6 +24,12 @@ world.add_system("server_collision_resolution", function(dt)
             local otherEnemy = world.get(other, "Enemy")
             local otherControllable = world.get(other, "Controllable")
 
+            -- A player picks a PowerUp
+            if world.get(e, "PowerUp") and otherControllable then
+                rtype.power_up(other)
+                world.kill(e)
+                goto continue
+            end
             -- An enemy touches a player
             if world.get(e, "Enemy") and otherControllable then
                 rtype.hit_player(other)
@@ -36,6 +46,10 @@ world.add_system("server_collision_resolution", function(dt)
                     world.kill(e)
                 end
                 if otherHealth:is_dead() then
+                    local position = world.get(other, "Transform2D").position
+                    if math.random() < DROP_CHANCE then
+                        rtype.spawn("PowerUp", position.x, position.y)
+                    end
                     world.kill(other)
                 end
             -- Enemy bullet hits player: the player loses a life

@@ -50,6 +50,8 @@ private:
         bool wasShooting = false;
         float chargeTime = 0.f;
         float cooldown = 0.f;
+        /** @brief Fires two lasers, until the player loses a life. */
+        bool doubleShot = false;
     };
 
     /**
@@ -75,6 +77,8 @@ private:
      */
     void hitPlayer(std::size_t entity);
     void sendLives(std::size_t entity, std::uint8_t lives);
+    /** @brief A player took a PowerUp: it gets the double shot. */
+    void givePowerUp(std::size_t entity);
     /** @brief Runs the game scripts, then the script of each entity. */
     void runScripts();
 

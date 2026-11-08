@@ -256,6 +256,11 @@ TEST_CASE("rtype.spawn only accepts the kinds scripts may spawn",
     CHECK(game.pending[0].position.x == Approx(10.f));
     CHECK(game.pending[0].position.y == Approx(20.f));
 
+    REQUIRE(game.scripts.loadString(R"(rtype.spawn("PowerUp", 30, 40))"));
+    REQUIRE(game.pending.size() == 2);
+    CHECK(game.pending[1].kind == EntityKind::PowerUp);
+    game.pending.pop_back();
+
     CHECK_FALSE(game.scripts.loadString(R"(rtype.spawn("Player", 0, 0))"));
     CHECK_THAT(game.scripts.lastError(),
         Catch::Matchers::ContainsSubstring("unknown kind 'Player'"));

@@ -6,6 +6,7 @@
 */
 
 #include "systems/NetworkSyncSystem.h"
+#include <algorithm>
 #include <cmath>
 #include <iostream>
 #include <string>
@@ -448,7 +449,10 @@ void NetworkSyncSystem::handleEntitySpawn(
     auto &projectiles = _registry->get().getComponents<Projectile>();
     const bool hasKind =
         (entityId < enemies.size() && enemies[entity].has_value()) ||
-        (entityId < projectiles.size() && projectiles[entity].has_value());
+        (entityId < projectiles.size() && projectiles[entity].has_value()) ||
+        std::ranges::any_of(packet.components, [](const auto &component) {
+            return component.typeId == Protocol::ENTITY_KIND;
+        });
 
     if (hasKind) {
         return;
@@ -694,6 +698,18 @@ void NetworkSyncSystem::applyEntityKind(
                 network != _entityToNetwork.end())
                 _bosses.insert(network->second);
             _banner = "BOSS";
+            break;
+        }
+        case Protocol::EntityKind::PowerUp: {
+            if (entityId >= sprites.size() || !sprites[entity].has_value())
+                addAnimatedSprite(
+                    entity, "force_pod", AnimationFrames::forcePod, 0.08f, 8);
+            auto &transforms =
+                _registry->get().getComponents<RType::Transform2D>();
+            if (entityId < transforms.size() &&
+                transforms[entity].has_value()) {
+                transforms[entity]->scale = {2.25f, 2.25f};
+            }
             break;
         }
         case Protocol::EntityKind::PlayerLaser: {

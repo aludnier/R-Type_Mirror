@@ -436,7 +436,8 @@ and how a `ClientId` maps to a player color.
 ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
 An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy (Bydo), `2` player laser, `3` charged beam
 (wave cannon), `4` enemy bullet, `5` gunner (an enemy that shoots), `6`
-boss.
+boss, `7` power-up (a pickup that gives the double shot to the player who
+touches it).
 A client ignores an unknown value.
 
 Enemies and projectiles also carry PHYSICS in their ENTITY_SPAWN, with their

@@ -69,6 +69,12 @@ namespace {
     /** @brief Lives are sent again this often: COMPONENT_UPDATE can be lost. */
     constexpr float LIVES_RESEND_INTERVAL = 1.f;
 
+    /** @brief Half the distance between the two lasers of the double shot. */
+    constexpr float DOUBLE_SHOT_GAP = 12.f;
+    /** @brief A PowerUp drifts left, slower than the scrolling enemies. */
+    constexpr Vector2 POWER_UP_VELOCITY {-120.f, 0.f};
+    constexpr Vector2 POWER_UP_SIZE {36.f, 28.f};
+
     /** @brief A projectile moving in a straight line. */
     struct Projectile {
         Vector2 velocity;
@@ -164,6 +170,7 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     reg.registerComponent<Projectile>();
     reg.registerComponent<Enemy>();
     reg.registerComponent<Boss>();
+    reg.registerComponent<PowerUp>();
     reg.registerComponent<Health>();
     reg.registerComponent<Hitbox>();
     // Ensure player entities (marked Controllable) have a collider so
@@ -219,6 +226,9 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
     _scripts.lua()["rtype"]["hit_player"] = [this](std::size_t entity) {
         hitPlayer(entity);
     };
+    _scripts.lua()["rtype"]["power_up"] = [this](std::size_t entity) {
+        givePowerUp(entity);
+    };
     _scripts.loadConfigFile(scriptsConfig);
 }
 
@@ -272,6 +282,13 @@ void RTypeServer::hitPlayer(std::size_t entity)
     }
 }
 
+void RTypeServer::givePowerUp(std::size_t entity)
+{
+    if (has(registry().getComponents<Controllable>(), entity)) {
+        _weapons[entity].doubleShot = true;
+    }
+}
+
 void RTypeServer::sendLives(std::size_t entity, std::uint8_t lives)
 {
     sendComponents(Registry::entityFromIndex(entity), {encodeLives(lives)});
@@ -290,7 +307,7 @@ void RTypeServer::updateWeapons()
         if (!controllables[i] || !has(transforms, i)) {
             continue;
         }
-        auto &[wasShooting, chargeTime, cooldown] = _weapons[i];
+        auto &[wasShooting, chargeTime, cooldown, doubleShot] = _weapons[i];
         bool shooting = isShooting(controllables[i]->actionMask);
         Vector2 position = transforms[i]->position;
 
@@ -303,6 +320,12 @@ void RTypeServer::updateWeapons()
             if (chargeTime >= CHARGE_TIME) {
                 _pendingSpawns.push_back(
                     {EntityKind::ChargedBeam, {position.x + 35.f, position.y}});
+            } else if (cooldown <= 0.f && doubleShot) {
+                _pendingSpawns.push_back({EntityKind::PlayerLaser,
+                    {position.x + 25.f, position.y - DOUBLE_SHOT_GAP}});
+                _pendingSpawns.push_back({EntityKind::PlayerLaser,
+                    {position.x + 25.f, position.y + DOUBLE_SHOT_GAP}});
+                cooldown = LASER_COOLDOWN;
             } else if (cooldown <= 0.f) {
                 _pendingSpawns.push_back(
                     {EntityKind::PlayerLaser, {position.x + 25.f, position.y}});
@@ -354,6 +377,24 @@ void RTypeServer::spawn(const SpawnRequest &request)
         }
         replicateEntity(entity,
             {encodeKind(request.kind), encodePhysics({0.f, 0.f}, size)});
+        return;
+    }
+    if (request.kind == EntityKind::PowerUp) {
+        RType::Physics2D::Rigidbody2D body;
+
+        body.velocity = POWER_UP_VELOCITY;
+        body.gravityScale = 0.f;
+        reg.addComponent(entity, PowerUp {});
+        reg.addComponent(entity, Hitbox {POWER_UP_SIZE});
+        reg.addComponent(entity, Physics2D::Rigidbody2D {body});
+        reg.addComponent(entity,
+            RType::Physics2D::BoxCollider2D {
+                POWER_UP_SIZE, {}, true, 1, 0xFFFFFFFFu});
+        reg.addComponent(entity, RType::Physics2D::CollisionEvents2D {});
+        replicateEntity(entity,
+            {encodeKind(request.kind),
+                encodePhysics(POWER_UP_VELOCITY, POWER_UP_SIZE)},
+            true);
         return;
     }
     auto [velocity, hitbox, damage, piercing] = statsOf(request.kind);

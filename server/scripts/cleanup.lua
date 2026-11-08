@@ -21,6 +21,12 @@ world.add_system("server_cleanup", function(dt)
         end
     end)
     
+    world.each({"Transform2D", "PowerUp"}, function(e, transform, power_up)
+        if transform.position.x < -MARGIN then
+            world.kill(e)
+        end
+    end)
+
     world.each({"Transform2D", "Enemy"}, function(e, transform, enemy)
         local x = transform.position.x
         local y = transform.position.y

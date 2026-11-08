@@ -50,11 +50,13 @@ enum class EntityKind : std::uint8_t {
     Gunner = 5,
     /** @brief The boss at the end of each level. */
     Boss = 6,
+    /** @brief Pickup dropped by an enemy: gives the double shot. */
+    PowerUp = 7,
 };
 
 constexpr bool isValidKind(std::uint8_t kind)
 {
-    return kind <= static_cast<std::uint8_t>(EntityKind::Boss);
+    return kind <= static_cast<std::uint8_t>(EntityKind::PowerUp);
 }
 } // namespace Game::Protocol
 

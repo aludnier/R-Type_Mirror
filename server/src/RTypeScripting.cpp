@@ -20,8 +20,9 @@ namespace {
     using Game::Protocol::EntityKind;
 
     // Players are spawned when a client connects, not by scripts.
-    constexpr std::array<std::pair<std::string_view, EntityKind>, 6>
+    constexpr std::array<std::pair<std::string_view, EntityKind>, 7>
         SPAWNABLE_KINDS = {{
+            {"PowerUp", EntityKind::PowerUp},
             {"Enemy", EntityKind::Enemy},
             {"Gunner", EntityKind::Gunner},
             {"Boss", EntityKind::Boss},
@@ -57,6 +58,8 @@ void bindRTypeScripting(
     scripts.bindComponent<Enemy>("Enemy");
     lua.new_usertype<Boss>("Boss", sol::constructors<Boss()>());
     scripts.bindComponent<Boss>("Boss");
+    lua.new_usertype<PowerUp>("PowerUp", sol::constructors<PowerUp()>());
+    scripts.bindComponent<PowerUp>("PowerUp");
 
     sol::table rtype = lua.create_named_table("rtype");
 

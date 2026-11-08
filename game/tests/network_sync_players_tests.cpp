@@ -151,3 +151,24 @@ TEST_CASE(
     sync.processServerMessages({RType::Network::EntityDespawnPacket {20}}, 10);
     CHECK(sync.takeBanner() == "LEVEL 2");
 }
+
+TEST_CASE("A PowerUp is not taken for a player", "[network][players]")
+{
+    Game::NetworkSyncSystem sync;
+    RType::Registry registry;
+    AssetManager assets;
+    registerClientComponents(registry);
+    sync.init(registry, assets);
+    RType::Network::ByteWriter kind;
+    kind.write(static_cast<std::uint8_t>(Game::Protocol::EntityKind::PowerUp));
+
+    sync.processServerMessages(
+        {RType::Network::EntitySpawnPacket {.networkId = 30,
+            .components = {{Game::Protocol::ENTITY_KIND, kind.release()}}}},
+        10);
+
+    const auto powerUp = sync.findEntity(30);
+    REQUIRE(powerUp);
+    auto &players = registry.getComponents<Game::Player>();
+    CHECK((*powerUp >= players.size() || !players[*powerUp]));
+}
