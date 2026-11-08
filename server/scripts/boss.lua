@@ -20,17 +20,19 @@ function boss.on_update(e, dt)
     local position = world.get(e, "Transform2D").position
     local scale = rtype.speed_scale or 1
 
-    if enemy.elapsed == 0 then
-        local health = world.get(e, "Health")
-        local max = HEALTH_PER_LEVEL * (rtype.level or 1)
+    local health = world.get(e, "Health")
+    local max = HEALTH_PER_LEVEL * (rtype.level or 1)
+    if health.max ~= max then
         health.current = max
         health.max = max
     end
-    enemy.elapsed = enemy.elapsed + dt
     if position.x > STOP_X then
         position.x = position.x - ENTRY_SPEED * dt
         return
     end
+    -- The sway starts once it stopped, from the middle of the screen
+    -- where it came in: no jump.
+    enemy.elapsed = enemy.elapsed + dt
     position.y = rtype.SCREEN_HEIGHT / 2
         + math.sin(enemy.elapsed * SWAY_FREQUENCY * scale) * SWAY_AMPLITUDE
     enemy.shoot_timer = enemy.shoot_timer + dt * scale
