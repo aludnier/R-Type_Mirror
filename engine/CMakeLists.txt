@@ -17,6 +17,7 @@ set(ENGINE_MODULE_DIR "${CMAKE_BINARY_DIR}/modules" CACHE INTERNAL "")
 # ---------------------------------------------------------------------------
 set(CORE_SRC
         src/Module.h
+        src/audio/IAudioPlayer.h
         src/ecs/Entity.cpp
         src/ecs/Entity.h
         src/ecs/SparseArray.h
@@ -25,12 +26,14 @@ set(CORE_SRC
         src/math/Vector2.h
         src/math/Vector3.h
         src/components/Action.h
+        src/components/AudioSource.h
         src/components/Transform2D.h
         src/components/Transform3D.h
         src/components/Controllable.h
         src/components/Health.h
         src/components/Hitbox.h
         src/components/Name.h
+        src/components/MusicPlayer.h
         src/components/Sprite.h
         src/reflection/Reflection.cpp
         src/reflection/Reflection.h
@@ -88,24 +91,30 @@ endif ()
 # engine_client: client only (input, engine loop, rendering and audio).
 # The graphics library is linked here, never in engine_core.
 # ---------------------------------------------------------------------------
-find_package(SFML COMPONENTS Graphics Window System CONFIG REQUIRED)
+find_package(SFML COMPONENTS Graphics Window System Audio CONFIG REQUIRED)
 find_package(ImGui-SFML CONFIG REQUIRED)
 
 set(CLIENT_SRC
+        src/audio/AudioManager.cpp
+        src/audio/AudioManager.h
         src/game/GameApp.cpp
         src/game/GameApp.h
         src/library/ClientAssetManager.cpp
         src/library/ClientAssetManager.h
+        src/audio/AudioManager.h
+        src/audio/AudioManager.cpp
         src/library/engine.h
         src/ui/ImGuiUiRenderer.cpp
         src/ui/ImGuiUiRenderer.h
         src/systems/RenderSystem.cpp
         src/systems/RenderSystem.h
+        src/systems/AudioSystem.cpp
+        src/systems/AudioSystem.h
 )
 
 add_library(engine_client STATIC ${CLIENT_SRC})
 
-target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System ImGui-SFML::ImGui-SFML)
+target_link_libraries(engine_client PUBLIC engine_core SFML::Graphics SFML::Window SFML::System SFML::Audio ImGui-SFML::ImGui-SFML Eng::sfml_assets)
 
 # ---------------------------------------------------------------------------
 # engine_platform: window, OpenGL context and main loop (GLFW + glad). Client
@@ -209,6 +218,8 @@ find_package(sol2 CONFIG REQUIRED)
 set(SCRIPTING_SRC
         src/scripting/ComponentBinding.cpp
         src/scripting/ComponentBinding.h
+        src/scripting/AudioBindings.cpp
+        src/scripting/AudioBindings.h
         src/scripting/CoreBindings.cpp
         src/scripting/CoreBindings.h
         src/scripting/ScriptComponent.h
@@ -248,6 +259,8 @@ if (BUILD_TESTS)
             tests/network_protocol_tests.cpp
             tests/network_transport_tests.cpp
             tests/library_manager_tests.cpp
+            tests/audio_tests.cpp
+            tests/audio_system_tests.cpp
             tests/plugin_manager_tests.cpp
             tests/physics2d_plugin_tests.cpp
             tests/lifetime_module_tests.cpp
@@ -264,26 +277,26 @@ if (BUILD_TESTS)
         if (CMAKE_BUILD_TYPE STREQUAL "Debug")
             set(VCPKG_RUNTIME_BIN_DIR
                     "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/debug/bin")
-        else()
+        else ()
             set(VCPKG_RUNTIME_BIN_DIR
                     "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/bin")
-        endif()
+        endif ()
         file(GLOB VCPKG_RUNTIME_DLLS
                 "${VCPKG_RUNTIME_BIN_DIR}/*.dll")
-        foreach(runtime_dll IN LISTS VCPKG_RUNTIME_DLLS)
+        foreach (runtime_dll IN LISTS VCPKG_RUNTIME_DLLS)
             add_custom_command(TARGET game_engine_tests POST_BUILD
                     COMMAND ${CMAKE_COMMAND} -E copy_if_different
                     "${runtime_dll}"
                     "$<TARGET_FILE_DIR:game_engine_tests>"
             )
-        endforeach()
-    endif()
+        endforeach ()
+    endif ()
 
     set(PLUGIN_TEST_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/test_plugins")
     add_library(test_plugin MODULE tests/plugins/TestPlugin.cpp)
     add_library(test_dependency_plugin MODULE tests/plugins/TestDependencyPlugin.cpp)
     add_library(test_failing_plugin MODULE tests/plugins/TestFailingPlugin.cpp)
-    foreach(plugin_target IN ITEMS
+    foreach (plugin_target IN ITEMS
             test_plugin test_dependency_plugin test_failing_plugin)
         set_target_properties(${plugin_target} PROPERTIES
                 LIBRARY_OUTPUT_DIRECTORY "$<1:${PLUGIN_TEST_DIRECTORY}>"
@@ -291,7 +304,7 @@ if (BUILD_TESTS)
         target_include_directories(${plugin_target} PRIVATE
                 src tests/plugins)
         target_link_libraries(${plugin_target} PRIVATE engine_core)
-    endforeach()
+    endforeach ()
     add_dependencies(game_engine_tests
             test_plugin test_dependency_plugin test_failing_plugin)
     target_compile_definitions(game_engine_tests PRIVATE
@@ -308,8 +321,17 @@ if (BUILD_TESTS)
 
     add_test(NAME engine_server_tests COMMAND engine_server_tests)
 
+    add_executable(engine_client_tests
+            tests/audio_tests.cpp
+    )
+
+    target_link_libraries(engine_client_tests PRIVATE engine_client Catch2::Catch2WithMain Eng::sfml_assets)
+
+    add_test(NAME engine_client_tests COMMAND engine_client_tests)
+
     add_executable(engine_scripting_tests
             tests/scripting_tests.cpp
+            tests/audio_binding_tests.cpp
             tests/physics2d_scripting_tests.cpp
     )
 
@@ -342,3 +364,5 @@ add_subdirectory(modules/environment2D)
 add_subdirectory(modules/Animation2D)
 add_subdirectory(modules/lifetime)
 add_subdirectory(modules/sfmlAssets)
+
+target_link_libraries(engine_client PUBLIC Eng::sfml_assets)

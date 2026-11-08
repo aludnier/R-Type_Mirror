@@ -21,6 +21,8 @@ public:
         if (!output) {
             throw std::runtime_error("Unable to write temporary config file");
         }
+        output.close();
+        _path = std::filesystem::canonical(_path);
     }
 
     ~TempConfigFile()

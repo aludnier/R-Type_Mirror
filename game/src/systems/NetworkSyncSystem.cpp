@@ -25,7 +25,8 @@
 namespace Game {
 
 void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
-    const InputManager &input, AssetManager &resources, NetworkClient &client)
+    const InputManager &input, AssetManager &resources, NetworkClient &client,
+    RType::IAudioPlayer *audio)
 {
     client.update(0.0f);
 
@@ -42,7 +43,8 @@ void NetworkSyncSystem::syncWithServer(RType::Registry &registry,
     processServerMessages(client.pollServerMessages(),
         registry,
         resources,
-        client.getLinkedEntity());
+        client.getLinkedEntity(),
+        audio);
     sendLocalPlayerInput(input, client);
 }
 
@@ -51,6 +53,7 @@ struct NetworkSyncSystem::ServerMessageVisitor {
     RType::Registry &registry;
     AssetManager &resources;
     RType::Network::NetworkId localLinkedEntity;
+    RType::IAudioPlayer *audio;
 
     void operator()(const RType::Network::AcceptConnectPacket &packet) const
     {
@@ -85,6 +88,12 @@ struct NetworkSyncSystem::ServerMessageVisitor {
         system.handleComponentUpdate(packet, registry, localLinkedEntity);
     }
 
+    void operator()(const RType::Network::PlaySoundMsgPacket &packet) const
+    {
+        if (audio)
+            audio->playSound(packet.assetName, packet.volume, packet.pitch);
+    }
+
     void operator()(const auto & /* packet */) const
     {
         // Ignore unhandled packets
@@ -94,14 +103,14 @@ struct NetworkSyncSystem::ServerMessageVisitor {
 void NetworkSyncSystem::processServerMessages(
     const std::vector<NetworkClient::ServerMessage> &messages,
     RType::Registry &registry, AssetManager &resources,
-    RType::Network::NetworkId localLinkedEntity)
+    RType::Network::NetworkId localLinkedEntity, RType::IAudioPlayer *audio)
 {
     if (messages.empty()) {
         return;
     }
 
     ServerMessageVisitor visitor {
-        *this, registry, resources, localLinkedEntity};
+        *this, registry, resources, localLinkedEntity, audio};
 
     for (const auto &msg : messages) {
         std::visit(visitor, msg);

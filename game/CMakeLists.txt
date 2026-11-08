@@ -76,6 +76,21 @@ if (BUILD_TESTS)
     target_link_libraries(r-type_game_tests PRIVATE r-type_game_scripting Catch2::Catch2WithMain)
 
     add_test(NAME r-type_game_tests COMMAND r-type_game_tests)
+
+
+    add_executable(game_network_tests
+            tests/network_sync_audio_tests.cpp
+            src/components/Enemy.cpp
+            src/components/Player.cpp
+            src/components/Projectile.cpp
+            src/network/NetworkClient.cpp
+            src/systems/NetworkSyncSystem.cpp
+    )
+    target_include_directories(game_network_tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    target_link_libraries(game_network_tests PRIVATE
+            Eng::core Eng::physics2d Catch2::Catch2WithMain)
+    add_test(NAME game_network_tests COMMAND game_network_tests)
 endif ()
 
 if (WIN32)

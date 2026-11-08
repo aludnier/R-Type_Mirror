@@ -52,6 +52,7 @@ struct ModuleDependency {
 using RegisterModuleFn = std::function<ModuleStatus(Registry &)>;
 using RegisterAssetTypesFn =
     std::function<ModuleStatus(AssetLoaderRegistry &)>;
+using RegisterReflectionFn = std::function<ModuleStatus(Reflection &)>;
 
 struct ModuleDescriptor {
     std::string name;
@@ -59,6 +60,7 @@ struct ModuleDescriptor {
     std::vector<ModuleDependency> dependencies;
     RegisterModuleFn registerModule;
     RegisterAssetTypesFn registerAssetTypes;
+    RegisterReflectionFn registerReflection; // optional, API 1.1
 };
 }
 extern "C" const ModuleDescriptor *RTypeLibEntryPoint();
@@ -295,6 +297,31 @@ If a subsystem is optional, the game must handle its absence explicitly:
 - disable the related feature, or use a documented fallback;
 - show a useful diagnostic to the user or developer;
 - do not continue with a partially registered module.
+
+### Components in the editor
+
+The editor loads the modules listed in the `"plugins"` of a game config
+(`editor assets.json input.json game.json`, default: the build's
+`config/game.json`). Their systems then run in Play mode.
+
+To let the inspector show, add and save a module's components, give the
+descriptor a `registerReflection` callback. The editor calls it once, through
+`PluginManager::reflectModules`, after loading the modules:
+
+```cpp
+RType::ModuleStatus reflectMyModule(RType::Reflection &reflection)
+{
+    reflection.reflect<Rigidbody2D>("Rigidbody2D")
+        .field("velocity", &Rigidbody2D::velocity)
+        .field("mass", &Rigidbody2D::mass);
+    return RType::ModuleStatus::Success;
+}
+```
+
+Only describe the fields a designer edits and a scene saves: leave out the
+components rebuilt every frame, such as `CollisionEvents2D`. A component the
+reflection does not know is skipped, with a warning, when a scene is loaded.
+`physics2D`, `environment2D` and `lifetime` describe their components.
 
 ### Lua bindings
 

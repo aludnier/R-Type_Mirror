@@ -87,6 +87,14 @@ public:
      */
     [[nodiscard]] bool isLoaded(const std::string &name) const;
 
+    /**
+     * @brief Adds the components of every loaded module to @p reflection,
+     *        for the modules that describe them (registerReflection).
+     *        Call it once, after loading the modules.
+     * @throws std::runtime_error if a module fails to describe them.
+     */
+    void reflectModules(Reflection &reflection) const;
+
 private:
     using Loader = DLLoader<ModuleDescriptor>;
     using NameIndex = std::unordered_map<std::string, std::size_t>;
@@ -101,6 +109,7 @@ private:
             dependencies = descriptor->dependencies;
             registerModule = descriptor->registerModule;
             registerAssetTypes = descriptor->registerAssetTypes;
+            registerReflection = descriptor->registerReflection;
         }
 
         Loader library;
@@ -109,6 +118,7 @@ private:
         std::vector<ModuleDependency> dependencies;
         RegisterModuleFn registerModule;
         RegisterAssetTypesFn registerAssetTypes;
+        RegisterReflectionFn registerReflection;
     };
 
     /** @brief Result of scanning a directory. The three members share indices.
