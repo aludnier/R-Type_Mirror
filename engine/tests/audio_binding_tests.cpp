@@ -11,17 +11,6 @@ namespace {
 
 class MockAudioPlayer final : public RType::IAudioPlayer {
 public:
-    RType::SoundHandle playSound(const std::string &name, float volume,
-        float pitch, bool loop) override
-    {
-        soundName = name;
-        soundVolume = volume;
-        soundPitch = pitch;
-        soundLoop = loop;
-        ++playSoundCalls;
-        return soundHandle;
-    }
-
     void stopSound(RType::SoundHandle handle) override
     {
         stoppedSound = handle;
@@ -31,14 +20,6 @@ public:
     [[nodiscard]] bool isSoundPlaying(RType::SoundHandle) const override
     {
         return false;
-    }
-
-    void playMusic(const std::string &name, bool loop, float volume) override
-    {
-        musicName = name;
-        musicLoop = loop;
-        musicVolume = volume;
-        ++playMusicCalls;
     }
 
     void stopMusic() override
@@ -105,6 +86,27 @@ public:
     int pauseAllCalls = 0;
     int resumeAllCalls = 0;
     int stopAllCalls = 0;
+
+private:
+    RType::SoundHandle playSoundImpl(
+        const std::string &name, float volume, float pitch, bool loop) override
+    {
+        soundName = name;
+        soundVolume = volume;
+        soundPitch = pitch;
+        soundLoop = loop;
+        ++playSoundCalls;
+        return soundHandle;
+    }
+
+    void playMusicImpl(
+        const std::string &name, bool loop, float volume) override
+    {
+        musicName = name;
+        musicLoop = loop;
+        musicVolume = volume;
+        ++playMusicCalls;
+    }
 };
 
 } // namespace
@@ -153,7 +155,8 @@ TEST_CASE("Lua audio bindings forward calls with defaults and handles",
     CHECK(audio.stopMusicCalls == 1);
     CHECK(audio.pauseMusicCalls == 1);
     CHECK(audio.resumeMusicCalls == 1);
-    CHECK(audio.volumes[static_cast<std::size_t>(RType::AudioChannel::Master)] ==
+    CHECK(
+        audio.volumes[static_cast<std::size_t>(RType::AudioChannel::Master)] ==
         0.7f);
     CHECK(audio.volumes[static_cast<std::size_t>(RType::AudioChannel::Music)] ==
         0.5f);
