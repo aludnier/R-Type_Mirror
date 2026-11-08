@@ -14,6 +14,7 @@
 #include <filesystem>
 #include <functional>
 #include <map>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <unordered_set>
@@ -56,6 +57,32 @@ public:
      */
     void loadActions(const std::filesystem::path &configFile);
 
+    /**
+     * @brief Writes every action and its inputs in the format loadActions()
+     *        reads. Key codes are written as numbers, named inputs as strings.
+     * @throws std::runtime_error if the file cannot be written.
+     */
+    void saveActions(const std::filesystem::path &configFile) const;
+
+    /**
+     * @brief Defines an action on the lowest free bit.
+     * @return The bit of the action, the existing one if it is defined.
+     * @throws std::out_of_range if MAX_ACTIONS actions are already defined.
+     */
+    RType::ActionId addAction(const std::string &name);
+
+    /**
+     * @brief Forgets an action and its inputs, freeing its bit.
+     * @note Does nothing if the action is not defined.
+     */
+    void removeAction(std::string_view name);
+
+    /**
+     * @brief Renames an action. Its bit and inputs do not change.
+     * @throws std::invalid_argument if @p from is not defined or @p to is.
+     */
+    void renameAction(std::string_view from, const std::string &to);
+
     /** @return The bit of every defined action, by name. */
     [[nodiscard]] const std::map<std::string, RType::ActionId, std::less<>> &
     actions() const;
@@ -68,6 +95,10 @@ public:
      *       Binding the same key twice to the same action has no effect.
      */
     void bind(RType::ActionId action, KeyCode key);
+
+    /** @return The inputs bound to an action, in the order they were bound. */
+    [[nodiscard]] const std::vector<std::string> &bindings(
+        RType::ActionId action) const;
 
     /**
      * @brief Binds a named device input to an action.
@@ -123,7 +154,13 @@ public:
      */
     RType::ActionMask actionMask() const;
 
+    /** @return The inputs that are down, as ids (see keyCodeId()). */
+    [[nodiscard]] const std::unordered_set<std::string> &pressedInputs() const;
+
     static std::string keyCodeId(KeyCode key);
+
+    /** @return The key of a keyCodeId() id, nothing for a named input. */
+    static std::optional<KeyCode> keyCodeOf(std::string_view input);
 
 private:
     using InputId = std::string;
