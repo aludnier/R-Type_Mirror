@@ -1,0 +1,365 @@
+{
+    "entities": [
+        {
+            "components": {
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "map_01",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 0,
+                    "zIndex": -1
+                },
+                "Transform2D": {
+                    "position": [
+                        0.0,
+                        0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        1.0,
+                        1.0
+                    ]
+                }
+            },
+            "name": "background"
+        },
+        {
+            "components": {
+                "CircleCollider2D": {
+                    "isTrigger": true,
+                    "layer": 1,
+                    "mask": 4294967295,
+                    "offset": [
+                        0.0,
+                        0.0
+                    ],
+                    "radius": 0.5
+                },
+                "Health": {
+                    "current": 100,
+                    "max": 100
+                },
+                "Script": {
+                    "scripts": [
+                        "towerDefense/config/script/Spawner.lua"
+                    ]
+                },
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "enemy_normal_slime",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 10,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -343.5,
+                        -250.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        4.0,
+                        5.0
+                    ]
+                }
+            },
+            "name": "EnemieSpawner"
+        },
+        {
+            "components": {
+                "Health": {
+                    "current": 50,
+                    "max": 50
+                },
+                "Script": {
+                    "scripts": []
+                },
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "enemy_normal_slime",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 10,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -349.5,
+                        0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        4.0,
+                        4.0
+                    ]
+                }
+            },
+            "name": "enemy_normal_slime"
+        },
+        {
+            "components": {
+                "Health": {
+                    "current": 1,
+                    "max": 1
+                },
+                "Script": {
+                    "scripts": []
+                },
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "enemy_skeleton",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 8,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -380.0,
+                        0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        4.0,
+                        5.0
+                    ]
+                }
+            },
+            "name": "enemy_skeleton"
+        },
+        {
+            "components": {
+                "Health": {
+                    "current": 1,
+                    "max": 1
+                },
+                "Script": {
+                    "scripts": []
+                },
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "enemy_zombie",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 8,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -413.0,
+                        0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        4.0,
+                        5.0
+                    ]
+                }
+            },
+            "name": "enemy_zombie"
+        },
+        {
+            "components": {
+                "Health": {
+                    "current": 1,
+                    "max": 1
+                },
+                "Script": {
+                    "scripts": []
+                },
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "enemy_demon",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 10,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -451.0,
+                        0.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        4.0,
+                        4.0
+                    ]
+                }
+            },
+            "name": "enemy_demon"
+        },
+        {
+            "components": {
+                "Controllable": {},
+                "Script": {
+                    "scripts": [
+                        "towerDefense/config/script/place_tower.lua"
+                    ]
+                }
+            },
+            "name": "Controlable"
+        },
+        {
+            "components": {
+                "Script": {
+                    "scripts": []
+                },
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "tower_crossbow",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 0,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -347.5,
+                        -83.0
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        2.0,
+                        2.0
+                    ]
+                }
+            },
+            "name": "tower_archer"
+        },
+        {
+            "components": {
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "projectile_cannon",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 0,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -350.5,
+                        -31.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        2.0,
+                        2.0
+                    ]
+                }
+            },
+            "name": "projectile_crossbow"
+        },
+        {
+            "components": {
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "tower_cannon",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 0,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -390.5,
+                        -80.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        2.0,
+                        2.0
+                    ]
+                }
+            },
+            "name": "tower_archer_level_2"
+        },
+        {
+            "components": {
+                "Sprite": {
+                    "a": 255,
+                    "assetId": "tower_ice_wizard",
+                    "b": 255,
+                    "g": 255,
+                    "originX": 0.5,
+                    "originY": 0.5,
+                    "r": 255,
+                    "rectHeight": 0,
+                    "rectLeft": 0,
+                    "rectTop": 0,
+                    "rectWidth": 0,
+                    "zIndex": 0
+                },
+                "Transform2D": {
+                    "position": [
+                        -428.5,
+                        -80.5
+                    ],
+                    "rotation": 0.0,
+                    "scale": [
+                        2.0,
+                        2.0
+                    ]
+                }
+            },
+            "name": "tower_archer_level_3"
+        }
+    ]
+}
