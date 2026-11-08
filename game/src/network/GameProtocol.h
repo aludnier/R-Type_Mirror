@@ -34,6 +34,12 @@ constexpr RType::MovementActions MOVEMENT_ACTIONS {
 /** @brief ENTITY_KIND component: `kind: u8`, sent in ENTITY_SPAWN. */
 constexpr RType::Network::ComponentTypeId ENTITY_KIND = 0x8000;
 
+/** @brief PLAYER_LIVES component: `lives: u8`, in COMPONENT_UPDATE. */
+constexpr RType::Network::ComponentTypeId PLAYER_LIVES = 0x8001;
+
+/** @brief Lives of a player when it joins. */
+constexpr std::uint8_t PLAYER_START_LIVES = 3;
+
 enum class EntityKind : std::uint8_t {
     Player = 0,
     Enemy = 1,

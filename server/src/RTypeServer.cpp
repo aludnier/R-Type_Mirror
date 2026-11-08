@@ -7,6 +7,7 @@
 
 #include "RTypeServer.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 
@@ -38,6 +39,13 @@ namespace {
     constexpr float LASER_COOLDOWN = 0.15f;
 
     constexpr int ENEMY_HEALTH = 2;
+
+    /** @brief Where a player respawns after losing a life. */
+    constexpr Vector2 RESPAWN_POSITION {100.f, SCREEN_HEIGHT / 2.f};
+    /** @brief Seconds without taking hits after a respawn. */
+    constexpr float RESPAWN_INVULNERABILITY = 2.f;
+    /** @brief Lives are sent again this often: COMPONENT_UPDATE can be lost. */
+    constexpr float LIVES_RESEND_INTERVAL = 1.f;
     /** @brief Entity script of every Bydo, in the script directory. */
     constexpr const char *ENEMY_SCRIPT = "bydo.lua";
 
@@ -74,6 +82,14 @@ namespace {
         return (actionMask & (ActionMask {1} << Action::Shoot)) != 0;
     }
 
+    Network::ComponentData encodeLives(std::uint8_t lives)
+    {
+        Network::ByteWriter writer;
+
+        writer.write(lives);
+        return {Game::Protocol::PLAYER_LIVES, writer.release()};
+    }
+
     Network::ComponentData encodeKind(EntityKind kind)
     {
         Network::ByteWriter writer;
@@ -105,13 +121,17 @@ namespace {
 } // namespace
 
 RTypeServer::RTypeServer(const ServerConfig &config) :
-    GameServer(config), _scripts(registry())
+    GameServer(config),
+    _lives(Game::Protocol::PLAYER_START_LIVES, RESPAWN_INVULNERABILITY),
+    _scripts(registry())
 {
     setup(ENGINE_MODULE_DIR "/../config/scripts.json");
 }
 
 RTypeServer::RTypeServer(const Configuration &configuration) :
-    GameServer(configuration), _scripts(registry())
+    GameServer(configuration),
+    _lives(Game::Protocol::PLAYER_START_LIVES, RESPAWN_INVULNERABILITY),
+    _scripts(registry())
 {
     // Next to the game configuration.
     setup(configuration.path().parent_path() / "scripts.json");
@@ -171,14 +191,66 @@ void RTypeServer::setup(const std::filesystem::path &scriptsConfig)
         "is_charged_beam",
         &Projectile::piercing);
     _scripts.bindComponent<Projectile>("Projectile");
+    // For the collision script: an enemy or its bullet hit a player.
+    _scripts.lua()["rtype"]["hit_player"] = [this](std::size_t entity) {
+        hitPlayer(entity);
+    };
     _scripts.loadConfigFile(scriptsConfig);
 }
 
 void RTypeServer::step()
 {
+    updatePlayers();
     updateWeapons();
     runScripts();
     flushSpawns();
+}
+
+void RTypeServer::updatePlayers()
+{
+    const auto &controllables = registry().getComponents<Controllable>();
+    float dt = tickDelta();
+
+    _lives.forgetIf(
+        [&](std::size_t entity) { return !has(controllables, entity); });
+    _lives.update(dt);
+    for (std::size_t i = 0; i < controllables.size(); ++i) {
+        if (controllables[i] && _lives.track(i)) {
+            sendLives(i, _lives.lives(i));
+        }
+    }
+    _livesResend -= dt;
+    if (_livesResend <= 0.f) {
+        _livesResend = LIVES_RESEND_INTERVAL;
+        for (const auto &[entity, lives] : _lives.all()) {
+            sendLives(entity, lives);
+        }
+    }
+}
+
+void RTypeServer::hitPlayer(std::size_t entity)
+{
+    auto &transforms = registry().getComponents<Transform2D>();
+    const PlayerLives::Hit hit = _lives.hit(entity);
+
+    if (hit == PlayerLives::Hit::Ignored) {
+        return;
+    }
+    sendLives(entity, _lives.lives(entity));
+    if (hit == PlayerLives::Hit::Out) {
+        // The session stays: the player watches the others play.
+        despawnEntity(Registry::entityFromIndex(entity));
+        return;
+    }
+    _weapons.erase(entity);
+    if (has(transforms, entity)) {
+        transforms[entity]->position = RESPAWN_POSITION;
+    }
+}
+
+void RTypeServer::sendLives(std::size_t entity, std::uint8_t lives)
+{
+    sendComponents(Registry::entityFromIndex(entity), {encodeLives(lives)});
 }
 
 void RTypeServer::updateWeapons()
@@ -273,7 +345,7 @@ void RTypeServer::spawn(const SpawnRequest &request)
         body.gravityScale = 0.f;
         body.isKinematic = false;
         body.isStatic = false;
-        reg.addComponent<Physics2D::Rigidbody2D>(entity, std::move(body));
+        reg.addComponent(entity, Physics2D::Rigidbody2D {body});
     }
     reg.addComponent(entity,
         RType::Physics2D::BoxCollider2D {hitbox, {}, true, 1, 0xFFFFFFFFu});

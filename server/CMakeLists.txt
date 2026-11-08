@@ -4,6 +4,8 @@
 add_executable(r-type_server
         src/main.cpp
         src/Enemy.h
+        src/PlayerLives.cpp
+        src/PlayerLives.h
         src/RTypeScripting.cpp
         src/RTypeScripting.h
         src/RTypeServer.cpp
@@ -33,6 +35,8 @@ if (BUILD_TESTS)
 
     add_executable(r-type_server_tests
             tests/scripts_tests.cpp
+            tests/player_lives_tests.cpp
+            src/PlayerLives.cpp
             src/RTypeScripting.cpp
     )
 

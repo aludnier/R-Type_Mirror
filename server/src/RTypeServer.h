@@ -9,11 +9,13 @@
 #define RTYPESERVER_H
 
 #include <cstddef>
+#include <cstdint>
 #include <filesystem>
 #include <unordered_map>
 #include <vector>
 
 #include "GameProtocol.h"
+#include "PlayerLives.h"
 #include "components/Rigidbody2D.h"
 #include "math/Vector2.h"
 #include "scripting/ScriptEngine.h"
@@ -55,7 +57,21 @@ private:
     void setup(const std::filesystem::path &scriptsConfig);
 
     void step();
+    /**
+     * @brief Tracks the players that joined or left, counts down their
+     *        invulnerability and sends their lives again every second.
+     */
+    void updatePlayers();
     void updateWeapons();
+
+    /**
+     * @brief A player is hit: it loses a life and respawns, invulnerable
+     *        for a while; without lives left its ship is despawned.
+     * @note Does nothing for an entity that is not a player, or while the
+     *       player is invulnerable.
+     */
+    void hitPlayer(std::size_t entity);
+    void sendLives(std::size_t entity, std::uint8_t lives);
     /** @brief Runs the game scripts, then the script of each entity. */
     void runScripts();
 
@@ -66,6 +82,8 @@ private:
 
     std::vector<SpawnRequest> _pendingSpawns;
     std::unordered_map<std::size_t, Weapon> _weapons;
+    PlayerLives _lives;
+    float _livesResend = 0.f;
     // Member of the derived class: destroyed before the registry.
     ScriptEngine _scripts;
 };

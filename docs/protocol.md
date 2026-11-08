@@ -428,9 +428,10 @@ layout. It also gives the bits of the CONTROLLABLE `actions` (for example,
 bit 0: up, bit 4: shoot), the coordinate system and units used by POSITION,
 and how a `ClientId` maps to a player color.
 
-| Id       | Name        | Layout                 |
-|----------|-------------|------------------------|
-| `0x8000` | ENTITY_KIND | `kind: u8` (see below) |
+| Id       | Name         | Layout                 |
+|----------|--------------|------------------------|
+| `0x8000` | ENTITY_KIND  | `kind: u8` (see below) |
+| `0x8001` | PLAYER_LIVES | `lives: u8`            |
 
 ENTITY_KIND is sent only in ENTITY_SPAWN, it tells the client what to draw.
 An entity without ENTITY_KIND is a player. Values: `0` player, `1` enemy (Bydo), `2` player laser, `3` charged beam
@@ -447,3 +448,16 @@ POSITION is in pixels, in a 1920x1080 play area, and its origin is at the top-le
 CONTROLLABLE `actions`: bit 0 up, bit 1 down, bit 2 left, bit 3 right,
 bit 4 shoot. The server fires when the shoot bit goes from 1 to 0: a laser,
 or a charged beam if it was held for 1.5 s or more.
+
+PLAYER_LIVES is sent in COMPONENT_UPDATE for each player's entity: when it
+joins (3 lives), each time it loses a life, and again every second, since
+COMPONENT_UPDATE is not reliable. A player loses a life when an enemy or an
+enemy bullet touches it; it then respawns at (100, 540) and takes no hit for
+2 s. When its last life is lost, the server despawns its entity with
+ENTITY_DESPAWN: the client shows the game is over, and the session stays
+open.
+
+Player colors: the client tints each player's ship by `ClientId`. Client 1
+keeps the colors of the sprite, then client 2 is orange (`#E69F00`), client
+3 yellow (`#F0E442`) and client 4 purple (`#CC79A7`), colors that stay
+distinct for the common types of color blindness.

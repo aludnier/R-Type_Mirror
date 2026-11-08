@@ -20,6 +20,11 @@ world.add_system("server_collision_resolution", function(dt)
             local otherEnemy = world.get(other, "Enemy")
             local otherControllable = world.get(other, "Controllable")
 
+            -- An enemy touches a player
+            if world.get(e, "Enemy") and otherControllable then
+                rtype.hit_player(other)
+                goto continue
+            end
             if not proj then
                 goto continue
             end
@@ -33,8 +38,9 @@ world.add_system("server_collision_resolution", function(dt)
                 if otherHealth:is_dead() then
                     world.kill(other)
                 end
-            -- Enemy bullet hits player (just destroy the bullet)
+            -- Enemy bullet hits player: the player loses a life
             elseif not proj.is_player_bullet and otherControllable then
+                rtype.hit_player(other)
                 if not proj.is_charged_beam then
                     world.kill(e)
                 end
