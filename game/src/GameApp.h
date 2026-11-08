@@ -56,6 +56,8 @@ private:
     void renderHud();
     /** @brief Health bars of the hit enemies, and of the boss at the top. */
     void renderHealthBars();
+    /** @brief Marks the local player's ship, to tell it from the others. */
+    void renderLocalMarker();
     static void drawBar(sf::RenderWindow &window, sf::Vector2f position,
         sf::Vector2f size, float ratio);
     /** @brief Leaves and joins the same server again, with a new ship. */

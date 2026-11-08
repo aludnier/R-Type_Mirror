@@ -45,6 +45,9 @@ namespace {
      *         front of the ship it is. */
     constexpr float CHARGE_EFFECT_DELAY = 0.2f;
     constexpr float CHARGE_EFFECT_OFFSET = 50.f;
+    /** @brief Half width of the marker above the local ship, and its gap. */
+    constexpr float MARKER_SIZE = 7.f;
+    constexpr float MARKER_GAP = 26.f;
     /** @brief Size of the health bar above a hit enemy, and its gap. */
     constexpr float HEALTH_BAR_WIDTH = 48.f;
     constexpr float HEALTH_BAR_HEIGHT = 5.f;
@@ -547,6 +550,30 @@ void GameApp::updateEndOfGameUi()
     }
 }
 
+void GameApp::renderLocalMarker()
+{
+    auto &registry = getRegistry();
+    auto &transforms = registry.getComponents<RType::Transform2D>();
+    auto &networkEntities = registry.getComponents<NetworkEntity>();
+    auto &players = registry.getComponents<Player>();
+
+    // A small triangle above the local ship, pointing down at it.
+    for (auto [transform, network, player] :
+        RType::Zipper(transforms, networkEntities, players)) {
+        (void) player;
+        if (!network.isLocalPlayer)
+            continue;
+        const float x = transform.position.x;
+        const float y = transform.position.y - MARKER_GAP;
+        sf::ConvexShape marker(3);
+        marker.setPoint(0, {x - MARKER_SIZE, y - MARKER_SIZE});
+        marker.setPoint(1, {x + MARKER_SIZE, y - MARKER_SIZE});
+        marker.setPoint(2, {x, y});
+        marker.setFillColor(sf::Color(255, 255, 255, 220));
+        getWindow().draw(marker);
+    }
+}
+
 void GameApp::renderHealthBars()
 {
     auto &registry = getRegistry();
@@ -612,6 +639,7 @@ void GameApp::drawBar(sf::RenderWindow &window, sf::Vector2f position,
 void GameApp::renderHud()
 {
     renderHealthBars();
+    renderLocalMarker();
     auto &registry = getRegistry();
     auto &players = registry.getComponents<Player>();
     auto &networkEntities = registry.getComponents<NetworkEntity>();
