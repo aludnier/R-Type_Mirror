@@ -6,8 +6,7 @@
 
 namespace TowerDefenseGame {
 TowerDefense::TowerDefense(const std::filesystem::path &scene,
-    const std::filesystem::path &assets,
-    const std::filesystem::path &input,
+    const std::filesystem::path &assets, const std::filesystem::path &input,
     const std::filesystem::path &gameConfig) :
     Application({.title = "Tower Defense",
         .width = 1280,
