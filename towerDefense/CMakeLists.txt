@@ -1,4 +1,8 @@
-add_executable(tower_defense src/main.cpp)
+add_executable(tower_defense
+        src/main.cpp
+        src/TowerDefense.cpp
+        src/TowerDefense.h
+)
 
 target_link_libraries(tower_defense PRIVATE
         Eng::render2d
